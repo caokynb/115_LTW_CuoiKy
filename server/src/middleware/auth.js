@@ -53,14 +53,24 @@ const verifyToken = async (req, res, next) => {
 
 /**
  * Middleware phân quyền theo vai trò (Authorization)
+ * Hỗ trợ truyền vào danh sách các vai trò được phép: requireRole('admin') hoặc requireRole('admin', 'member')
+ * @param {...String|Array<String>} roles - Các vai trò được phép truy cập
  */
 const requireRole = (...roles) => {
+  const allowedRoles = roles.flat();
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
       return next(
-        new AppError('Bạn không có quyền thực hiện hành động này!', 403)
+        new AppError('Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục!', 401)
       );
     }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(
+        new AppError('Bạn không có quyền truy cập vào tài nguyên này!', 403)
+      );
+    }
+
     next();
   };
 };

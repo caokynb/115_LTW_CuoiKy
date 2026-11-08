@@ -3,6 +3,7 @@ const cors = require('cors');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const AppError = require('./utils/AppError');
 const authRouter = require('./routes/auth.routes');
+const adminRouter = require('./routes/admin.routes');
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.get('/api/test-error', (req, res, next) => {
 
 // Các Routes nghiệp vụ
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 
 // Bắt các route không tồn tại (404 Not Found)
 app.use(notFound);
