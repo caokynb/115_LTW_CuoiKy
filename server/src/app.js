@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const AppError = require('./utils/AppError');
+const authRouter = require('./routes/auth.routes');
 
 const app = express();
 
@@ -33,6 +34,9 @@ app.get('/api/health', (req, res) => {
 app.get('/api/test-error', (req, res, next) => {
   next(new AppError('Đây là lỗi thử nghiệm của hệ thống xử lý lỗi tập trung', 400));
 });
+
+// Các Routes nghiệp vụ
+app.use('/api/auth', authRouter);
 
 // Bắt các route không tồn tại (404 Not Found)
 app.use(notFound);
