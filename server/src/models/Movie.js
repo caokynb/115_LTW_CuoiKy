@@ -19,7 +19,7 @@ const movieSchema = new mongoose.Schema(
             validate: {
                 validator: (v) => Array.isArray(v) && v.length > 0,
                 message: 'Phim phải có ít nhất một thể loại',
-            }
+            },
         },
         duration: {
             type: Number,
@@ -39,10 +39,11 @@ const movieSchema = new mongoose.Schema(
             default: 'coming_soon',
             index: true,
         },
-        posterURL: {
+        posterUrl: {
             type: String,
             required: [true, 'URL ảnh poster là bắt buộc'],
             trim: true,
+            alias: 'posterURL',
         },
         trailerYoutubeId: {
             type: String,
