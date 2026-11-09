@@ -39,7 +39,7 @@ const movieSchema = new mongoose.Schema(
             default: 'coming_soon',
             index: true,
         },
-        posterUrl: {
+        posterURL: {
             type: String,
             required: [true, 'URL ảnh poster là bắt buộc'],
             trim: true,
