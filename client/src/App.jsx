@@ -9,6 +9,8 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
 import NotFound from './pages/NotFound';
 import Forbidden from './pages/Forbidden';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -54,24 +56,8 @@ export function App() {
                   />
                 }
               />
-              <Route
-                path="/login"
-                element={
-                  <PlaceholderPage
-                    title="Đăng nhập"
-                    description="Trang đăng nhập hệ thống."
-                  />
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <PlaceholderPage
-                    title="Đăng ký"
-                    description="Trang tạo tài khoản thành viên mới."
-                  />
-                }
-              />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/forbidden" element={<Forbidden />} />
 
               <Route element={<ProtectedRoute />}>
