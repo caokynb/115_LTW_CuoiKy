@@ -5,6 +5,7 @@ const AppError = require('./utils/AppError');
 const authRouter = require('./routes/auth.routes');
 const adminRouter = require('./routes/admin.routes');
 const movieRouter = require('./routes/movie.routes');
+const userRouter = require('./routes/user.routes');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.get('/api/test-error', (req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/movies', movieRouter);
+app.use('/api/users', userRouter);
 
 // Bắt các route không tồn tại (404 Not Found)
 app.use(notFound);
