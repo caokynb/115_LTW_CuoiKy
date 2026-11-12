@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Spinner } from '../components/ui';
 
 /**
  * Route bảo vệ dành riêng cho vai trò admin.
@@ -11,14 +12,7 @@ export function AdminRoute({ children }) {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div
-          className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent"
-          aria-label="Đang kiểm tra quyền truy cập"
-        />
-      </div>
-    );
+    return <Spinner fullScreen label="Đang kiểm tra quyền truy cập..." />;
   }
 
   if (!isAuthenticated) {

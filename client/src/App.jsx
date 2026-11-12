@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/ui';
 import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -22,7 +23,8 @@ export function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
           <Routes>
             <Route element={<MainLayout />}>
               <Route
@@ -164,7 +166,8 @@ export function App() {
               </Route>
             </Route>
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
+        </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   );
