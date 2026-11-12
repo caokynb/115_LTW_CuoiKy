@@ -11,6 +11,7 @@ import NotFound from './pages/NotFound';
 import Forbidden from './pages/Forbidden';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Profile from './pages/Profile';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -88,15 +89,7 @@ export function App() {
                     />
                   }
                 />
-                <Route
-                  path="/profile"
-                  element={
-                    <PlaceholderPage
-                      title="Hồ sơ cá nhân"
-                      description="Quản lý thông tin tài khoản và mật khẩu."
-                    />
-                  }
-                />
+                <Route path="/profile" element={<Profile />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
