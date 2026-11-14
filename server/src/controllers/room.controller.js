@@ -100,7 +100,7 @@ exports.deleteRoom = async (req, res, next) => {
       );
     }
 
-    const hasShowtimes = await Showtime.exists({ room: room._id });
+    const hasShowtimes = await Showtime.exists({ roomId: room._id });
     if (hasShowtimes) {
       return next(new AppError('Không thể xóa phòng đang có suất chiếu', 409));
     }
