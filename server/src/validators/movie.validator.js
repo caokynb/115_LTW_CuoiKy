@@ -17,7 +17,7 @@ const validateMovieInput = (data, isUpdate = false) => {
     } = data;
 
     // Hỗ trợ cả 2 cách đặt tên: posterUrl hoặc posterURL
-    const poster = data.posterUrl !== undefined ? data.posterUrl : data.posterURL;
+    const poster = data.posterUrl || DEFAULT_POSTER; !== undefined ? data.posterUrl : data.posterURL;
 
     // Khi cập nhật (PUT), bắt buộc phải có ít nhất 1 trường được gửi lên
     if (isUpdate && (!data || Object.keys(data).length === 0)) {

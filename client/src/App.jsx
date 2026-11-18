@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Movies from './pages/Movies';
+import MovieDetail from './pages/MovieDetail';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -41,15 +42,7 @@ export function App() {
                 }
               />
               <Route path="/movies" element={<Movies />} />
-              <Route
-                path="/movies/:id"
-                element={
-                  <PlaceholderPage
-                    title="Chi tiết phim"
-                    description="Thông tin chi tiết phim và lịch chiếu."
-                  />
-                }
-              />
+              <Route path="/movies/:id" element={<MovieDetail />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forbidden" element={<Forbidden />} />
