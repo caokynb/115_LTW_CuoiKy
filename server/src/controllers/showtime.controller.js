@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Movie = require('../models/Movie');
 const Showtime = require('../models/Showtime');
 const Room = require('../models/Room');
+const Ticket = require('../models/Ticket');
 const AppError = require('../utils/AppError');
 
 const invalidId = (id) => !mongoose.isObjectIdOrHexString(id);
@@ -45,7 +46,7 @@ const showOverlapError = (showtime) => {
 
 const getShowtimes = async (req, res, next) => {
   try {
-    const { movieId, date } = req.query;
+    const { movieId, roomId, date } = req.query;
     const page = Number.parseInt(req.query.page, 10) || 1;
     const limit = Number.parseInt(req.query.limit, 10) || 20;
 
@@ -55,19 +56,24 @@ const getShowtimes = async (req, res, next) => {
     if (movieId && invalidId(movieId)) {
       return next(new AppError('movieId không hợp lệ.', 400));
     }
+    if (roomId && invalidId(roomId)) {
+      return next(new AppError('roomId không hợp lệ.', 400));
+    }
 
     const filter = {};
     if (movieId) filter.movieId = movieId;
+    if (roomId) filter.roomId = roomId;
     if (date) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return next(new AppError('date phải có định dạng YYYY-MM-DD.', 400));
       }
-      const from = new Date(`${date}T00:00:00.000Z`);
-      if (Number.isNaN(from.getTime()) || from.toISOString().slice(0, 10) !== date) {
+      const dateCheck = new Date(`${date}T00:00:00.000Z`);
+      if (Number.isNaN(dateCheck.getTime()) || dateCheck.toISOString().slice(0, 10) !== date) {
         return next(new AppError('Ngày lọc không hợp lệ.', 400));
       }
-      const until = new Date(from);
-      until.setUTCDate(until.getUTCDate() + 1);
+      // API dates represent calendar days in Ho Chi Minh City (UTC+7).
+      const from = new Date(dateCheck.getTime() - 7 * 60 * 60 * 1000);
+      const until = new Date(from.getTime() + 24 * 60 * 60 * 1000);
       filter.startTime = { $gte: from, $lt: until };
     }
 
@@ -104,7 +110,20 @@ const getShowtimeById = async (req, res, next) => {
       .populate('roomId', 'name rows seatsPerRow vipRows');
     if (!showtime) return next(new AppError('Không tìm thấy suất chiếu.', 404));
 
-    return res.status(200).json({ success: true, data: showtime });
+    const soldTickets = await Ticket.find({
+      showtimeId: showtime._id,
+      status: 'active',
+    })
+      .select('row number -_id')
+      .lean();
+    const room = showtime.roomId;
+    const data = showtime.toObject();
+    data.rows = room?.rows;
+    data.seatsPerRow = room?.seatsPerRow;
+    data.vipRows = room?.vipRows || [];
+    data.soldSeats = soldTickets.map(({ row, number }) => ({ row, number }));
+
+    return res.status(200).json({ success: true, data });
   } catch (error) {
     return next(error);
   }
