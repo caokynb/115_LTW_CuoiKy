@@ -1,0 +1,128 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import GenreTag from './GenreTag';
+
+// Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
+const DEFAULT_POSTER =
+  'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60';
+
+// Format ngày khởi chiếu sang định dạng ngày/tháng/năm của Việt Nam
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+};
+
+// Component thẻ hiển thị thông tin từng bộ phim
+export function MovieCard({ movie }) {
+  // nếu không có dữ liệu phim thì không render
+  if (!movie) return null;
+
+  // lấy các trường cần thiết, hỗ trợ cả posterUrl và posterURL
+  const {
+    _id,
+    title,
+    genres = [],
+    duration,
+    releaseDate,
+    status,
+  } = movie;
+  const poster = movie.posterUrl || movie.posterURL || DEFAULT_POSTER;
+
+  // cờ kiểm tra phim đang chiếu hay sắp chiếu
+  const isNowShowing = status === 'now_showing';
+
+  return (
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
+      {/* Vùng ảnh poster có hiệu ứng hover zoom nhẹ */}
+      <Link
+        to={`/movies/${_id}`}
+        className="relative aspect-[2/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-800"
+      >
+        <img
+          src={poster}
+          alt={title}
+          loading="lazy"
+          onError={(e) => {
+            // nếu link ảnh hỏng thì tự đổi về ảnh mặc định tránh vỡ giao diện
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = DEFAULT_POSTER;
+          }}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+
+        {/* Nhãn trạng thái đang chiếu hoặc sắp chiếu gắn ở góc trên bên trái */}
+        <div className="absolute left-3 top-3">
+          {isNowShowing ? (
+            <span className="inline-flex items-center rounded-md bg-emerald-500/90 px-2.5 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
+              Đang chiếu
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-md bg-amber-500/90 px-2.5 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
+              Sắp chiếu
+            </span>
+          )}
+        </div>
+
+        {/* Thời lượng phim gắn ở góc dưới bên phải poster */}
+        {duration > 0 && (
+          <div className="absolute bottom-3 right-3 rounded-md bg-slate-950/80 px-2 py-0.5 text-xs font-medium text-slate-200 backdrop-blur-sm">
+            {duration} phút
+          </div>
+        )}
+      </Link>
+
+      {/* Phần nội dung chi tiết phía dưới poster */}
+      <div className="flex flex-1 flex-col p-4">
+        {/* Danh sách nhãn thể loại, tối đa hiển thị 2 nhãn đầu để không bị tràn dòng */}
+        {Array.isArray(genres) && genres.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {genres.slice(0, 2).map((g, idx) => (
+              <GenreTag key={`${_id}-genre-${idx}`} genre={g} />
+            ))}
+            {genres.length > 2 && (
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                +{genres.length - 2}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Tên phim (bấm vào chuyển sang trang chi tiết) */}
+        <h3 className="line-clamp-2 text-base font-bold text-slate-900 transition-colors group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-500">
+          <Link to={`/movies/${_id}`} title={title}>
+            {title}
+          </Link>
+        </h3>
+
+        {/* Ngày khởi chiếu */}
+        {releaseDate && (
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Khởi chiếu: {formatDate(releaseDate)}
+          </p>
+        )}
+
+        {/* Nút hành động ở cuối thẻ */}
+        <div className="mt-auto pt-4">
+          <Link
+            to={`/movies/${_id}`}
+            className="flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
+          >
+            {isNowShowing ? 'Đặt vé ngay' : 'Xem thông tin'}
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default MovieCard;
