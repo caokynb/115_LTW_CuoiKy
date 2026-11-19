@@ -1,4 +1,11 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // Bỏ qua nếu môi trường không cho phép cấu hình DNS
+}
 
 const connectDB = async () => {
   try {
