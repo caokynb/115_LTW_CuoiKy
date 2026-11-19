@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Movies from './pages/Movies';
+import Seats from './pages/Seats';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -55,15 +56,7 @@ export function App() {
               <Route path="/forbidden" element={<Forbidden />} />
 
               <Route element={<ProtectedRoute />}>
-                <Route
-                  path="/showtimes/:id/seats"
-                  element={
-                    <PlaceholderPage
-                      title="Chọn ghế"
-                      description="Sơ đồ chọn ghế theo suất chiếu."
-                    />
-                  }
-                />
+                <Route path="/showtimes/:id/seats" element={<Seats />} />
                 <Route
                   path="/bookings/:id"
                   element={
