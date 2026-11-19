@@ -13,9 +13,9 @@ const formatDate = (dateString) => {
     const d = new Date(dateString);
     if (isNaN(d.getTime())) return '';
     return d.toLocaleDateString('vi-VN', {
-      day: '2-digit',
+      day: '2-digit', //để dạng 2 ký tự
       month: '2-digit',
-      year: 'numeric',
+      year: 'numeric', //phải là số
     });
   } catch {
     return '';
@@ -27,7 +27,7 @@ export function MovieCard({ movie }) {
   // nếu không có dữ liệu phim thì không render
   if (!movie) return null;
 
-  // lấy các trường cần thiết, hỗ trợ cả posterUrl và posterURL
+  // lấy các trường cần thiết, hỗ trợ posterUrl
   const {
     _id,
     title,
@@ -36,7 +36,7 @@ export function MovieCard({ movie }) {
     releaseDate,
     status,
   } = movie;
-  const poster = movie.posterUrl || movie.posterURL || DEFAULT_POSTER;
+  const poster = movie.posterUrl
 
   // cờ kiểm tra phim đang chiếu hay sắp chiếu
   const isNowShowing = status === 'now_showing';
