@@ -197,12 +197,13 @@ const createBooking = async (req, res, next) => {
         },
       });
     } catch (err) {
-      // Dọn dẹp booking nếu xảy ra lỗi trong quá trình tạo vé
-      if (booking) {
+      // Dọn dẹp booking và các vé đã chèn dở dang nếu xảy ra lỗi trong quá trình tạo vé
+      if (booking && booking._id) {
         try {
+          await Ticket.deleteMany({ bookingId: booking._id });
           await Booking.findByIdAndDelete(booking._id);
         } catch (cleanupErr) {
-          console.error('[Booking Controller] Lỗi xóa booking dọn dẹp:', cleanupErr);
+          console.error('[Booking Controller] Lỗi xóa booking/vé dọn dẹp:', cleanupErr);
         }
       }
 

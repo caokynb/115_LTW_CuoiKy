@@ -270,6 +270,53 @@ describe('Booking API Endpoints (POST /api/bookings)', () => {
     assert.ok(
       failedData.conflictingSeats.some((s) => s.row === 'C' && s.number === 7)
     );
+
+    // Bước 4: Kiểm thử tranh chấp đồng thời đa ghế (multi-seat concurrent collision)
+    const [resMultiA, resMultiB] = await Promise.all([
+      fetch(`${baseUrl}/api/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          showtimeId: futureShowtime._id.toString(),
+          seats: [
+            { row: 'A', number: 7 },
+            { row: 'A', number: 8 },
+          ],
+        }),
+      }),
+      fetch(`${baseUrl}/api/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          showtimeId: futureShowtime._id.toString(),
+          seats: [{ row: 'A', number: 8 }],
+        }),
+      }),
+    ]);
+
+    const multiStatuses = [resMultiA.status, resMultiB.status];
+    assert.ok(multiStatuses.includes(201), 'One multi request must succeed with 201');
+    assert.ok(multiStatuses.includes(409), 'One multi request must fail with 409 conflict');
+
+    if (resMultiA.status === 409) {
+      const orphanSeatA7 = await Ticket.findOne({
+        showtimeId: futureShowtime._id,
+        row: 'A',
+        number: 7,
+        status: 'active',
+      });
+      assert.strictEqual(
+        orphanSeatA7,
+        null,
+        'Preceding seat A7 must not be left orphaned when multi-seat booking fails'
+      );
+    }
   });
 
   it('Test 4: Rejection of unauthenticated requests (HTTP 401)', async () => {
@@ -376,5 +423,110 @@ describe('Booking API Endpoints (POST /api/bookings)', () => {
       }),
     });
     assert.strictEqual(resOutOfBounds.status, 400, 'Out of bounds seat must return 400');
+  });
+
+  it('Test 6: Multi-seat collision write-time rollback cleans up partially inserted tickets (no orphaned tickets in DB)', async () => {
+    let failedBookingId = null;
+    let otherBookingId = null;
+    const originalBookingCreate = Booking.create;
+
+    let triggerCollision = true;
+    Booking.create = async function (...args) {
+      const result = await originalBookingCreate.apply(this, args);
+      if (triggerCollision) {
+        triggerCollision = false;
+        failedBookingId = result._id;
+
+        // Giả lập va chạm ghi đồng thời: tạo trước ghế F1 ngay sau khi Tier 1 check vừa hoàn thành
+        const otherBooking = await originalBookingCreate.apply(Booking, [
+          {
+            userId: testUser._id,
+            showtimeId: futureShowtime._id,
+            totalPrice: 90000,
+            status: 'confirmed',
+          },
+        ]);
+        otherBookingId = otherBooking._id;
+
+        await Ticket.create({
+          bookingId: otherBooking._id,
+          showtimeId: futureShowtime._id,
+          row: 'F',
+          number: 2,
+          seatType: 'vip',
+          price: 90000,
+          status: 'active',
+        });
+      }
+      return result;
+    };
+
+    try {
+      // Đặt 2 ghế: F1 (chưa ai đặt) và F2 (sẽ va chạm E11000 khi insertMany ghi vé F2)
+      const res = await fetch(`${baseUrl}/api/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          showtimeId: futureShowtime._id.toString(),
+          seats: [
+            { row: 'F', number: 1 },
+            { row: 'F', number: 2 },
+          ],
+        }),
+      });
+
+      const data = await res.json();
+
+      assert.strictEqual(res.status, 409, `Expected 409 but got ${res.status}`);
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, 'Ghế đã được đặt');
+      assert.ok(
+        data.conflictingSeats.some((s) => s.row === 'F' && s.number === 2),
+        'conflictingSeats must identify F2 as conflicting'
+      );
+
+      // Xác minh failedBookingId đã được ghi nhận và đơn đặt vé đã bị xóa
+      assert.ok(failedBookingId, 'failedBookingId must have been captured');
+      const failedBookingInDb = await Booking.findById(failedBookingId);
+      assert.strictEqual(failedBookingInDb, null, 'Failed booking must be deleted from DB');
+
+      // Xác minh Ticket.countDocuments({ bookingId: failedBookingId }) là 0
+      const failedBookingTicketsCount = await Ticket.countDocuments({
+        bookingId: failedBookingId,
+      });
+      assert.strictEqual(
+        failedBookingTicketsCount,
+        0,
+        'Ticket.countDocuments({ bookingId: failedBookingId }) must be 0'
+      );
+
+      // Xác minh ghế đứng trước (F1) không bị lưu dạng orphan active ticket trong DB
+      const orphanSeatF1 = await Ticket.findOne({
+        showtimeId: futureShowtime._id,
+        row: 'F',
+        number: 1,
+        status: 'active',
+      });
+      assert.strictEqual(
+        orphanSeatF1,
+        null,
+        'Preceding non-colliding seat F1 must NOT be left as orphaned active ticket in DB'
+      );
+    } finally {
+      Booking.create = originalBookingCreate;
+
+      if (otherBookingId) {
+        await Ticket.deleteMany({ bookingId: otherBookingId });
+        await Booking.findByIdAndDelete(otherBookingId);
+      }
+      await Ticket.deleteMany({
+        showtimeId: futureShowtime._id,
+        row: 'F',
+        number: { $in: [1, 2] },
+      });
+    }
   });
 });
