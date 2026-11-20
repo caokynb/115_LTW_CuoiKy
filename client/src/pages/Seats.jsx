@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import api, { getErrorMessage } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { useToast, Spinner, EmptyState, Button } from '../components/ui';
+import { useToast, Spinner, EmptyState, Button, Modal } from '../components/ui';
 import { SeatMap, BookingSummary } from '../components/booking';
 import {
   setBookingShowtime,
   toggleSeat,
   clearError,
+  clearSeats,
   selectSelectedSeats,
   selectBookingError,
 } from '../store/slices/bookingSlice';
@@ -23,6 +24,8 @@ export function Seats({ onCheckout: onCheckoutProp }) {
   const [showtime, setShowtime] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedSeats = useSelector(selectSelectedSeats);
   const reduxError = useSelector(selectBookingError);
@@ -135,14 +138,58 @@ export function Seats({ onCheckout: onCheckoutProp }) {
       });
       return;
     }
-    navigate(`/bookings/new`, {
-      state: {
+    setIsConfirmOpen(true);
+  }, [id, selectedSeats, totalAmount, onCheckoutProp]);
+
+  // Handle confirm and create booking via API
+  const handleConfirmBooking = async () => {
+    if (selectedSeats.length === 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
         showtimeId: id,
-        selectedSeats,
-        totalAmount,
-      },
-    });
-  }, [id, selectedSeats, totalAmount, onCheckoutProp, navigate]);
+        seats: selectedSeats.map((s) => ({
+          row: s.row,
+          number: s.number,
+        })),
+      };
+
+      const res = await api.post('/bookings', payload);
+      const bookingData = res.data?.data?.booking;
+
+      toast.success('Đặt vé thành công!');
+      dispatch(clearSeats());
+      setIsConfirmOpen(false);
+
+      if (bookingData?._id) {
+        navigate(`/bookings/${bookingData._id}`);
+      } else {
+        navigate('/my-bookings');
+      }
+    } catch (err) {
+      if (err.response?.status === 409) {
+        const conflicting = err.response?.data?.conflictingSeats || [];
+        const conflictLabels = conflicting.map((s) => `${s.row}${s.number}`).join(', ');
+        toast.error(
+          conflictLabels
+            ? `Ghế ${conflictLabels} đã có người đặt trước. Vui lòng chọn ghế khác!`
+            : err.response?.data?.message || 'Một số ghế đã có người đặt trước.'
+        );
+        // Tải lại suất chiếu để cập nhật danh sách ghế đã bán
+        try {
+          const reloadRes = await api.get(`/showtimes/${id}`);
+          setShowtime(reloadRes.data?.data || null);
+        } catch {
+          // Bỏ qua lỗi tải lại
+        }
+      } else {
+        toast.error(getErrorMessage(err, 'Đặt vé thất bại. Vui lòng thử lại!'));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // F5 refresh / loading stability
   if (authLoading || (loading && !showtime)) {
@@ -265,6 +312,65 @@ export function Seats({ onCheckout: onCheckoutProp }) {
           />
         </aside>
       </div>
+
+      {/* Modal Xác nhận đặt vé */}
+      <Modal
+        isOpen={isConfirmOpen}
+        onClose={() => !isSubmitting && setIsConfirmOpen(false)}
+        title="Xác nhận đặt vé"
+        size="md"
+      >
+        <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
+          <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+            <p className="font-bold text-base text-slate-900 dark:text-white">{movie?.title}</p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <div>Phòng: <strong className="text-slate-800 dark:text-slate-200">{roomName}</strong></div>
+              <div>
+                Suất chiếu:{' '}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {showtime?.startTime
+                    ? new Date(showtime.startTime).toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : ''}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span className="block text-xs font-semibold uppercase text-slate-400">Ghế đã chọn:</span>
+            <p className="mt-1 font-bold text-brand-600 dark:text-brand-400">
+              {selectedSeats.map((s) => `${s.row}${s.number}`).join(', ')} ({selectedSeats.length} ghế)
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+            <span className="font-medium text-slate-600 dark:text-slate-400">Tổng tiền thanh toán:</span>
+            <span className="text-xl font-black text-brand-600 dark:text-brand-500">
+              {totalAmount.toLocaleString('vi-VN')} đ
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => setIsConfirmOpen(false)}
+            disabled={isSubmitting}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleConfirmBooking}
+            loading={isSubmitting}
+          >
+            Xác nhận thanh toán
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

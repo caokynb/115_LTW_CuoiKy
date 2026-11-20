@@ -15,6 +15,10 @@ import Profile from './pages/Profile';
 import Movies from './pages/Movies';
 import MovieDetail from './pages/MovieDetail';
 import Seats from './pages/Seats';
+import BookingDetail from './pages/BookingDetail';
+import MyBookings from './pages/MyBookings';
+import RoomPage from './pages/admin/Rooms';
+import ShowtimePage from './pages/admin/Showtimes';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -50,24 +54,8 @@ export function App() {
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/showtimes/:id/seats" element={<Seats />} />
-                <Route
-                  path="/bookings/:id"
-                  element={
-                    <PlaceholderPage
-                      title="Chi tiết đặt vé"
-                      description="Thông tin xác nhận và mã QR vé."
-                    />
-                  }
-                />
-                <Route
-                  path="/my-bookings"
-                  element={
-                    <PlaceholderPage
-                      title="Vé của tôi"
-                      description="Lịch sử đặt vé của bạn."
-                    />
-                  }
-                />
+                <Route path="/bookings/:id" element={<BookingDetail />} />
+                <Route path="/my-bookings" element={<MyBookings />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
 
@@ -94,24 +82,8 @@ export function App() {
                     />
                   }
                 />
-                <Route
-                  path="rooms"
-                  element={
-                    <PlaceholderPage
-                      title="Quản lý phòng chiếu"
-                      description="Thiết lập sơ đồ ghế và phòng chiếu."
-                    />
-                  }
-                />
-                <Route
-                  path="showtimes"
-                  element={
-                    <PlaceholderPage
-                      title="Quản lý suất chiếu"
-                      description="Sắp xếp lịch chiếu phim theo phòng."
-                    />
-                  }
-                />
+                <Route path="rooms" element={<RoomPage />} />
+                <Route path="showtimes" element={<ShowtimePage />} />
                 <Route
                   path="bookings"
                   element={
