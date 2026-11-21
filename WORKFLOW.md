@@ -11,7 +11,8 @@
    - Tuyệt đối không bao giờ tuyên bố một task "hoàn thành" hay một bug "đã sửa" nếu chưa trực tiếp chạy lệnh test thực tế và có output log thành công (`pass`, `exit code 0`).
 2. **Kỷ luật Git & Phân nhánh độc lập (Branch Isolation):**
    - Tuyệt đối không commit trực tiếp vào `main`. Mỗi task phải được thực hiện trên đúng nhánh được chỉ định.
-   - Commit message bắt buộc viết bằng **tiếng Anh ngắn gọn, rõ nghĩa** (Concise English), mô tả đúng bản chất thay đổi (ví dụ: `Implement booking API endpoint with authoritative pricing and collision handling`), không chèn tiền tố thừa như `[AI]`, `AI-generated:`.
+   - Commit message bắt buộc viết ngắn gọn, rõ nghĩa, không chèn tiền tố thừa như `[AI]`, `AI-generated:`.
+   - **Tuyệt đối KHÔNG đề cập đến Sheet trong commit message:** Lịch sử Git chỉ ghi nhận thay đổi mã nguồn/kỹ thuật. Khi sửa lỗi nhỏ, chỉnh sửa tài liệu hoặc cấu hình, chỉ cần ghi ngắn gọn là `fix` (hoặc tóm tắt kỹ thuật ngắn gọn), tuyệt đối không đưa các từ khóa như "sheet", "google sheet", "sync sheet" vào commit message.
 3. **Giới hạn phạm vi nghiêm ngặt (Strict Scope Confinement):**
    - Chỉ chỉnh sửa các file thuộc phạm vi được giao trong cột *"File/thư mục được sửa (chỉ mình bạn)"* trên Google Sheet. Tránh sửa lan man sang file người khác để triệt tiêu merge conflict.
 4. **Không cài thư viện tùy tiện:**
@@ -22,6 +23,11 @@
      - **CẤM ghi các từ khóa AI:** Tuyệt đối không nhắc đến `AI`, `Agent`, `Prompt`, `Bot`, `Teamwork`, `Swarm`, `Auto-generated`, v.v. trên bất kỳ ô nào của Sheet.
      - **CẤM ghi lý do cá nhân / mâu thuẫn nội bộ:** Không ghi các giải thích như *"làm hộ"*, *"bận thi"*, *"không làm được"*, v.v. Khi phân công lại công việc giữa các thành viên, chỉ đơn thuần cập nhật tên người phụ trách một cách tự nhiên và chuyên nghiệp.
      - **Cột "Ghi chú" (Notes):** Giữ sạch sẽ, chỉ ghi thông tin chuyên môn cần thiết (ví dụ mã PR ngắn gọn) hoặc để trống. Không biến cột ghi chú thành nhật ký debug hay thảo luận.
+6. **Đồng bộ Sheet và Repo theo thời gian thực (Real-time Sheet & Repo Synchronization):**
+   - Dữ liệu trên Google Sheet (`Task management`) phải luôn **khớp chính xác 100% theo thời gian thực** với cấu trúc mã nguồn và tiến độ thực tế trong repository:
+     - **Cột File/thư mục được sửa (Col I):** Bắt buộc phải phản ánh đúng tên file và đường dẫn thực tế trên repo (ví dụ: `client/src/components/booking/*`, `client/src/pages/Seats.jsx`, `server/src/controllers/booking.controller.js`). Tuyệt đối không để lại file ảo hay file dự kiến ban đầu mà repo không sử dụng (như `services/booking.service.js`).
+     - **Cột Trạng thái (Col E):** Chuyển sang `Đang làm` ngay khi bắt đầu triển khai, `Chờ review` khi đẩy PR/branch, và `Xong` ngay khi hoàn thành kiểm thử và merge vào `main`.
+     - **Cột Người phụ trách (Col C):** Cập nhật ngay khi có sự tiếp quản hoặc điều chỉnh nhân sự thực hiện task.
 
 ---
 
@@ -94,10 +100,10 @@ Mọi thay đổi code trước khi merge **bắt buộc** phải vượt qua 3 
 
 ### Bước 5: Commit và Push lên GitHub
 - Kiểm tra diff bằng `git diff` và staged changes bằng `git status`.
-- Commit bằng thông điệp tiếng Anh ngắn gọn:
+- Commit bằng thông điệp ngắn gọn, súc tích (hoặc chỉ cần `fix` khi cập nhật chỉnh sửa nhỏ/tài liệu; tuyệt đối không nhắc đến sheet trong commit message):
   ```powershell
   git add <các-file-thay-đổi>
-  git commit -m "Concise English description of changes"
+  git commit -m "fix"
   git push origin <tên-nhánh>
   ```
 
@@ -121,7 +127,8 @@ Mọi thay đổi code trước khi merge **bắt buộc** phải vượt qua 3 
 
 ### Bước 7: Cập nhật Google Sheet và Checklist kiểm thử
 - Sử dụng công cụ tích hợp Google Sheets CLI để cập nhật dữ liệu trên Sheet theo đúng chuẩn mực:
-  - Chỉ cập nhật các giá trị chuẩn: `Trạng thái` thành **"Xong"** (Col E), và `Người` thành tên thành viên chính thức (Col C).
+  - Cập nhật `Trạng thái` thành **"Xong"** (Col E), và `Người` thành tên thành viên chính thức (Col C).
+  - Kiểm tra và chuẩn hóa cột `File/thư mục được sửa` (Col I) đảm bảo khớp 100% với tên file và đường dẫn thực tế vừa được merge vào repo.
   - Không ghi bất kỳ nội dung nào làm lộ dấu vết công cụ hay giải thích vụn vặt vào cột `Ghi chú`.
 - Cập nhật tài liệu kiểm thử kỹ thuật nội bộ tại file [checklist_kiem_tra_web.md](file:///C:/Users/Admin/.gemini/antigravity/brain/80c83b3a-dd67-459d-90c6-147a1c5f4ad3/checklist_kiem_tra_web.md) để đội ngũ nắm rõ trạng thái thực tế.
 
