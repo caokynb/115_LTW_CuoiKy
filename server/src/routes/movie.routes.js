@@ -1,6 +1,7 @@
 const express = require('express');
 const {
     getMovies,
+    getMovieGenres,
     getMovieById,
     createMovie,
     updateMovie,
@@ -16,6 +17,9 @@ const router = express.Router();
  * @access  Public
  */
 router.get('/', getMovies);
+
+// đặt route /genres trước /:id để tránh bị hiểu nhầm thành id phim
+router.get('/genres', getMovieGenres);
 
 /**
  * @route   GET /api/movies/:id

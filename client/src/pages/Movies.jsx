@@ -63,6 +63,15 @@ export function Movies() {
     params: fetchParams,
   });
 
+  // gọi API lấy danh sách thể loại kèm số lượng phim để đổ vào bộ lọc
+  const { data: genresResponse } = useFetch('/movies/genres');
+  const dynamicGenres = useMemo(() => {
+    const raw = genresResponse?.data;
+    if (!Array.isArray(raw)) return undefined;
+    const valid = raw.filter((item) => item && typeof item.genre === 'string');
+    return valid.length > 0 ? valid : undefined;
+  }, [genresResponse]);
+
   // danh sách phim trả về từ backend
   const movies = data?.data || [];
   const total = data?.total || 0;
@@ -174,6 +183,7 @@ export function Movies() {
           <GenreFilter
             selectedGenre={currentGenre}
             onSelectGenre={handleGenreChange}
+            genres={dynamicGenres}
           />
 
           {/* chọn ngày chiếu */}

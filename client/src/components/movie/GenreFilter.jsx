@@ -35,11 +35,17 @@ export function GenreFilter({
         className="w-full appearance-none rounded-xl border border-slate-300 bg-white py-2.5 pl-3.5 pr-10 text-sm text-slate-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-500 dark:focus:ring-brand-500/30 cursor-pointer"
       >
         <option value="">Tất cả thể loại</option>
-        {genres.map((genre) => (
-          <option key={genre} value={genre}>
-            {genre}
-          </option>
-        ))}
+        {genres.map((item) => {
+          // hỗ trợ cả dạng chuỗi đơn giản lẫn object { genre, count } từ API
+          const genreName = typeof item === 'string' ? item : item?.genre;
+          const count = typeof item === 'object' && item !== null ? item.count : undefined;
+          if (!genreName) return null;
+          return (
+            <option key={genreName} value={genreName}>
+              {count !== undefined ? `${genreName} (${count})` : genreName}
+            </option>
+          );
+        })}
       </select>
 
       {/* mũi tên trỏ xuống */}

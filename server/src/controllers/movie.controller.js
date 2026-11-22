@@ -80,6 +80,46 @@ const getMovies = async (req, res, next) => {
     }
 };
 
+// lấy danh sách thể loại kèm số lượng phim theo từng thể loại
+const getMovieGenres = async (req, res, next) => {
+    try {
+        const { status } = req.query;
+        const pipeline = [];
+
+        // nếu truyền status thì lọc trước khi gom nhóm
+        if (status && status.trim() !== '') {
+            pipeline.push({ $match: { status: status.trim() } });
+        }
+
+        pipeline.push(
+            { $unwind: '$genres' },
+            {
+                $group: {
+                    _id: '$genres',
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    genre: '$_id',
+                    count: 1,
+                },
+            },
+            { $sort: { count: -1, genre: 1 } }
+        );
+
+        const genres = await Movie.aggregate(pipeline);
+
+        return res.status(200).json({
+            success: true,
+            data: genres,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 /**
  * @route   GET /api/movies/:id
  * @desc    Lấy chi tiết một bộ phim theo ID
@@ -205,6 +245,7 @@ const deleteMovie = async (req, res, next) => {
 
 module.exports = {
     getMovies,
+    getMovieGenres,
     getMovieById,
     createMovie,
     updateMovie,
