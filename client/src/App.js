@@ -1,3 +1,5 @@
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import logo from './logo.svg';
 import './App.css';
 
@@ -18,6 +20,7 @@ function App() {
           Learn React
         </a>
       </header>
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }
