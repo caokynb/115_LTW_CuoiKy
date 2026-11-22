@@ -19,6 +19,7 @@ import BookingDetail from './pages/BookingDetail';
 import MyBookings from './pages/MyBookings';
 import RoomPage from './pages/admin/Rooms';
 import ShowtimePage from './pages/admin/Showtimes';
+import AdminMovies from './pages/admin/Movies';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -73,15 +74,7 @@ export function App() {
                     />
                   }
                 />
-                <Route
-                  path="movies"
-                  element={
-                    <PlaceholderPage
-                      title="Quản lý phim"
-                      description="Thêm, sửa, xóa danh sách phim."
-                    />
-                  }
-                />
+                <Route path="movies" element={<AdminMovies />} />
                 <Route path="rooms" element={<RoomPage />} />
                 <Route path="showtimes" element={<ShowtimePage />} />
                 <Route
