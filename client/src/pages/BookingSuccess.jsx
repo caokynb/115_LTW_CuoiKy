@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import api from '../api';
+import api from '../services/api';
 
 export default function BookingSuccess() {
   const { id } = useParams();
@@ -10,7 +10,7 @@ export default function BookingSuccess() {
   useEffect(() => {
     let ignore = false;
     api
-      .get(`/api/bookings/${id}`)
+      .get(`/bookings/${id}`)
       .then(({ data }) => !ignore && setBooking(data))
       .catch((err) => !ignore && setError(err.response?.data?.message || 'Không tải được vé'));
     return () => {
@@ -21,15 +21,22 @@ export default function BookingSuccess() {
   if (error) return <p role="alert">{error}</p>;
   if (!booking) return <p>Đang tải...</p>;
 
-  const { showtime, seats } = booking;
+  const { showtime, seats = [] } = booking;
+  const seatLabels = seats
+    .map((s) => s?.label || (s?.row && s?.number ? `${s.row}${s.number}` : ''))
+    .filter(Boolean);
+
   return (
     <div>
       <h2>Đặt vé thành công</h2>
       <p>Mã vé: <strong>{booking._id}</strong></p>
-      <p>Phim: {showtime.movie.title}</p>
-      <p>Phòng: {showtime.room.name}</p>
-      <p>Suất chiếu: {new Date(showtime.startTime).toLocaleString('vi-VN')}</p>
-      <p>Ghế: {seats.map((s) => s.label).join(', ')}</p>
+      <p>Phim: {showtime?.movie?.title || '—'}</p>
+      <p>Phòng: {showtime?.room?.name || '—'}</p>
+      <p>
+        Suất chiếu:{' '}
+        {showtime?.startTime ? new Date(showtime.startTime).toLocaleString('vi-VN') : '—'}
+      </p>
+      <p>Ghế: {seatLabels.length ? seatLabels.join(', ') : '—'}</p>
     </div>
   );
 }
