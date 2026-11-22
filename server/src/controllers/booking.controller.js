@@ -314,8 +314,103 @@ const getBookingById = async (req, res, next) => {
   }
 };
 
+/**
+ * Hủy đơn đặt vé và giải phóng ghế (nhả ghế)
+ * PATCH /api/bookings/:id/cancel
+ */
+const cancelBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Kiểm tra ID hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID đơn đặt vé không hợp lệ',
+      });
+    }
+
+    // 2. Tìm đơn đặt vé và populate showtimeId
+    const booking = await Booking.findById(id).populate('showtimeId');
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn đặt vé',
+      });
+    }
+
+    // 3. Kiểm tra quyền sở hữu (chỉ chủ vé hoặc admin)
+    if (
+      booking.userId.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền hủy đơn đặt vé này',
+      });
+    }
+
+    // 4. Kiểm tra xem đơn đã bị hủy trước đó chưa
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn đặt vé này đã được hủy trước đó',
+      });
+    }
+
+    // 5. Kiểm tra thời gian trước giờ chiếu ít nhất 2 tiếng
+    if (!booking.showtimeId || !booking.showtimeId.startTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không tìm thấy thông tin suất chiếu của đơn đặt vé',
+      });
+    }
+
+    const startTime = new Date(booking.showtimeId.startTime).getTime();
+    const now = Date.now();
+    const diffHours = (startTime - now) / (1000 * 60 * 60);
+
+    if (diffHours < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ được phép hủy vé trước giờ chiếu ít nhất 2 tiếng',
+      });
+    }
+
+    // 6. Cập nhật trạng thái booking sang cancelled
+    booking.status = 'cancelled';
+    await booking.save();
+
+    // 7. Cập nhật trạng thái tất cả vé thuộc đơn sang cancelled để giải phóng ghế
+    await Ticket.updateMany(
+      { bookingId: booking._id },
+      { $set: { status: 'cancelled' } }
+    );
+
+    // 8. Lấy dữ liệu cập nhật đầy đủ để trả về client
+    const updatedBooking = await Booking.findById(booking._id)
+      .populate({
+        path: 'showtimeId',
+        populate: [
+          { path: 'movieId', select: 'title duration posterUrl' },
+          { path: 'roomId', select: 'name rows seatsPerRow' },
+        ],
+      })
+      .populate('tickets');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Hủy vé thành công, ghế đã được giải phóng',
+      data: updatedBooking,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createBooking,
   getMyBookings,
   getBookingById,
+  cancelBooking,
 };
