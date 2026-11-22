@@ -59,6 +59,7 @@ describe('Movies Page Search & Filter Integration', () => {
         }),
       })
     );
+    expect(useFetchModule.useFetch).toHaveBeenCalledWith('/movies/genres');
 
     // Verify search input has initial value
     const searchInput = screen.getByRole('textbox', { name: /tìm kiếm phim/i });
@@ -110,7 +111,7 @@ describe('Movies Page Search & Filter Integration', () => {
     });
 
     // After 400ms debounce, useFetch should receive q='Oppenheimer'
-    expect(useFetchModule.useFetch).toHaveBeenLastCalledWith(
+    expect(useFetchModule.useFetch).toHaveBeenCalledWith(
       '/movies',
       expect.objectContaining({
         params: expect.objectContaining({

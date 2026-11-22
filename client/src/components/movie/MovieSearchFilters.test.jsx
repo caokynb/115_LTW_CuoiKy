@@ -53,6 +53,16 @@ describe('Movie Search & Filter Components', () => {
       fireEvent.change(select, { target: { value: 'Hành động' } });
       expect(handleSelect).toHaveBeenCalledWith('Hành động');
     });
+
+    test('renders genre objects with movie count from API', () => {
+      const apiGenres = [
+        { genre: 'Hành động', count: 5 },
+        { genre: 'Tài liệu', count: 1 },
+      ];
+      render(<GenreFilter selectedGenre="" onSelectGenre={jest.fn()} genres={apiGenres} />);
+      expect(screen.getByText('Hành động (5)')).toBeInTheDocument();
+      expect(screen.getByText('Tài liệu (1)')).toBeInTheDocument();
+    });
   });
 
   describe('DateFilter Component', () => {
