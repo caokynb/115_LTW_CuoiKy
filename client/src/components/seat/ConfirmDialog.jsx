@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../api';
+import api from '../../services/api';
 
 export default function ConfirmDialog({ open, showtimeId, seats, onClose, onReloadSeats }) {
   const navigate = useNavigate();
@@ -21,9 +21,13 @@ export default function ConfirmDialog({ open, showtimeId, seats, onClose, onRelo
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.post('/api/bookings', {
+      const formattedSeats = seats.map((s) => ({
+        row: s.row,
+        number: s.number,
+      }));
+      const { data } = await api.post('/bookings', {
         showtimeId,
-        seatIds: seats.map((s) => s._id),
+        seats: formattedSeats,
       });
       navigate(`/bookings/${data._id}`);
     } catch (err) {
