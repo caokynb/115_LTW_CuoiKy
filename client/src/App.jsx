@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Movies from './pages/Movies';
+import Home from './pages/Home';
 import MovieDetail from './pages/MovieDetail';
 import Seats from './pages/Seats';
 import BookingDetail from './pages/BookingDetail';
@@ -37,15 +38,7 @@ export function App() {
           <BrowserRouter>
           <Routes>
             <Route element={<MainLayout />}>
-              <Route
-                path="/"
-                element={
-                  <PlaceholderPage
-                    title="Trang chủ CineHub"
-                    description="Chào mừng đến với hệ thống đặt vé xem phim trực tuyến."
-                  />
-                }
-              />
+              <Route path="/" element={<Home />} />
               <Route path="/movies" element={<Movies />} />
               <Route path="/movies/:id" element={<MovieDetail />} />
               <Route path="/login" element={<Login />} />
