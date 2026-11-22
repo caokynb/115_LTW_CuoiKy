@@ -1,4 +1,5 @@
 const Movie = require('../models/Movie');
+const Showtime = require('../models/Showtime');
 const { validateMovieInput } = require('../validators/movie.validator');
 const AppError = require('../utils/AppError');
 
@@ -227,11 +228,23 @@ const deleteMovie = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const deletedMovie = await Movie.findByIdAndDelete(id);
-
-        if (!deletedMovie) {
+        const movie = await Movie.findById(id);
+        if (!movie) {
             return next(new AppError('Không tìm thấy phim để xóa!', 404));
         }
+
+        // kiểm tra nếu phim còn suất chiếu trong tương lai thì chặn xóa (trả về 409)
+        const hasFutureShowtime = await Showtime.exists({
+            movieId: id,
+            startTime: { $gt: new Date() },
+        });
+        if (hasFutureShowtime) {
+            return next(
+                new AppError('Không thể xóa phim vì vẫn còn suất chiếu trong tương lai!', 409)
+            );
+        }
+
+        await Movie.findByIdAndDelete(id);
 
         return res.status(200).json({
             success: true,
