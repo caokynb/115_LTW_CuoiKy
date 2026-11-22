@@ -1,8 +1,24 @@
 import { useEffect, useState } from 'react';
-import api from '../../api';
+import api from '../../services/api';
 
 const STATUS_OPTIONS = ['confirmed', 'cancelled'];
 const LIMIT = 10;
+
+const formatSeat = (item) => {
+  if (!item) return '';
+  if (typeof item === 'string') return item;
+  if (item.label) return item.label;
+  if (item.seat?.label) return item.seat.label;
+  if (item.row && item.number) return `${item.row}${item.number}`;
+  if (item.seat?.row && item.seat?.number) return `${item.seat.row}${item.seat.number}`;
+  return '';
+};
+
+const formatDateTime = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN');
+};
 
 export default function Bookings() {
   const [statuses, setStatuses] = useState([]);
@@ -24,10 +40,23 @@ export default function Bookings() {
     setLoading(true);
     setError('');
     api
-      .get('/api/bookings', { params })
-      .then(({ data }) => !ignore && setResult(data))
-      .catch((err) => !ignore && setError(err.response?.data?.message || 'Không tải được danh sách vé'))
-      .finally(() => !ignore && setLoading(false));
+      .get('/bookings', { params })
+      .then(({ data }) => {
+        if (ignore) return;
+        setResult({
+          data: Array.isArray(data?.data) ? data.data : [],
+          total: Number(data?.total) || 0,
+          totalPages: Number(data?.totalPages) || 0,
+        });
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err.response?.data?.message || 'Không tải được danh sách vé');
+        }
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
 
     return () => {
       ignore = true;
@@ -39,6 +68,10 @@ export default function Bookings() {
     setPage(1);
   };
 
+  const rows = Array.isArray(result?.data) ? result.data : [];
+  const totalPages = Number(result?.totalPages) || 0;
+  const total = Number(result?.total) || 0;
+
   return (
     <div>
       <h2>Vé đã bán</h2>
@@ -46,16 +79,43 @@ export default function Bookings() {
       <div>
         {STATUS_OPTIONS.map((s) => (
           <label key={s}>
-            <input type="checkbox" checked={statuses.includes(s)} onChange={() => toggleStatus(s)} /> {s}
+            <input
+              type="checkbox"
+              checked={statuses.includes(s)}
+              onChange={() => toggleStatus(s)}
+            />{' '}
+            {s}
           </label>
         ))}
         <label>
-          Từ ngày <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+          Từ ngày{' '}
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => {
+              setFrom(e.target.value);
+              setPage(1);
+            }}
+          />
         </label>
         <label>
-          Đến ngày <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+          Đến ngày{' '}
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => {
+              setTo(e.target.value);
+              setPage(1);
+            }}
+          />
         </label>
-        <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}>
+        <select
+          value={sort}
+          onChange={(e) => {
+            setSort(e.target.value);
+            setPage(1);
+          }}
+        >
           <option value="-createdAt">Mới nhất</option>
           <option value="createdAt">Cũ nhất</option>
         </select>
@@ -67,30 +127,52 @@ export default function Bookings() {
       <table>
         <thead>
           <tr>
-            <th>Mã vé</th><th>Khách</th><th>Phim</th><th>Phòng</th>
-            <th>Suất chiếu</th><th>Ghế</th><th>Trạng thái</th><th>Ngày đặt</th>
+            <th>Mã vé</th>
+            <th>Khách</th>
+            <th>Phim</th>
+            <th>Phòng</th>
+            <th>Suất chiếu</th>
+            <th>Ghế</th>
+            <th>Trạng thái</th>
+            <th>Ngày đặt</th>
           </tr>
         </thead>
         <tbody>
-          {result.data.map((b) => (
-            <tr key={b._id}>
-              <td>{b._id}</td>
-              <td>{b.user?.email}</td>
-              <td>{b.showtime?.movie?.title}</td>
-              <td>{b.showtime?.room?.name}</td>
-              <td>{b.showtime && new Date(b.showtime.startTime).toLocaleString('vi-VN')}</td>
-              <td>{b.seats.map((s) => s.label).join(', ')}</td>
-              <td>{b.status}</td>
-              <td>{new Date(b.createdAt).toLocaleString('vi-VN')}</td>
-            </tr>
-          ))}
+          {rows.map((b, idx) => {
+            const ticketList = Array.isArray(b?.tickets)
+              ? b.tickets
+              : Array.isArray(b?.seats)
+                ? b.seats
+                : [];
+            const seatLabels = ticketList.map(formatSeat).filter(Boolean);
+
+            return (
+              <tr key={b?._id || idx}>
+                <td>{b?._id || '—'}</td>
+                <td>{b?.user?.email || b?.user?.name || '—'}</td>
+                <td>{b?.showtime?.movie?.title || '—'}</td>
+                <td>{b?.showtime?.room?.name || '—'}</td>
+                <td>{formatDateTime(b?.showtime?.startTime)}</td>
+                <td>{seatLabels.length ? seatLabels.join(', ') : '—'}</td>
+                <td>{b?.status || '—'}</td>
+                <td>{formatDateTime(b?.createdAt)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
       <div>
-        <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Trước</button>
-        <span> Trang {page} / {result.totalPages || 1} ({result.total} vé) </span>
-        <button disabled={page >= result.totalPages} onClick={() => setPage((p) => p + 1)}>Sau</button>
+        <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          Trước
+        </button>
+        <span>
+          {' '}
+          Trang {page} / {totalPages || 1} ({total} vé){' '}
+        </span>
+        <button disabled={totalPages === 0 || page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+          Sau
+        </button>
       </div>
     </div>
   );
