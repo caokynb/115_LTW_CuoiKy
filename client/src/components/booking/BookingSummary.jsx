@@ -27,6 +27,7 @@ export function BookingSummary({
   totalAmount,
   onCheckout,
   loading = false,
+  disabled = false,
   className = '',
 }) {
   const effectiveVipPrice = vipPrice || standardPrice;
@@ -210,13 +211,15 @@ export function BookingSummary({
           variant="primary"
           size="lg"
           fullWidth
-          disabled={selectedSeats.length === 0 || loading}
+          disabled={selectedSeats.length === 0 || loading || disabled}
           loading={loading}
           onClick={onCheckout}
           data-testid="btn-checkout"
           className="w-full py-3 text-base font-bold shadow-md"
         >
-          {selectedSeats.length > 0
+          {disabled
+            ? 'Admin không thể đặt vé'
+            : selectedSeats.length > 0
             ? `Tiếp tục đặt vé (${selectedSeats.length} ghế)`
             : 'Vui lòng chọn ghế'}
         </Button>

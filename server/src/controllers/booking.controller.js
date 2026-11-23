@@ -17,6 +17,14 @@ const createBooking = async (req, res, next) => {
       });
     }
 
+    // Tài khoản Admin chỉ dùng để quản trị hệ thống, không được phép đặt vé
+    if (req.user.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản Quản trị viên chỉ dùng để quản lý hệ thống, không được phép đặt vé xem phim',
+      });
+    }
+
     const { showtimeId, seats } = req.body || {};
 
     // 1. Kiểm tra tính hợp lệ của showtimeId
