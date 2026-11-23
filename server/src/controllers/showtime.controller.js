@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Movie = require('../models/Movie');
 const Showtime = require('../models/Showtime');
 const Room = require('../models/Room');
+const Cinema = require('../models/Cinema');
 const Ticket = require('../models/Ticket');
 const AppError = require('../utils/AppError');
 
@@ -46,7 +47,7 @@ const showOverlapError = (showtime) => {
 
 const getShowtimes = async (req, res, next) => {
   try {
-    const { movieId, roomId, date } = req.query;
+    const { movieId, roomId, date, cinemaId } = req.query;
     const page = Number.parseInt(req.query.page, 10) || 1;
     const limit = Number.parseInt(req.query.limit, 10) || 20;
 
@@ -59,10 +60,22 @@ const getShowtimes = async (req, res, next) => {
     if (roomId && invalidId(roomId)) {
       return next(new AppError('roomId không hợp lệ.', 400));
     }
+    if (cinemaId && invalidId(cinemaId)) {
+      return next(new AppError('cinemaId không hợp lệ.', 400));
+    }
 
     const filter = {};
     if (movieId) filter.movieId = movieId;
     if (roomId) filter.roomId = roomId;
+    if (cinemaId) {
+      const cinema = await Cinema.findById(cinemaId).select('rooms');
+      if (!cinema) return next(new AppError('Không tìm thấy cụm rạp.', 404));
+      const cinemaRoomIds = cinema.rooms.map((id) => id.toString());
+      const roomIds = roomId
+        ? cinemaRoomIds.filter((id) => id === roomId)
+        : cinemaRoomIds;
+      filter.roomId = { $in: roomIds };
+    }
     if (date) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return next(new AppError('date phải có định dạng YYYY-MM-DD.', 400));

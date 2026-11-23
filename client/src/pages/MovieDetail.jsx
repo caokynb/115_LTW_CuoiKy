@@ -54,6 +54,7 @@ export function MovieDetail() {
   // state lưu danh sách suất chiếu của phim này
   const [showtimes, setShowtimes] = useState([]);
   const [loadingShowtimes, setLoadingShowtimes] = useState(false);
+  const [cinemaId, setCinemaId] = useState(() => window.localStorage.getItem('cinemaId') || '');
 
   // state đóng/mở popup xem trailer YouTube
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
@@ -101,22 +102,29 @@ export function MovieDetail() {
 
     const controller = new AbortController();
     setLoadingShowtimes(true);
+    setShowtimes([]);
 
     api
-      .get(`/showtimes?movieId=${id}`, { signal: controller.signal })
+      .get('/showtimes', { params: { movieId: id, ...(cinemaId ? { cinemaId } : {}) }, signal: controller.signal })
       .then((res) => {
         setShowtimes(res.data?.data || []);
       })
       .catch(() => {
         // nếu lỗi lịch chiếu thì coi như danh sách rỗng, không làm vỡ trang chi tiết phim
-        setShowtimes([]);
+        if (!controller.signal.aborted) setShowtimes([]);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoadingShowtimes(false);
       });
 
     return () => controller.abort();
-  }, [id, notFound]);
+  }, [id, notFound, cinemaId]);
+
+  useEffect(() => {
+    const handleCinemaChange = (event) => setCinemaId(event.detail?.cinemaId || '');
+    window.addEventListener('cinema:change', handleCinemaChange);
+    return () => window.removeEventListener('cinema:change', handleCinemaChange);
+  }, []);
 
   // cuộn trang mượt mà xuống khu vực suất chiếu khi bấm nút Đặt vé
   const scrollToBooking = () => {

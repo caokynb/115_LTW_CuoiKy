@@ -22,6 +22,7 @@ import RoomPage from './pages/admin/Rooms';
 import ShowtimePage from './pages/admin/Showtimes';
 import AdminMovies from './pages/admin/Movies';
 import MovieForm from './pages/admin/MovieForm';
+import Cinemas from './pages/admin/Cinemas';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -72,6 +73,7 @@ export function App() {
                 <Route path="movies/new" element={<MovieForm />} />
                 <Route path="movies/:id/edit" element={<MovieForm />} />
                 <Route path="rooms" element={<RoomPage />} />
+                <Route path="cinemas" element={<Cinemas />} />
                 <Route path="showtimes" element={<ShowtimePage />} />
                 <Route
                   path="bookings"

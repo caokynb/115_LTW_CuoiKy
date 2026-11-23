@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import CinemaSelector from '../components/cinema/CinemaSelector';
 
 const navLinkClass = ({ isActive }) =>
   `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -22,6 +23,13 @@ export function MainLayout() {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cinemaId, setCinemaId] = useState(() => window.localStorage.getItem('cinemaId') || '');
+
+  const handleCinemaChange = (nextCinemaId) => {
+    setCinemaId(nextCinemaId);
+    window.localStorage.setItem('cinemaId', nextCinemaId);
+    window.dispatchEvent(new CustomEvent('cinema:change', { detail: { cinemaId: nextCinemaId } }));
+  };
 
   const handleLogout = () => {
     logout();
@@ -66,6 +74,9 @@ export function MainLayout() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <CinemaSelector value={cinemaId} onChange={handleCinemaChange} />
+            </div>
             <button
               type="button"
               onClick={toggleTheme}
@@ -140,6 +151,9 @@ export function MainLayout() {
             aria-label="Điều hướng di động"
             className="space-y-1 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 md:hidden"
           >
+            <div className="px-3 py-2">
+              <CinemaSelector value={cinemaId} onChange={handleCinemaChange} />
+            </div>
             <NavLink to="/" end className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>
               Trang chủ
             </NavLink>
