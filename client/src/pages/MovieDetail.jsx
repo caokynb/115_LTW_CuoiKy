@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api/axios';
 import { GenreTag, TrailerModal } from '../components/movie';
+import MovieReviews from '../components/movie/MovieReviews';
 import { Button, Spinner, EmptyState } from '../components/ui';
 
 // Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
@@ -399,6 +400,10 @@ export function MovieDetail() {
             </div>
           )}
         </section>
+
+        <div className="mt-10">
+          <MovieReviews movieId={id} />
+        </div>
       </div>
 
       {/* Modal phát video trailer YouTube */}
