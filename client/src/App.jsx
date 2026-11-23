@@ -15,7 +15,7 @@ import Profile from './pages/Profile';
 import Movies from './pages/Movies';
 import Home from './pages/Home';
 import MovieDetail from './pages/MovieDetail';
-import Seats from './pages/Seats';
+import SeatSelection from './pages/SeatSelection';
 import BookingDetail from './pages/BookingDetail';
 import MyBookings from './pages/MyBookings';
 import RoomPage from './pages/admin/Rooms';
@@ -48,7 +48,7 @@ export function App() {
               <Route path="/forbidden" element={<Forbidden />} />
 
               <Route element={<ProtectedRoute />}>
-                <Route path="/showtimes/:id/seats" element={<Seats />} />
+                <Route path="/showtimes/:id/seats" element={<SeatSelection />} />
                 <Route path="/bookings/:id" element={<BookingDetail />} />
                 <Route path="/my-bookings" element={<MyBookings />} />
                 <Route path="/profile" element={<Profile />} />
