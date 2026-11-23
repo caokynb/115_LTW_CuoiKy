@@ -3,6 +3,7 @@ import api, { getErrorMessage } from '../../api/axios';
 import { Button, Spinner } from '../../components/ui';
 import RevenueChart from '../../components/admin/RevenueChart';
 import StatCard from '../../components/admin/StatCard';
+import OccupancyTable from '../../components/admin/OccupancyTable';
 
 const toDateInput = (date) => {
   const year = date.getFullYear();
@@ -116,6 +117,8 @@ export function Dashboard() {
             <RevenueChart title="Doanh thu theo phim" data={movieData} labelKey="title" />
             <RevenueChart title="Doanh thu theo ngày" data={dayData.map((item) => ({ ...item, label: formatDay(item.date) }))} labelKey="label" />
           </div>
+
+          <OccupancyTable />
         </>
       )}
     </div>
