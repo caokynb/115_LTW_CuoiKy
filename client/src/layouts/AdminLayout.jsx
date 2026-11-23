@@ -14,6 +14,7 @@ const ADMIN_LINKS = [
   { to: '/admin', label: 'Tổng quan', end: true },
   { to: '/admin/movies', label: 'Quản lý phim' },
   { to: '/admin/rooms', label: 'Phòng chiếu' },
+  { to: '/admin/cinemas', label: 'Cụm rạp' },
   { to: '/admin/showtimes', label: 'Suất chiếu' },
   { to: '/admin/bookings', label: 'Vé đã bán' },
 ];
