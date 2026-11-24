@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api';
 import { Button, Spinner, EmptyState, Modal } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
+import TicketQR from '../components/ticket/TicketQR';
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
@@ -270,7 +271,7 @@ export function MyBookings() {
             return (
               <div
                 key={booking._id}
-                className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center"
+                className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
                 <div className="flex items-start gap-4">
                   <img
@@ -305,11 +306,17 @@ export function MyBookings() {
                       <span className="text-xs text-slate-400">
                         Mã: #{booking._id.slice(-6).toUpperCase()}
                       </span>
+                      <strong className="text-base font-black text-brand-600 dark:text-brand-500">
+                        {Number(booking.totalPrice || 0).toLocaleString('vi-VN')} đ
+                      </strong>
                     </div>
 
-                    <h2 className="mt-1 text-base font-bold text-slate-900 dark:text-white">
-                      {movie.title || 'Phim không xác định'}
-                    </h2>
+                    <div className="mt-3 flex items-center gap-2">
+                      <Link to={`/bookings/${booking._id}`}>
+                        <Button variant="secondary" size="sm">
+                          Chi tiết
+                        </Button>
+                      </Link>
 
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                       <span>

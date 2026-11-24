@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
+import TicketQR from '../components/ticket/TicketQR';
 
 export default function BookingSuccess() {
   const { id } = useParams();
@@ -37,6 +38,8 @@ export default function BookingSuccess() {
         {showtime?.startTime ? new Date(showtime.startTime).toLocaleString('vi-VN') : '—'}
       </p>
       <p>Ghế: {seatLabels.length ? seatLabels.join(', ') : '—'}</p>
+
+      <TicketQR booking={booking} />
     </div>
   );
 }
