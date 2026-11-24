@@ -38,7 +38,7 @@ export function MovieCard({ movie }) {
     status,
     ageRating = 'P',
   } = movie;
-  const poster = movie.posterUrl
+  const poster = movie.posterUrl || DEFAULT_POSTER;
 
   // cờ kiểm tra phim đang chiếu hay sắp chiếu
   const isNowShowing = status === 'now_showing';
@@ -54,6 +54,7 @@ export function MovieCard({ movie }) {
           src={poster}
           alt={title}
           loading="lazy"
+          decoding="async"
           onError={(e) => {
             // nếu link ảnh hỏng thì tự đổi về ảnh mặc định tránh vỡ giao diện
             e.currentTarget.onerror = null;
@@ -89,7 +90,7 @@ export function MovieCard({ movie }) {
       </Link>
 
       {/* Phần nội dung chi tiết phía dưới poster */}
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex min-w-0 flex-1 flex-col p-4">
         {/* Danh sách nhãn thể loại, tối đa hiển thị 2 nhãn đầu để không bị tràn dòng */}
         {Array.isArray(genres) && genres.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">
@@ -105,7 +106,7 @@ export function MovieCard({ movie }) {
         )}
 
         {/* Tên phim (bấm vào chuyển sang trang chi tiết) */}
-        <h3 className="line-clamp-2 text-base font-bold text-slate-900 transition-colors group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-500">
+        <h3 className="line-clamp-2 break-words text-base font-bold text-slate-900 transition-colors group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-500">
           <Link to={`/movies/${_id}`} title={title}>
             {title}
           </Link>
@@ -122,7 +123,7 @@ export function MovieCard({ movie }) {
         <div className="mt-auto pt-4">
           <Link
             to={`/movies/${_id}`}
-            className="flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
+            className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
           >
             {isNowShowing ? 'Đặt vé ngay' : 'Xem thông tin'}
           </Link>
