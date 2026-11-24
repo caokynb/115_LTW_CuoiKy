@@ -13,6 +13,7 @@ const validateMovieInput = (data, isUpdate = false) => {
         duration,
         releaseDate,
         status,
+        ageRating,
         trailerYoutubeId,
     } = data;
 
@@ -69,6 +70,13 @@ const validateMovieInput = (data, isUpdate = false) => {
     if (status !== undefined) {
         if (!['now_showing', 'coming_soon'].includes(status)) {
             errors.push("Trạng thái phim chỉ chấp nhận 'now_showing' hoặc 'coming_soon'!");
+        }
+    }
+
+    // Kiểm tra phân loại độ tuổi (ageRating)
+    if (ageRating !== undefined) {
+        if (!['P', 'K', 'T13', 'T16', 'T18', 'C'].includes(ageRating)) {
+            errors.push('Nhãn độ tuổi chỉ chấp nhận P, K, T13, T16, T18 hoặc C!');
         }
     }
 

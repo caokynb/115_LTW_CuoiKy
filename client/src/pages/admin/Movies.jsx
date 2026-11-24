@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../../api/axios';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Button, EmptyState, Modal, Pagination, Spinner, useToast } from '../../components/ui';
-import { GenreTag, SearchBar } from '../../components/movie';
+import { GenreTag, SearchBar, AgeRatingBadge } from '../../components/movie';
 
 const PAGE_SIZE = 8;
 
@@ -238,9 +238,12 @@ export function AdminMovies() {
                               alt={movie.title}
                               className="h-14 w-10 shrink-0 rounded-md border border-slate-200 object-cover bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
                             />
-                            <span className="font-semibold text-slate-900 dark:text-white line-clamp-2">
-                              {movie.title}
-                            </span>
+                            <div className="min-w-0 space-y-1">
+                              <span className="block font-semibold text-slate-900 dark:text-white line-clamp-2">
+                                {movie.title}
+                              </span>
+                              <AgeRatingBadge rating={movie.ageRating} />
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 py-3">

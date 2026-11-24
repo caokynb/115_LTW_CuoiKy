@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { getErrorMessage } from '../../api/axios';
 import { Button, FormField, Spinner, useToast } from '../../components/ui';
-import { DEFAULT_GENRES } from '../../components/movie';
+import { DEFAULT_GENRES, AGE_RATINGS, AGE_RATING_META } from '../../components/movie';
 import { extractYoutubeId, getYoutubeThumbnailUrl } from '../../utils/youtube';
 
 const INITIAL_VALUES = {
@@ -12,6 +12,7 @@ const INITIAL_VALUES = {
   duration: '',
   releaseDate: '',
   status: 'now_showing',
+  ageRating: 'P',
   posterUrl: '',
   trailerInput: '',
 };
@@ -116,6 +117,7 @@ export function MovieForm() {
           duration: movie.duration ? String(movie.duration) : '',
           releaseDate: dateStr,
           status: movie.status === 'coming_soon' ? 'coming_soon' : 'now_showing',
+          ageRating: AGE_RATINGS.includes(movie.ageRating) ? movie.ageRating : 'P',
           posterUrl: movie.posterUrl || '',
           trailerInput: movie.trailerYoutubeId || '',
         });
@@ -186,6 +188,7 @@ export function MovieForm() {
       duration: Number(values.duration),
       releaseDate: values.releaseDate,
       status: values.status,
+      ageRating: values.ageRating,
       posterUrl: values.posterUrl.trim(),
       trailerYoutubeId: extractedYoutubeId,
     };
@@ -309,7 +312,7 @@ export function MovieForm() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <FormField
               label="Thời lượng (phút)"
               name="duration"
@@ -348,6 +351,28 @@ export function MovieForm() {
               >
                 <option value="now_showing">Đang chiếu</option>
                 <option value="coming_soon">Sắp chiếu</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="movie-age-rating-select"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-200"
+              >
+                Phân loại tuổi <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="movie-age-rating-select"
+                name="ageRating"
+                value={values.ageRating}
+                onChange={handleChange('ageRating')}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              >
+                {AGE_RATINGS.map((rating) => (
+                  <option key={rating} value={rating}>
+                    {rating} - {AGE_RATING_META[rating].title}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
