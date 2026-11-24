@@ -39,6 +39,15 @@ const movieSchema = new mongoose.Schema(
             default: 'coming_soon',
             index: true,
         },
+        ageRating: {
+            type: String,
+            enum: {
+                values: ['P', 'K', 'T13', 'T16', 'T18', 'C'],
+                message: 'Nhãn độ tuổi chỉ chấp nhận P, K, T13, T16, T18 hoặc C',
+            },
+            default: 'P',
+            index: true,
+        },
         posterUrl: {
             type: String,
             required: [true, 'URL ảnh poster là bắt buộc'],
