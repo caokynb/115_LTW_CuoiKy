@@ -13,6 +13,7 @@ const showtimeRouter = require('./routes/showtime.routes');
 const bookingRouter = require('./routes/booking.routes');
 const statsRouter = require('./routes/stats.routes');
 const cinemaRouter = require('./routes/cinema.routes');
+const couponRouter = require('./routes/coupon.routes');
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use('/api/showtimes', showtimeRouter);
 app.use('/api/bookings', bookingRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/cinemas', cinemaRouter);
+app.use('/api/coupons', couponRouter);
 
 // Bắt các route không tồn tại (404 Not Found)
 app.use(notFound);

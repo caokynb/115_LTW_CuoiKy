@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSeatPolling } from '../hooks/useSeatPolling';
 import { useToast } from '../components/ui';
 import { SeatMap, BookingSummary } from '../components/booking';
+import ConfirmDialog from '../components/seat/ConfirmDialog';
 import {
   setBookingShowtime,
   toggleSeat,
@@ -17,6 +18,7 @@ export function SeatSelection() {
   const toast = useToast();
   const { showtime, loading, error } = useSeatPolling(id);
   const selectedSeats = useSelector(selectSelectedSeats);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (id) dispatch(setBookingShowtime(id));
@@ -65,9 +67,7 @@ export function SeatSelection() {
       toast.error('Vui lòng chọn ít nhất một ghế.');
       return;
     }
-    navigate('/bookings/new', {
-      state: { showtimeId: id, selectedSeats, totalAmount },
-    });
+    setConfirmOpen(true);
   };
 
   return (
@@ -106,6 +106,16 @@ export function SeatSelection() {
           onCheckout={handleCheckout}
         />
       </div>
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        showtimeId={id}
+        movieTitle={movie?.title || 'Phim'}
+        roomName={roomName}
+        startTime={showtime.startTime}
+        seats={selectedSeats}
+        totalAmount={totalAmount}
+      />
     </main>
   );
 }
