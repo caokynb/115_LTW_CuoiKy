@@ -55,7 +55,6 @@ export function ConfirmDialog({
     } catch (err) {
       if (err.response?.status === 409) {
         const lost = err.response.data?.conflictingSeats || [];
-        // Bỏ các ghế vừa mất khỏi lựa chọn để tổng tiền được tính lại đúng
         lost.forEach((l) => {
           const selected = seats.find((s) => s.row === l.row && s.number === l.number);
           if (selected) dispatch(toggleSeat(selected));
@@ -65,7 +64,6 @@ export function ConfirmDialog({
             ? `Ghế ${lost.map(seatLabel).join(', ')} đã có người đặt trước. Ghế này đã được bỏ khỏi lựa chọn của bạn, vui lòng chọn ghế khác!`
             : err.response.data?.message || 'Một số ghế đã có người đặt trước.'
         );
-        // Tải lại sơ đồ để ghế vừa mất hiển thị là "đã bán"
         if (onConflict) await onConflict();
       } else {
         setError(getErrorMessage(err, 'Đặt vé thất bại. Vui lòng thử lại!'));
