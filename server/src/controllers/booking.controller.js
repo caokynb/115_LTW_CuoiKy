@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
 const Showtime = require('../models/Showtime');
+const Snack = require('../models/Snack');
 const AppError = require('../utils/AppError');
 
 /**
@@ -25,7 +26,7 @@ const createBooking = async (req, res, next) => {
       });
     }
 
-    const { showtimeId, seats } = req.body || {};
+    const { showtimeId, seats, snacks } = req.body || {};
 
     // 1. Kiểm tra tính hợp lệ của showtimeId
     if (!showtimeId || !mongoose.Types.ObjectId.isValid(showtimeId)) {
@@ -149,7 +150,70 @@ const createBooking = async (req, res, next) => {
     }
 
     // Tính tổng tiền dựa trên giá vé do Server xác định (bỏ qua mọi giá vé từ Client)
-    const totalPrice = resolvedSeats.reduce((sum, s) => sum + s.price, 0);
+    const seatTotal = resolvedSeats.reduce((sum, s) => sum + s.price, 0);
+
+    // kiểm tra và cộng tiền combo bắp nước từ giá gốc trong database
+    let snackTotal = 0;
+    const resolvedSnacks = [];
+
+    if (snacks !== undefined && snacks !== null) {
+      if (!Array.isArray(snacks)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Danh sách combo bắp nước không hợp lệ.',
+        });
+      }
+
+      if (snacks.length > 0) {
+        const quantityBySnackId = new Map();
+        for (const item of snacks) {
+          if (!item || typeof item !== 'object') {
+            return res.status(400).json({
+              success: false,
+              message: 'Thông tin combo bắp nước không hợp lệ.',
+            });
+          }
+          const { snackId, quantity } = item;
+          const qty = Number(quantity);
+          if (!snackId || !mongoose.Types.ObjectId.isValid(snackId)) {
+            return res.status(400).json({
+              success: false,
+              message: 'ID combo bắp nước không hợp lệ.',
+            });
+          }
+          if (!Number.isInteger(qty) || qty < 1 || qty > 20) {
+            return res.status(400).json({
+              success: false,
+              message: 'Số lượng mỗi combo phải là số nguyên từ 1 đến 20.',
+            });
+          }
+          const key = String(snackId);
+          quantityBySnackId.set(key, (quantityBySnackId.get(key) || 0) + qty);
+        }
+
+        const snackIds = Array.from(quantityBySnackId.keys());
+        const dbSnacks = await Snack.find({ _id: { $in: snackIds }, isAvailable: true });
+        if (dbSnacks.length !== snackIds.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'Một số combo bắp nước không tồn tại hoặc đã ngừng bán.',
+          });
+        }
+
+        for (const dbSnack of dbSnacks) {
+          const quantity = quantityBySnackId.get(String(dbSnack._id));
+          snackTotal += dbSnack.price * quantity;
+          resolvedSnacks.push({
+            snackId: dbSnack._id,
+            name: dbSnack.name,
+            price: dbSnack.price,
+            quantity,
+          });
+        }
+      }
+    }
+
+    const totalPrice = seatTotal + snackTotal;
 
     // 7. Kiểm tra trùng ghế (Tier 1 - Pre-check query)
     const seatConditions = resolvedSeats.map((s) => ({
@@ -180,6 +244,8 @@ const createBooking = async (req, res, next) => {
       booking = await Booking.create({
         userId: req.user._id,
         showtimeId: showtime._id,
+        snacks: resolvedSnacks,
+        snackTotal,
         totalPrice,
         status: 'confirmed',
       });

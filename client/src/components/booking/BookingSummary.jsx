@@ -24,6 +24,8 @@ export function BookingSummary({
   vipPrice = 0,
   regularCount,
   vipCount,
+  selectedSnacks = [],
+  snackTotal = 0,
   totalAmount,
   onCheckout,
   loading = false,
@@ -45,9 +47,15 @@ export function BookingSummary({
 
   const regularSubtotal = effectiveRegularCount * standardPrice;
   const vipSubtotal = effectiveVipCount * effectiveVipPrice;
+  const effectiveSnackTotal =
+    Number(snackTotal) > 0
+      ? Number(snackTotal)
+      : selectedSnacks.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
 
   const effectiveTotal =
-    typeof totalAmount === 'number' ? totalAmount : regularSubtotal + vipSubtotal;
+    typeof totalAmount === 'number'
+      ? totalAmount
+      : regularSubtotal + vipSubtotal + effectiveSnackTotal;
 
   // Sort seats by row and seat number
   const sortedSeats = useMemo(() => {
@@ -191,6 +199,20 @@ export function BookingSummary({
             {formatVND(vipSubtotal)}
           </span>
         </div>
+
+        {effectiveSnackTotal > 0 && (
+          <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+            <span>
+              Bắp nước ({selectedSnacks.reduce((sum, s) => sum + (s.quantity || 0), 0)} món):
+            </span>
+            <span
+              className="font-semibold text-slate-900 dark:text-slate-100"
+              data-testid="snack-subtotal"
+            >
+              {formatVND(effectiveSnackTotal)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Overall Total Amount & Checkout Button */}

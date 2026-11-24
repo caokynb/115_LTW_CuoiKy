@@ -14,6 +14,7 @@ export function ConfirmDialog({
   roomName,
   startTime,
   seats = [],
+  snacks = [],
   totalAmount = 0,
   onConflict,
 }) {
@@ -41,6 +42,9 @@ export function ConfirmDialog({
       const res = await api.post('/bookings', {
         showtimeId,
         seats: seats.map(({ row, number }) => ({ row, number })),
+        ...(Array.isArray(snacks) && snacks.length > 0
+          ? { snacks: snacks.map(({ snackId, quantity }) => ({ snackId, quantity })) }
+          : {}),
       });
       const booking = res.data?.data?.booking;
 
@@ -121,6 +125,15 @@ export function ConfirmDialog({
                 {seats.map(seatLabel).join(', ')} ({seats.length} ghế)
               </p>
             </div>
+
+            {Array.isArray(snacks) && snacks.length > 0 && (
+              <div>
+                <span className="block text-xs font-semibold uppercase text-slate-400">Combo bắp nước:</span>
+                <p className="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">
+                  {snacks.map((s) => `${s.name} x${s.quantity}`).join(', ')}
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
               <span className="font-medium text-slate-600 dark:text-slate-400">Tổng tiền thanh toán:</span>
