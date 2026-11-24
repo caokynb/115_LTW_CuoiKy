@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import GenreTag from './GenreTag';
+import AgeRatingBadge from './AgeRatingBadge';
 
 // Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
 const DEFAULT_POSTER =
@@ -35,6 +36,7 @@ export function MovieCard({ movie }) {
     duration,
     releaseDate,
     status,
+    ageRating = 'P',
   } = movie;
   const poster = movie.posterUrl
 
@@ -71,6 +73,11 @@ export function MovieCard({ movie }) {
               Sắp chiếu
             </span>
           )}
+        </div>
+
+        {/* Nhãn phân loại độ tuổi gắn ở góc trên bên phải poster */}
+        <div className="absolute right-3 top-3">
+          <AgeRatingBadge rating={ageRating} />
         </div>
 
         {/* Thời lượng phim gắn ở góc dưới bên phải poster */}

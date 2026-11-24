@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSeatPolling } from '../hooks/useSeatPolling';
 import { useToast } from '../components/ui';
-import { SeatMap, BookingSummary } from '../components/booking';
+import { SeatMap, BookingSummary, SnackSelector } from '../components/booking';
 import ConfirmDialog from '../components/seat/ConfirmDialog';
 import {
   setBookingShowtime,
@@ -18,6 +18,7 @@ export function SeatSelection() {
   const toast = useToast();
   const { showtime, loading, error } = useSeatPolling(id);
   const selectedSeats = useSelector(selectSelectedSeats);
+  const [selectedSnacks, setSelectedSnacks] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -26,15 +27,23 @@ export function SeatSelection() {
 
   const standardPrice = Number(showtime?.standardPrice) || 0;
   const vipPrice = Number(showtime?.vipPrice) || standardPrice;
+  const snackTotal = useMemo(
+    () =>
+      selectedSnacks.reduce(
+        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+        0
+      ),
+    [selectedSnacks]
+  );
   const { regularCount, vipCount, totalAmount } = useMemo(() => {
     const regular = selectedSeats.filter((seat) => seat.type !== 'vip' && seat.seatType !== 'vip').length;
     const vip = selectedSeats.length - regular;
     return {
       regularCount: regular,
       vipCount: vip,
-      totalAmount: regular * standardPrice + vip * vipPrice,
+      totalAmount: regular * standardPrice + vip * vipPrice + snackTotal,
     };
-  }, [selectedSeats, standardPrice, vipPrice]);
+  }, [selectedSeats, standardPrice, vipPrice, snackTotal]);
 
   useEffect(() => {
     if (!showtime?.soldSeats?.length || selectedSeats.length === 0) return;
@@ -81,23 +90,32 @@ export function SeatSelection() {
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
-        <section className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 lg:col-span-2" aria-label="Sơ đồ phòng chiếu">
-          <SeatMap
-            rows={showtime.rows || room.rows || 8}
-            seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
-            vipRows={showtime.vipRows || room.vipRows || []}
-            soldSeats={showtime.soldSeats || []}
-            selectedSeats={selectedSeats}
-            onSeatClick={(seat) => dispatch(toggleSeat(seat))}
-            standardPrice={standardPrice}
-            vipPrice={vipPrice}
+        <div className="space-y-6 lg:col-span-2">
+          <section className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900" aria-label="Sơ đồ phòng chiếu">
+            <SeatMap
+              rows={showtime.rows || room.rows || 8}
+              seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
+              vipRows={showtime.vipRows || room.vipRows || []}
+              soldSeats={showtime.soldSeats || []}
+              selectedSeats={selectedSeats}
+              onSeatClick={(seat) => dispatch(toggleSeat(seat))}
+              standardPrice={standardPrice}
+              vipPrice={vipPrice}
+            />
+          </section>
+
+          <SnackSelector
+            selectedSnacks={selectedSnacks}
+            onChange={setSelectedSnacks}
           />
-        </section>
+        </div>
         <BookingSummary
           movie={movie}
           roomName={roomName}
           startTime={showtime.startTime}
           selectedSeats={selectedSeats}
+          selectedSnacks={selectedSnacks}
+          snackTotal={snackTotal}
           standardPrice={standardPrice}
           vipPrice={vipPrice}
           regularCount={regularCount}
@@ -106,6 +124,7 @@ export function SeatSelection() {
           onCheckout={handleCheckout}
         />
       </div>
+
       <ConfirmDialog
         isOpen={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -114,6 +133,7 @@ export function SeatSelection() {
         roomName={roomName}
         startTime={showtime.startTime}
         seats={selectedSeats}
+        snacks={selectedSnacks}
         totalAmount={totalAmount}
       />
     </main>

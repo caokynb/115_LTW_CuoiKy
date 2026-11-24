@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api/axios';
-import { GenreTag, TrailerModal } from '../components/movie';
+import { GenreTag, TrailerModal, AgeRatingBadge, AGE_RATING_META } from '../components/movie';
 import MovieReviews from '../components/movie/MovieReviews';
-import { Button, Spinner, EmptyState } from '../components/ui';
+import { Button, Spinner, EmptyState, Modal } from '../components/ui';
 
 // Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
 const DEFAULT_POSTER =
@@ -57,8 +57,10 @@ export function MovieDetail() {
   const [loadingShowtimes, setLoadingShowtimes] = useState(false);
   const [cinemaId, setCinemaId] = useState(() => window.localStorage.getItem('cinemaId') || '');
 
-  // state đóng/mở popup xem trailer YouTube
+  // state đóng/mở popup xem trailer YouTube và modal cảnh báo độ tuổi
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [pendingShowtimeId, setPendingShowtimeId] = useState(null);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   // Gọi API lấy chi tiết phim khi id thay đổi
   useEffect(() => {
@@ -191,10 +193,30 @@ export function MovieDetail() {
     duration,
     releaseDate,
     status,
+    ageRating = 'P',
     trailerYoutubeId,
   } = movie;
   const poster = movie.posterUrl || DEFAULT_POSTER;
   const isNowShowing = status === 'now_showing';
+  const ageMeta = AGE_RATING_META[ageRating] || AGE_RATING_META.P;
+
+  // kiểm tra nhãn độ tuổi trước khi cho chuyển sang trang chọn ghế
+  const handleSelectShowtime = (showtimeId) => {
+    if (ageMeta.requiresWarning) {
+      setAgeConfirmed(false);
+      setPendingShowtimeId(showtimeId);
+      return;
+    }
+    navigate(`/showtimes/${showtimeId}/seats`);
+  };
+
+  // xác nhận đủ tuổi và chuyển sang sơ đồ ghế
+  const handleConfirmAgeAndNavigate = () => {
+    if (!pendingShowtimeId || !ageConfirmed) return;
+    const targetId = pendingShowtimeId;
+    setPendingShowtimeId(null);
+    navigate(`/showtimes/${targetId}/seats`);
+  };
 
   return (
     <div className="pb-16">
@@ -237,13 +259,18 @@ export function MovieDetail() {
                     </span>
                   </button>
                 )}
+
+                {/* Nhãn phân loại độ tuổi trên góc poster */}
+                <div className="absolute right-3 top-3 z-10">
+                  <AgeRatingBadge rating={ageRating} />
+                </div>
               </div>
             </div>
 
             {/* Thông tin chính của phim */}
             <div className="flex flex-1 flex-col justify-center">
-              {/* Nhãn trạng thái đang chiếu / sắp chiếu */}
-              <div className="mb-3 flex items-center gap-2">
+              {/* Nhãn trạng thái đang chiếu / sắp chiếu và độ tuổi */}
+              <div className="mb-3 flex flex-wrap items-center gap-2.5">
                 {isNowShowing ? (
                   <span className="inline-flex items-center rounded-md bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow-sm">
                     Đang chiếu
@@ -253,6 +280,7 @@ export function MovieDetail() {
                     Sắp chiếu
                   </span>
                 )}
+                <AgeRatingBadge rating={ageRating} showDescription />
               </div>
 
               {/* Tên phim */}
@@ -365,12 +393,13 @@ export function MovieDetail() {
                   </div>
 
                   <div className="mt-4">
-                    <Link
-                      to={`/showtimes/${st._id}/seats`}
-                      className="block w-full rounded-lg bg-brand-600 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
+                    <button
+                      type="button"
+                      onClick={() => handleSelectShowtime(st._id)}
+                      className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-brand-600 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
                     >
                       Chọn ghế
-                    </Link>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -413,6 +442,51 @@ export function MovieDetail() {
         youtubeId={trailerYoutubeId}
         movieTitle={title}
       />
+
+      {/* Modal cảnh báo độ tuổi trước khi chọn ghế cho phim T16/T18/C */}
+      <Modal
+        isOpen={Boolean(pendingShowtimeId)}
+        onClose={() => setPendingShowtimeId(null)}
+        title={`Cảnh báo giới hạn độ tuổi (${ageMeta.label})`}
+        size="md"
+      >
+        <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
+          <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+            <AgeRatingBadge rating={ageRating} className="shrink-0 pt-0.5" />
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white">{ageMeta.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                {ageMeta.description}
+              </p>
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+            <input
+              type="checkbox"
+              checked={ageConfirmed}
+              onChange={(e) => setAgeConfirmed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span className="text-xs font-medium text-slate-800 dark:text-slate-200">
+              Tôi xác nhận mình đã đủ độ tuổi quy định ({ageMeta.label}) để xem bộ phim này.
+            </span>
+          </label>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setPendingShowtimeId(null)}>
+              Hủy
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!ageConfirmed}
+              onClick={handleConfirmAgeAndNavigate}
+            >
+              Xác nhận &amp; Chọn ghế
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
