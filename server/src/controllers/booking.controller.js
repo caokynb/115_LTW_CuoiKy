@@ -190,7 +190,14 @@ const createBooking = async (req, res, next) => {
             });
           }
           const key = String(snackId);
-          quantityBySnackId.set(key, (quantityBySnackId.get(key) || 0) + qty);
+          const nextQty = (quantityBySnackId.get(key) || 0) + qty;
+          if (nextQty > 20) {
+            return res.status(400).json({
+              success: false,
+              message: 'Số lượng mỗi combo phải là số nguyên từ 1 đến 20.',
+            });
+          }
+          quantityBySnackId.set(key, nextQty);
         }
 
         const snackIds = Array.from(quantityBySnackId.keys());
