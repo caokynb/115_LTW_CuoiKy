@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api/axios';
 import { GenreTag, TrailerModal } from '../components/movie';
 import MovieReviews from '../components/movie/MovieReviews';
-import { Button, Spinner, EmptyState } from '../components/ui';
+import { Button, EmptyState } from '../components/ui';
 
 // Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
 const DEFAULT_POSTER =
@@ -40,6 +40,57 @@ const formatTime = (dateString) => {
     return '';
   }
 };
+
+// khung skeleton hiển thị khi trang chi tiết phim đang tải dữ liệu
+function MovieDetailSkeleton() {
+  return (
+    <div
+      data-testid="movie-detail-skeleton"
+      role="status"
+      aria-label="Đang tải thông tin phim"
+      className="animate-pulse pb-16"
+    >
+      <div className="border-b border-slate-200 bg-slate-900 dark:border-slate-800">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
+          <div className="flex flex-col gap-8 md:flex-row md:items-start lg:gap-12">
+            <div className="mx-auto aspect-[2/3] w-full max-w-[240px] shrink-0 rounded-2xl bg-slate-800 sm:max-w-[288px] md:mx-0" />
+            <div className="flex flex-1 flex-col justify-center space-y-4">
+              <div className="h-6 w-24 rounded-md bg-slate-800" />
+              <div className="h-10 w-3/4 rounded-lg bg-slate-800" />
+              <div className="flex gap-2">
+                <div className="h-6 w-20 rounded-full bg-slate-800" />
+                <div className="h-6 w-24 rounded-full bg-slate-800" />
+              </div>
+              <div className="flex gap-4">
+                <div className="h-5 w-24 rounded bg-slate-800" />
+                <div className="h-5 w-36 rounded bg-slate-800" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <div className="h-11 w-36 rounded-lg bg-slate-800" />
+                <div className="h-11 w-32 rounded-lg bg-slate-800" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
+        <div className="space-y-3">
+          <div className="h-7 w-44 rounded bg-slate-200 dark:bg-slate-800" />
+          <div className="h-28 w-full rounded-2xl bg-slate-200 dark:bg-slate-800" />
+        </div>
+        <div className="space-y-3">
+          <div className="h-7 w-40 rounded bg-slate-200 dark:bg-slate-800" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="h-36 rounded-xl bg-slate-200 dark:bg-slate-800" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function MovieDetail() {
   // lấy id của phim từ đường dẫn URL (/movies/:id)
@@ -135,14 +186,9 @@ export function MovieDetail() {
     }
   };
 
-  // 1. Trường hợp đang tải trang
+  // 1. Trường hợp đang tải trang -> hiển thị skeleton
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">
-        <Spinner size="lg" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">Đang tải thông tin phim...</p>
-      </div>
-    );
+    return <MovieDetailSkeleton />;
   }
 
   // 2. Trường hợp ID sai hoặc phim không tồn tại -> hiển thị trang không tìm thấy
@@ -165,10 +211,13 @@ export function MovieDetail() {
   if (errorMessage) {
     return (
       <div className="mx-auto max-w-xl px-4 py-12 text-center">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
+        >
           <p className="font-medium">{errorMessage}</p>
-          <div className="mt-4 flex justify-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <Button variant="secondary" size="sm" onClick={() => window.location.reload()}>
               Thử lại
             </Button>
             <Button variant="secondary" size="sm" onClick={() => navigate('/movies')}>
@@ -197,7 +246,7 @@ export function MovieDetail() {
   const isNowShowing = status === 'now_showing';
 
   return (
-    <div className="pb-16">
+    <div className="overflow-x-hidden pb-16">
       {/* Khối Hero Banner trên cùng với ảnh poster mờ phía sau */}
       <div className="relative overflow-hidden border-b border-slate-200 bg-slate-900 text-white dark:border-slate-800">
         {/* Ảnh nền phủ mờ tạo chiều sâu */}
@@ -210,11 +259,13 @@ export function MovieDetail() {
         <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
           <div className="flex flex-col gap-8 md:flex-row md:items-start lg:gap-12">
             {/* Ảnh poster phim */}
-            <div className="mx-auto w-64 shrink-0 sm:w-72 md:mx-0">
+            <div className="mx-auto w-full max-w-[240px] shrink-0 sm:max-w-[288px] md:mx-0">
               <div className="group relative aspect-[2/3] overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-800 shadow-2xl">
                 <img
                   src={poster}
                   alt={title}
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src = DEFAULT_POSTER;
@@ -241,7 +292,7 @@ export function MovieDetail() {
             </div>
 
             {/* Thông tin chính của phim */}
-            <div className="flex flex-1 flex-col justify-center">
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
               {/* Nhãn trạng thái đang chiếu / sắp chiếu */}
               <div className="mb-3 flex items-center gap-2">
                 {isNowShowing ? (
@@ -256,7 +307,7 @@ export function MovieDetail() {
               </div>
 
               {/* Tên phim */}
-              <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
+              <h1 className="break-words text-2xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
                 {title}
               </h1>
 
@@ -341,8 +392,17 @@ export function MovieDetail() {
           </div>
 
           {loadingShowtimes ? (
-            <div className="flex h-32 items-center justify-center">
-              <Spinner size="md" />
+            <div
+              role="status"
+              aria-label="Đang tải lịch chiếu"
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            >
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={`st-skeleton-${idx}`}
+                  className="h-36 animate-pulse rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-800/70"
+                />
+              ))}
             </div>
           ) : showtimes.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -367,7 +427,7 @@ export function MovieDetail() {
                   <div className="mt-4">
                     <Link
                       to={`/showtimes/${st._id}/seats`}
-                      className="block w-full rounded-lg bg-brand-600 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
+                      className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-brand-600 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
                     >
                       Chọn ghế
                     </Link>
@@ -376,28 +436,22 @@ export function MovieDetail() {
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center dark:border-slate-800 dark:bg-slate-900/50">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-                {isNowShowing
+            <EmptyState
+              title={
+                isNowShowing
                   ? 'Chưa có suất chiếu cho phim này'
-                  : 'Phim sắp chiếu - Chưa mở bán vé'}
-              </h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {isNowShowing
+                  : 'Phim sắp chiếu - Chưa mở bán vé'
+              }
+              description={
+                isNowShowing
                   ? 'Hiện tại hệ thống chưa xếp lịch chiếu mới cho phim này. Vui lòng quay lại sau!'
-                  : 'Lịch chiếu sẽ được mở trước ngày khởi chiếu vài ngày. Hãy theo dõi thường xuyên nhé!'}
-              </p>
-              <div className="mt-4">
-                <Button variant="outline" size="sm" onClick={() => navigate('/movies')}>
-                  Xem các phim khác
-                </Button>
-              </div>
-            </div>
+                  : 'Lịch chiếu sẽ được mở trước ngày khởi chiếu vài ngày. Hãy theo dõi thường xuyên nhé!'
+              }
+              action={{
+                label: 'Xem các phim khác',
+                onClick: () => navigate('/movies'),
+              }}
+            />
           )}
         </section>
 

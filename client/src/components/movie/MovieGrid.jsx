@@ -28,14 +28,20 @@ function MovieCardSkeleton() {
 export function MovieGrid({
   movies = [],
   loading = false,
+  skeletonCount = 8,
   emptyTitle = 'Chưa có phim nào',
   emptyDescription = 'Hiện tại chưa có phim trong danh mục này. Vui lòng quay lại sau!',
+  emptyAction = null,
 }) {
-  // Khi đang tải dữ liệu thì render ra 8 khung skeleton mẫu
+  // Khi đang tải dữ liệu thì render ra các khung skeleton mẫu
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, index) => (
+      <div
+        role="status"
+        aria-label="Đang tải danh sách phim"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
+      >
+        {Array.from({ length: skeletonCount }).map((_, index) => (
           <MovieCardSkeleton key={`skeleton-${index}`} />
         ))}
       </div>
@@ -48,13 +54,14 @@ export function MovieGrid({
       <EmptyState
         title={emptyTitle}
         description={emptyDescription}
+        action={emptyAction}
       />
     );
   }
 
   // Render lưới phim thật, bắt buộc dùng _id của phim làm key để React tối ưu render
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
       {movies.map((movie) => (
         <MovieCard key={movie._id} movie={movie} />
       ))}
