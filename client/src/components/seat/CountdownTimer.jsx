@@ -2,8 +2,8 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import useCountdown from '../../hooks/useCountdown';
-import { useToast } from './ui';
-import { clearSeats } from '../store/slices/bookingSlice';
+import { useToast } from '../ui';
+import { clearSeats } from '../../store/slices/bookingSlice';
 
 const HOLD_SECONDS = 5 * 60;
 
