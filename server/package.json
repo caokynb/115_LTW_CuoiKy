@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/index.js",
-    "test": "node --test src/tests/booking.test.js src/tests/booking.cancel.test.js src/tests/booking.admin.test.js src/tests/booking.concurrency.test.js src/tests/price.test.js tests/movie.test.js tests/coupon.test.js tests/snack.test.js src/tests/security.test.js tests/room.test.js tests/showtime.test.js tests/stats.test.js"
+    "test": "node --test src/tests/booking.test.js src/tests/booking.cancel.test.js src/tests/booking.admin.test.js src/tests/booking.concurrency.test.js src/tests/price.test.js src/tests/payment.test.js tests/movie.test.js tests/coupon.test.js tests/snack.test.js src/tests/security.test.js tests/room.test.js tests/showtime.test.js tests/stats.test.js"
   },
   "keywords": [],
   "author": "",
