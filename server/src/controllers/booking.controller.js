@@ -3,6 +3,7 @@ const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
 const Showtime = require('../models/Showtime');
 const Coupon = require('../models/Coupon');
+const User = require('../models/User');
 const { evaluateCoupon } = require('./coupon.controller');
 const Snack = require('../models/Snack');
 const AppError = require('../utils/AppError');
@@ -486,23 +487,28 @@ const cancelBooking = async (req, res, next) => {
       });
     }
 
-    // 5. Kiểm tra thời gian trước giờ chiếu ít nhất 2 tiếng
-    if (!booking.showtimeId || !booking.showtimeId.startTime) {
-      return res.status(400).json({
-        success: false,
-        message: 'Không tìm thấy thông tin suất chiếu của đơn đặt vé',
-      });
-    }
+    // kiểm tra mốc 2 tiếng trước giờ chiếu đối với khách; admin được phép hủy hỗ trợ bất kỳ lúc nào
+    if (req.user.role !== 'admin') {
+      // nếu đơn bị thiếu dữ liệu suất chiếu thì không thể đối chiếu giờ chiếu
+      if (!booking.showtimeId || !booking.showtimeId.startTime) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không tìm thấy thông tin suất chiếu của đơn đặt vé',
+        });
+      }
 
-    const startTime = new Date(booking.showtimeId.startTime).getTime();
-    const now = Date.now();
-    const diffHours = (startTime - now) / (1000 * 60 * 60);
+      // quy đổi hiệu giữa giờ chiếu và hiện tại sang đơn vị giờ
+      const startTime = new Date(booking.showtimeId.startTime).getTime();
+      const now = Date.now();
+      const diffHours = (startTime - now) / (1000 * 60 * 60);
 
-    if (diffHours < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Chỉ được phép hủy vé trước giờ chiếu ít nhất 2 tiếng',
-      });
+      // chặn hủy nếu còn dưới 2 tiếng trước giờ bắt đầu
+      if (diffHours < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'Chỉ được phép hủy vé trước giờ chiếu ít nhất 2 tiếng',
+        });
+      }
     }
 
     // 6. Cập nhật trạng thái booking sang cancelled
@@ -597,6 +603,71 @@ const listBookings = async (req, res, next) => {
       filter.createdAt = range;
     }
 
+    // lọc theo suất chiếu nếu admin chọn dropdown suất chiếu
+    if (req.query.showtimeId) {
+      const showtimeIdParam = String(req.query.showtimeId).trim();
+      // kiểm tra id suất chiếu có đúng định dạng ObjectId không
+      if (!mongoose.Types.ObjectId.isValid(showtimeIdParam)) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID suất chiếu lọc không hợp lệ',
+        });
+      }
+      // gắn điều kiện showtimeId vào bộ lọc MongoDB
+      filter.showtimeId = showtimeIdParam;
+    }
+
+    // tìm kiếm theo từ khóa: tên, email, số điện thoại khách hàng hoặc mã đơn đặt vé
+    if (req.query.q && String(req.query.q).trim()) {
+      const rawQuery = String(req.query.q).trim();
+      // bỏ dấu # ở đầu nếu admin nhập mã vé dạng #ABC123
+      const normalizedCode = rawQuery.replace(/^#/, '').trim();
+      // escape các ký tự đặc biệt regex để tránh lỗi biểu thức chính quy
+      const escapedQuery = rawQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedCode = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // tìm trước danh sách user khớp tên, email hoặc số điện thoại (không phân biệt hoa thường)
+      const userRegex = new RegExp(escapedQuery, 'i');
+      const matchedUsers = await User.find({
+        $or: [{ fullName: userRegex }, { email: userRegex }, { phone: userRegex }],
+      }).select('_id');
+      const matchedUserIds = matchedUsers.map((u) => u._id);
+
+      // gom các nhánh điều kiện $or giữa userId và _id đơn hàng
+      const orConditions = [];
+      if (matchedUserIds.length > 0) {
+        orConditions.push({ userId: { $in: matchedUserIds } });
+      }
+      // nếu nhập đủ 24 ký tự ObjectId thì khớp trực tiếp _id
+      if (mongoose.Types.ObjectId.isValid(normalizedCode)) {
+        orConditions.push({ _id: normalizedCode });
+      } else if (escapedCode && /^[0-9a-fA-F]{4,24}$/.test(normalizedCode)) {
+        // nếu nhập 4-24 ký tự hex cuối (mã rút gọn #XXXXXX) thì khớp đuôi chuỗi _id
+        orConditions.push({
+          $expr: {
+            $regexMatch: {
+              input: { $toString: '$_id' },
+              regex: `${escapedCode}$`,
+              options: 'i',
+            },
+          },
+        });
+      }
+
+      // không có user hay mã vé nào khớp thì trả về mảng rỗng ngay, không cần query thêm
+      if (orConditions.length === 0) {
+        return res.status(200).json({
+          success: true,
+          data: [],
+          page,
+          limit,
+          total: 0,
+          pages: 1,
+        });
+      }
+      filter.$or = orConditions;
+    }
+
     const rawSort = String(req.query.sort || '-createdAt').trim();
     const sortDir = rawSort.startsWith('-') ? -1 : 1;
     const sortField = rawSort.replace(/^-/, '');
@@ -606,7 +677,8 @@ const listBookings = async (req, res, next) => {
 
     const [data, total] = await Promise.all([
       Booking.find(filter)
-        .populate('userId', 'fullName email')
+        // lấy thêm số điện thoại để hiển thị trên bảng quản trị vé
+        .populate('userId', 'fullName email phone')
         .populate({
           path: 'showtimeId',
           populate: [
