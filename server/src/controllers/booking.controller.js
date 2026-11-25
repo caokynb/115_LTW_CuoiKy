@@ -6,7 +6,8 @@ const ALLOWED_SORT = ['createdAt', 'status'];
 const withDetails = (query) =>
   query
     .populate({ path: 'showtime', populate: [{ path: 'movie' }, { path: 'room' }] })
-    .populate('seats');
+    .populate('seats')
+    .populate('tickets');
 
 export const getBookingById = async (req, res, next) => {
   try {
@@ -50,12 +51,20 @@ export const listBookings = async (req, res, next) => {
     const range = {};
     if (req.query.from) {
       const d = new Date(req.query.from);
-      if (Number.isNaN(d.getTime())) return res.status(400).json({ message: 'from không hợp lệ' });
+      if (Number.isNaN(d.getTime())) {
+        return res.status(400).json({ message: 'from không hợp lệ' });
+      }
       range.$gte = d;
     }
     if (req.query.to) {
-      const d = new Date(req.query.to);
-      if (Number.isNaN(d.getTime())) return res.status(400).json({ message: 'to không hợp lệ' });
+      const toStr = String(req.query.to).trim();
+      const d = new Date(toStr);
+      if (Number.isNaN(d.getTime())) {
+        return res.status(400).json({ message: 'to không hợp lệ' });
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(toStr)) {
+        d.setHours(23, 59, 59, 999);
+      }
       range.$lte = d;
     }
     if (Object.keys(range).length) filter.createdAt = range;
@@ -80,7 +89,9 @@ export const listBookings = async (req, res, next) => {
       Booking.countDocuments(filter),
     ]);
 
-    res.json({ data, page, limit, total, totalPages: Math.ceil(total / limit) });
+    const pages = Math.max(1, Math.ceil(total / limit));
+
+    res.json({ data, page, total, pages });
   } catch (err) {
     next(err);
   }
