@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api';
 import { Button, Spinner, EmptyState } from '../components/ui';
+import TicketQR from '../components/ticket/TicketQR';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
@@ -126,7 +127,11 @@ export function BookingDetail() {
             <div className="flex flex-1 flex-col justify-between">
               <div>
                 <span className="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 dark:bg-brand-950/60 dark:text-brand-400">
-                  {booking.status === 'confirmed' ? 'Đã xác nhận' : booking.status}
+                  {booking.status === 'confirmed'
+                    ? 'Đã xác nhận'
+                    : booking.status === 'cancelled'
+                    ? 'Đã hủy'
+                    : booking.status}
                 </span>
                 <h2 className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
                   {movie.title || 'Phim chiếu rạp'}
@@ -185,6 +190,8 @@ export function BookingDetail() {
               </p>
             </div>
           </div>
+
+          {booking.status === 'confirmed' && <TicketQR booking={booking} />}
         </div>
 
         {/* Chân vé */}

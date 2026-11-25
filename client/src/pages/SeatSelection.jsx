@@ -5,6 +5,7 @@ import { useSeatPolling } from '../hooks/useSeatPolling';
 import { useToast } from '../components/ui';
 import { SeatMap, BookingSummary, SnackSelector } from '../components/booking';
 import ConfirmDialog from '../components/seat/ConfirmDialog';
+import CountdownTimer from '../components/seat/CountdownTimer';
 import {
   setBookingShowtime,
   toggleSeat,
@@ -69,6 +70,9 @@ export function SeatSelection() {
 
   const room = showtime.roomId && typeof showtime.roomId === 'object' ? showtime.roomId : {};
   const movie = showtime.movieId && typeof showtime.movieId === 'object' ? showtime.movieId : null;
+  const movieId =
+    (movie && (movie._id || movie.id)) ||
+    (typeof showtime.movieId === 'string' ? showtime.movieId : null);
   const roomName = room.name || 'Phòng chiếu';
 
   const handleCheckout = () => {
@@ -81,12 +85,15 @@ export function SeatSelection() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-5 px-4 py-6">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Chọn ghế xem phim</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          {movie?.title || 'Phim'} · {roomName}
-        </p>
-        {error && <p className="mt-2 text-sm text-amber-700 dark:text-amber-300" role="status">Chưa cập nhật được trạng thái ghế mới nhất. Đang thử lại tự động.</p>}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Chọn ghế xem phim</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            {movie?.title || 'Phim'} · {roomName}
+          </p>
+          {error && <p className="mt-2 text-sm text-amber-700 dark:text-amber-300" role="status">Chưa cập nhật được trạng thái ghế mới nhất. Đang thử lại tự động.</p>}
+        </div>
+        <CountdownTimer movieId={movieId} />
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-3">

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api';
 import { Button, Spinner, EmptyState, Modal } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
+import TicketQR from '../components/ticket/TicketQR';
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
@@ -38,6 +39,7 @@ export function MyBookings() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // 'all' | 'confirmed' | 'cancelled'
   const [bookingToCancel, setBookingToCancel] = useState(null);
+  const [bookingForQr, setBookingForQr] = useState(null);
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
@@ -338,12 +340,23 @@ export function MyBookings() {
                     </strong>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Link to={`/bookings/${booking._id}`}>
                       <Button variant="secondary" size="sm">
                         Chi tiết
                       </Button>
                     </Link>
+
+                    {isConfirmed && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setBookingForQr(booking)}
+                        aria-label={`Xem mã QR vé xem phim ${movie.title || ''}`}
+                      >
+                        Mã QR
+                      </Button>
+                    )}
 
                     {eligibleToCancel && (
                       <Button
@@ -460,6 +473,15 @@ export function MyBookings() {
             </div>
           </div>
         )}
+      </Modal>
+      {/* Modal hiển thị mã QR vé điện tử */}
+      <Modal
+        isOpen={Boolean(bookingForQr)}
+        onClose={() => setBookingForQr(null)}
+        title="Mã QR vé điện tử"
+        size="md"
+      >
+        {bookingForQr && <TicketQR booking={bookingForQr} />}
       </Modal>
     </div>
   );

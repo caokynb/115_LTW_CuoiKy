@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { getErrorMessage } from '../api';
+import TicketQR from '../components/ticket/TicketQR';
 
 export default function BookingSuccess() {
   const { id } = useParams();
@@ -11,8 +12,12 @@ export default function BookingSuccess() {
     let ignore = false;
     api
       .get(`/bookings/${id}`)
-      .then(({ data }) => !ignore && setBooking(data))
-      .catch((err) => !ignore && setError(err.response?.data?.message || 'Không tải được vé'));
+      .then(({ data }) => {
+        if (!ignore) setBooking(data?.data || data || null);
+      })
+      .catch((err) => {
+        if (!ignore) setError(getErrorMessage(err, 'Không tải được vé'));
+      });
     return () => {
       ignore = true;
     };
@@ -21,22 +26,31 @@ export default function BookingSuccess() {
   if (error) return <p role="alert">{error}</p>;
   if (!booking) return <p>Đang tải...</p>;
 
-  const { showtime, seats = [] } = booking;
-  const seatLabels = seats
+  const showtime = booking.showtimeId || booking.showtime || {};
+  const movie = showtime.movieId || showtime.movie || {};
+  const room = showtime.roomId || showtime.room || {};
+  const tickets = booking.tickets || booking.seats || [];
+  const seatLabels = tickets
     .map((s) => s?.label || (s?.row && s?.number ? `${s.row}${s.number}` : ''))
     .filter(Boolean);
 
   return (
-    <div>
-      <h2>Đặt vé thành công</h2>
-      <p>Mã vé: <strong>{booking._id}</strong></p>
-      <p>Phim: {showtime?.movie?.title || '—'}</p>
-      <p>Phòng: {showtime?.room?.name || '—'}</p>
-      <p>
-        Suất chiếu:{' '}
-        {showtime?.startTime ? new Date(showtime.startTime).toLocaleString('vi-VN') : '—'}
+    <div className="mx-auto max-w-2xl px-4 py-8">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Đặt vé thành công</h2>
+      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+        Mã vé: <strong>{booking._id}</strong>
       </p>
-      <p>Ghế: {seatLabels.length ? seatLabels.join(', ') : '—'}</p>
+      <p className="text-sm text-slate-600 dark:text-slate-300">Phim: {movie.title || '—'}</p>
+      <p className="text-sm text-slate-600 dark:text-slate-300">Phòng: {room.name || '—'}</p>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        Suất chiếu:{' '}
+        {showtime.startTime ? new Date(showtime.startTime).toLocaleString('vi-VN') : '—'}
+      </p>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        Ghế: {seatLabels.length ? seatLabels.join(', ') : '—'}
+      </p>
+
+      <TicketQR booking={booking} />
     </div>
   );
 }

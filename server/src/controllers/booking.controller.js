@@ -536,8 +536,109 @@ const cancelBooking = async (req, res, next) => {
   }
 };
 
+/**
+ * Lấy danh sách toàn bộ đơn đặt vé (chỉ Admin)
+ * GET /api/bookings
+ */
+const ALLOWED_BOOKING_STATUSES = new Set(['confirmed', 'cancelled']);
+const ALLOWED_BOOKING_SORTS = new Set(['createdAt', 'status', 'totalPrice']);
+
+const listBookings = async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const filter = {};
+
+    if (req.query.status) {
+      const statuses = String(req.query.status)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const invalid = statuses.filter((s) => !ALLOWED_BOOKING_STATUSES.has(s));
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Trạng thái lọc không hợp lệ',
+        });
+      }
+      if (statuses.length > 0) {
+        filter.status = { $in: statuses };
+      }
+    }
+
+    const range = {};
+    if (req.query.from) {
+      const fromDate = new Date(String(req.query.from).trim());
+      if (Number.isNaN(fromDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tham số ngày bắt đầu (from) không hợp lệ',
+        });
+      }
+      range.$gte = fromDate;
+    }
+
+    if (req.query.to) {
+      const toStr = String(req.query.to).trim();
+      const toDate = new Date(toStr);
+      if (Number.isNaN(toDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tham số ngày kết thúc (to) không hợp lệ',
+        });
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(toStr)) {
+        toDate.setHours(23, 59, 59, 999);
+      }
+      range.$lte = toDate;
+    }
+
+    if (Object.keys(range).length > 0) {
+      filter.createdAt = range;
+    }
+
+    const rawSort = String(req.query.sort || '-createdAt').trim();
+    const sortDir = rawSort.startsWith('-') ? -1 : 1;
+    const sortField = rawSort.replace(/^-/, '');
+    const sortSpec = ALLOWED_BOOKING_SORTS.has(sortField)
+      ? { [sortField]: sortDir }
+      : { createdAt: -1 };
+
+    const [data, total] = await Promise.all([
+      Booking.find(filter)
+        .populate('userId', 'fullName email')
+        .populate({
+          path: 'showtimeId',
+          populate: [
+            { path: 'movieId', select: 'title duration posterUrl' },
+            { path: 'roomId', select: 'name rows seatsPerRow' },
+          ],
+        })
+        .populate('tickets')
+        .sort(sortSpec)
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Booking.countDocuments(filter),
+    ]);
+
+    const pages = Math.max(1, Math.ceil(total / limit));
+
+    return res.status(200).json({
+      success: true,
+      data,
+      page,
+      limit,
+      total,
+      pages,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createBooking,
+  listBookings,
   getMyBookings,
   getBookingById,
   cancelBooking,

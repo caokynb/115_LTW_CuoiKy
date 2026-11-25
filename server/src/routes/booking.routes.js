@@ -1,11 +1,12 @@
 const express = require('express');
 const {
   createBooking,
+  listBookings,
   getMyBookings,
   getBookingById,
   cancelBooking,
 } = require('../controllers/booking.controller');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ const router = express.Router();
 router.use(verifyToken);
 
 router.post('/', createBooking);
+router.get('/', requireRole('admin'), listBookings);
 router.get('/my', getMyBookings);
 router.get('/my-bookings', getMyBookings);
 router.get('/:id', getBookingById);

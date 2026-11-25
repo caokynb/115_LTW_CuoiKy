@@ -24,6 +24,7 @@ import AdminMovies from './pages/admin/Movies';
 import MovieForm from './pages/admin/MovieForm';
 import Cinemas from './pages/admin/Cinemas';
 import AdminSnacks from './pages/admin/Snacks';
+import AdminBookings from './pages/admin/Bookings';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -77,15 +78,7 @@ export function App() {
                 <Route path="cinemas" element={<Cinemas />} />
                 <Route path="showtimes" element={<ShowtimePage />} />
                 <Route path="snacks" element={<AdminSnacks />} />
-                <Route
-                  path="bookings"
-                  element={
-                    <PlaceholderPage
-                      title="Quản lý vé đã bán"
-                      description="Tra cứu và theo dõi đơn đặt vé."
-                    />
-                  }
-                />
+                <Route path="bookings" element={<AdminBookings />} />
               </Route>
             </Route>
           </Routes>
