@@ -15,7 +15,6 @@ import Profile from './pages/Profile';
 import Movies from './pages/Movies';
 import Home from './pages/Home';
 import MovieDetail from './pages/MovieDetail';
-import Seats from './pages/Seats';
 import Dashboard from './pages/admin/Dashboard';
 import SeatSelection from './pages/SeatSelection';
 import BookingDetail from './pages/BookingDetail';
@@ -27,15 +26,6 @@ import MovieForm from './pages/admin/MovieForm';
 import Cinemas from './pages/admin/Cinemas';
 import AdminSnacks from './pages/admin/Snacks';
 import AdminBookings from './pages/admin/Bookings';
-
-function PlaceholderPage({ title, description }) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h1>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{description}</p>
-    </section>
-  );
-}
 
 export function App() {
   return (
