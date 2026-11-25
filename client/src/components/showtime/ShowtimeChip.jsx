@@ -33,10 +33,10 @@ export function ShowtimeChip({ showtime, onSelect }) {
       disabled={disabled}
       onClick={() => !disabled && onSelect?.(showtime)}
       aria-label={`${formatTime(showtime.startTime)}, ${room || 'phòng chiếu'}, vé thường ${formatPrice(showtime.standardPrice)}, vé VIP ${formatPrice(showtime.vipPrice)}${isPast ? ', suất đã bắt đầu' : isInvalid ? ', giờ chiếu không hợp lệ' : ''}`}
-      className={`flex min-w-[180px] flex-col rounded-xl border px-4 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950 ${
+      className={`flex min-h-[44px] min-w-[180px] flex-col rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-cinema-bg ${
         disabled
-          ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500'
-          : 'border-slate-200 bg-white text-slate-800 hover:border-brand-400 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-brand-500 dark:hover:bg-slate-800'
+          ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400 dark:border-cinema-borderSubtle dark:bg-cinema-card dark:text-neutral-500'
+          : 'border-neutral-200 bg-white text-neutral-800 hover:border-brand-500 hover:bg-brand-50 dark:border-cinema-border dark:bg-cinema-card dark:text-neutral-100 dark:hover:border-brand-400 dark:hover:bg-cinema-elevated'
       }`}
     >
       <span className="flex w-full items-center justify-between gap-3">

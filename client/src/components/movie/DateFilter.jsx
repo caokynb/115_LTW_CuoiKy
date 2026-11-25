@@ -2,11 +2,10 @@ import React from 'react';
 
 // component chọn ngày chiếu phim
 export function DateFilter({
-  selectedDate = '', // ngày đang chọn kiểu YYYY-MM-DD, mặc định sẽ là để rỗng
-  onSelectDate, // gọi lại
+  selectedDate = '',
+  onSelectDate,
   className = '',
 }) {
-  // bấm nút x thì xóa ngày đang chọn
   const handleClear = () => {
     if (onSelectDate) {
       onSelectDate('');
@@ -24,16 +23,15 @@ export function DateFilter({
         value={selectedDate}
         onChange={(e) => onSelectDate && onSelectDate(e.target.value)}
         aria-label="Lọc theo ngày chiếu"
-        className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-3.5 pr-9 text-sm text-slate-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-500 dark:focus:ring-brand-500/30 cursor-pointer"
+        className="min-h-[44px] w-full cursor-pointer rounded-xl border border-neutral-300 bg-white py-2.5 pl-3.5 pr-9 text-sm text-neutral-900 transition-colors hover:border-neutral-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100 dark:hover:border-neutral-500 dark:focus:border-brand-400 dark:focus:ring-brand-500/30"
       />
 
-      {/* chỉ hiện nút xóa khi đã chọn ngày */}
       {selectedDate && (
         <button
           type="button"
           onClick={handleClear}
           aria-label="Xóa bộ lọc ngày"
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-500 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100"
         >
           <svg
             className="h-4 w-4"

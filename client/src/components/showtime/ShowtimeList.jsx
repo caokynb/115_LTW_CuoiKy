@@ -162,10 +162,10 @@ export function ShowtimeList({ movieId }) {
               aria-selected={isSelected}
               aria-controls={`showtime-panel-${dateKey}`}
               onClick={() => setActiveDate(dateKey)}
-              className={`shrink-0 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+              className={`min-h-[44px] shrink-0 rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                 isSelected
-                  ? 'border-brand-600 bg-brand-600 text-white'
-                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                  ? 'border-brand-600 bg-brand-600 text-white shadow-cinema-cta'
+                  : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-cinema-border dark:bg-cinema-card dark:text-neutral-200 dark:hover:bg-cinema-elevated'
               }`}
             >
               {formatDayLabel(dateKey)}
