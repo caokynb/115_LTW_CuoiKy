@@ -9,6 +9,7 @@ const userRouter = require('./routes/user.routes');
 const roomRouter = require('./routes/room.routes');
 const showtimeRouter = require('./routes/showtime.routes');
 const bookingRouter = require('./routes/booking.routes');
+const statsRouter = require('./routes/stats.routes');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/users', userRouter);
 app.use('/api/rooms', roomRouter);
 app.use('/api/showtimes', showtimeRouter);
 app.use('/api/bookings', bookingRouter);
+app.use('/api/stats', statsRouter);
 
 // Bắt các route không tồn tại (404 Not Found)
 app.use(notFound);
