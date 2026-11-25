@@ -540,7 +540,7 @@ const cancelBooking = async (req, res, next) => {
  * Lấy danh sách toàn bộ đơn đặt vé (chỉ Admin)
  * GET /api/bookings
  */
-const ALLOWED_BOOKING_STATUSES = new Set(['confirmed', 'cancelled']);
+const ALLOWED_BOOKING_STATUSES = new Set(['pending', 'confirmed', 'cancelled']);
 const ALLOWED_BOOKING_SORTS = new Set(['createdAt', 'status', 'totalPrice']);
 
 const listBookings = async (req, res, next) => {
