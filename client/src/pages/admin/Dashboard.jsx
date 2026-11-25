@@ -56,8 +56,11 @@ export function Dashboard() {
 
   const summary = useMemo(() => {
     const revenue = movieData.reduce((sum, item) => sum + (Number(item.totalRevenue) || 0), 0);
-    const bookings = movieData.reduce((sum, item) => sum + (Number(item.bookingCount) || 0), 0);
-    return { revenue, bookings, bestMovie: movieData[0] || null };
+    const ticketCount = movieData.reduce((sum, item) => sum + (Number(item.ticketCount) || 0), 0);
+    const bestMovie = movieData.reduce((best, item) => (
+      !best || Number(item.ticketCount) > Number(best.ticketCount) ? item : best
+    ), null);
+    return { revenue, ticketCount, bestMovie };
   }, [movieData]);
 
   const applyRange = (event) => {
@@ -109,8 +112,8 @@ export function Dashboard() {
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Tóm tắt thống kê">
             <StatCard title="Tổng doanh thu" value={formatCurrency(summary.revenue)} note="Từ các đơn đặt vé đã xác nhận" />
-            <StatCard title="Đơn đặt vé" value={new Intl.NumberFormat('vi-VN').format(summary.bookings)} note="Số booking đã xác nhận trong khoảng ngày" />
-            <StatCard title="Phim có doanh thu cao nhất" value={summary.bestMovie?.title || 'Chưa có dữ liệu'} note={summary.bestMovie ? formatCurrency(summary.bestMovie.totalRevenue) : ''} />
+            <StatCard title="Số vé đã bán" value={new Intl.NumberFormat('vi-VN').format(summary.ticketCount)} note="Vé đang có hiệu lực trong khoảng ngày" />
+            <StatCard title="Phim bán chạy nhất" value={summary.bestMovie?.title || 'Chưa có dữ liệu'} note={summary.bestMovie ? `${new Intl.NumberFormat('vi-VN').format(summary.bestMovie.ticketCount)} vé đã bán` : ''} />
           </section>
 
           <div className="grid gap-4 xl:grid-cols-2">

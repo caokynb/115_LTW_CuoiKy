@@ -69,10 +69,33 @@ const getRevenueByMovie = async (req, res, next) => {
         },
       },
       {
+        $lookup: {
+          from: Ticket.collection.name,
+          let: { currentBooking: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$bookingId', '$$currentBooking'] },
+                    { $eq: ['$status', 'active'] },
+                  ],
+                },
+              },
+            },
+            { $count: 'count' },
+          ],
+          as: 'ticketCount',
+        },
+      },
+      {
         $group: {
           _id: '$showtime.movieId',
           totalRevenue: { $sum: '$totalPrice' },
           bookingCount: { $sum: 1 },
+          ticketCount: {
+            $sum: { $ifNull: [{ $arrayElemAt: ['$ticketCount.count', 0] }, 0] },
+          },
         },
       },
       {
@@ -96,6 +119,7 @@ const getRevenueByMovie = async (req, res, next) => {
           title: { $ifNull: ['$movie.title', 'Phim không xác định'] },
           totalRevenue: 1,
           bookingCount: 1,
+          ticketCount: 1,
         },
       },
       { $sort: { totalRevenue: -1, title: 1 } },
