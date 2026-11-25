@@ -26,7 +26,7 @@ export function Seat({
     }
   };
 
-  // Hit-target tối thiểu 36x36px trên mobile (375px) và 40x40px từ sm trở lên
+  // Kích thước ghế thoải mái để chạm trên mobile (375px) và phóng to nhẹ trên desktop
   const baseClasses =
     'relative shrink-0 inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-semibold select-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-900 w-9 h-9 sm:w-10 sm:h-10';
 

@@ -101,12 +101,12 @@ export function SeatMap({
 
   return (
     <div
-      className={`w-full min-w-0 flex flex-col items-center select-none ${className}`}
+      className={`w-full max-w-full min-w-0 overflow-x-hidden flex flex-col items-center select-none ${className}`}
       data-testid="seat-map"
     >
       {/* Screen Indicator */}
       <div
-        className="w-full max-w-xl mb-6 sm:mb-8 flex flex-col items-center"
+        className="w-full max-w-xl mb-5 sm:mb-8 flex flex-col items-center px-2"
         data-testid="screen-indicator"
       >
         <div className="w-4/5 h-2.5 bg-gradient-to-r from-transparent via-brand-500 to-transparent rounded-full shadow-lg shadow-brand-500/30" />
@@ -117,10 +117,10 @@ export function SeatMap({
 
       {/* Responsive Horizontal Scroll Container for Mobile Viewports */}
       <div
-        className="w-full max-w-full overflow-x-auto pb-5 pt-2"
+        className="w-full max-w-full min-w-0 overflow-x-auto touch-pan-x pb-4 pt-2"
         data-testid="seat-map-scroll-container"
       >
-        <div className="min-w-fit mx-auto px-2 sm:px-4 flex flex-col items-center gap-1.5 sm:gap-2">
+        <div className="w-max mx-auto px-2 sm:px-4 flex flex-col items-center gap-1.5 sm:gap-2">
           {computedRows.map((row) => (
             <SeatRow
               key={row.label}

@@ -7,7 +7,6 @@ import { clearSeats } from '../store/slices/bookingSlice';
 
 const HOLD_SECONDS = 5 * 60;
 
-
 export function CountdownTimer({ movieId, seconds = HOLD_SECONDS, className = '' }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -27,7 +26,7 @@ export function CountdownTimer({ movieId, seconds = HOLD_SECONDS, className = ''
       role="timer"
       aria-label="Thời gian giữ ghế còn lại"
       data-testid="countdown-timer"
-      className={`inline-flex shrink-0 max-w-full items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs sm:text-sm font-semibold text-amber-800 shadow-sm dark:border-amber-800 dark:bg-amber-950/90 dark:text-amber-200 ${className}`}
+      className={`fixed bottom-3 inset-x-3 z-40 sm:static sm:inset-auto sm:z-auto inline-flex shrink-0 max-w-full items-center justify-between sm:justify-start gap-2 rounded-xl border border-amber-200 bg-amber-50/95 backdrop-blur px-3.5 py-2.5 sm:py-2 text-xs sm:text-sm font-semibold text-amber-800 shadow-md sm:shadow-sm dark:border-amber-800 dark:bg-amber-950/95 dark:text-amber-200 ${className}`}
     >
       <span>Giữ ghế còn lại</span>
       <span className="text-sm sm:text-base font-extrabold tabular-nums" data-testid="countdown-value">
