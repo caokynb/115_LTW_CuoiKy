@@ -7,6 +7,7 @@ const { evaluateCoupon } = require('./coupon.controller');
 const Snack = require('../models/Snack');
 const User = require('../models/User');
 const RewardPoint = require('../models/RewardPoint');
+const { sendBookingConfirmationEmail } = require('../services/email.service');
 const AppError = require('../utils/AppError');
 
 /**
@@ -369,6 +370,19 @@ const createBooking = async (req, res, next) => {
       booking.pointsUsed = pointsToUse;
       booking.pointsEarned = pointsEarned;
       await booking.save();
+
+      // 3. Gửi email xác nhận vé điện tử kèm mã QR tự động (feat/email-ticket)
+      try {
+        if (!currentUser) currentUser = await User.findById(req.user._id);
+        const emailBooking = {
+          ...booking.toObject(),
+          tickets,
+          showtimeId: showtime,
+        };
+        sendBookingConfirmationEmail(emailBooking, currentUser).catch((e) => {
+          console.error('[Email] Lỗi gửi email vé:', e.message);
+        });
+      } catch (e) {}
 
       return res.status(201).json({
         success: true,
