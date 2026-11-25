@@ -7,6 +7,7 @@ export function SeatMap({
   seatsPerRow = 10,
   vipRows = [],
   soldSeats = [],
+  heldSeats = [],
   selectedSeats = [],
   onSeatClick,
   standardPrice = 0,
@@ -61,6 +62,18 @@ export function SeatMap({
             return rowMatches && Number(sold.number) === seatNumber;
           });
 
+        // kiểm tra ghế có nằm trong danh sách đang được người khác giữ qua Socket.io không
+        const isHeld =
+          Array.isArray(heldSeats) &&
+          heldSeats.some((held) => {
+            const rowMatches =
+              held.row === rowLabel ||
+              held.row === rowIndex1Based ||
+              String(held.row).toUpperCase() === rowLabel.toUpperCase() ||
+              String(held.row) === String(rowIndex1Based);
+            return rowMatches && Number(held.number) === seatNumber;
+          });
+
         // Check if selected
         const isSelected =
           Array.isArray(selectedSeats) &&
@@ -76,6 +89,8 @@ export function SeatMap({
         let status = 'available';
         if (isSold) {
           status = 'sold';
+        } else if (isHeld) {
+          status = 'held';
         } else if (isSelected) {
           status = 'selected';
         }
@@ -99,6 +114,7 @@ export function SeatMap({
     seatsPerRow,
     vipRows,
     soldSeats,
+    heldSeats,
     selectedSeats,
     standardPrice,
     effectiveVipPrice,
@@ -138,7 +154,11 @@ export function SeatMap({
       </div>
 
       {/* Seat Legend */}
-      <SeatLegend standardPrice={standardPrice} vipPrice={effectiveVipPrice} />
+      <SeatLegend
+        standardPrice={standardPrice}
+        vipPrice={effectiveVipPrice}
+        showHeldLegend={Array.isArray(heldSeats) && heldSeats.length > 0}
+      />
     </div>
   );
 }

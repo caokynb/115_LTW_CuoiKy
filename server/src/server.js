@@ -1,3 +1,4 @@
+const http = require('http');
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -6,13 +7,23 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = require('./app');
 const connectDB = require('./config/db');
+const { initSeatSocket } = require('./socket/seatSocket');
 
 // Kết nối cơ sở dữ liệu MongoDB Atlas
 connectDB();
 
 const PORT = process.env.PORT || 5000;
+// tách danh sách origin hợp lệ để chia sẻ chung cấu hình CORS cho Socket.io
+const allowedOrigins = (process.env.CORS_ORIGINS || process.env.CLIENT_URL || 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-const server = app.listen(PORT, () => {
+// bọc Express app trong http.Server để Socket.io chạy chung cổng với REST API
+const httpServer = http.createServer(app);
+initSeatSocket(httpServer, { allowedOrigins });
+
+const server = httpServer.listen(PORT, () => {
   console.log(`[Server] Đang chạy tại cổng ${PORT} trong môi trường ${process.env.NODE_ENV || 'development'}`);
   console.log(`[Server] URL kiểm tra: http://localhost:${PORT}/api/health`);
 });

@@ -5,7 +5,7 @@ const formatVND = (amount) => {
   return ` (${new Intl.NumberFormat('vi-VN').format(amount)}đ)`;
 };
 
-export function SeatLegend({ standardPrice, vipPrice, className = '' }) {
+export function SeatLegend({ standardPrice, vipPrice, showHeldLegend = false, className = '' }) {
   const legendItems = [
     {
       id: 'standard',
@@ -25,6 +25,17 @@ export function SeatLegend({ standardPrice, vipPrice, className = '' }) {
       boxClass:
         'bg-brand-600 text-white border border-brand-600 shadow-sm ring-2 ring-brand-400 dark:bg-brand-500 dark:border-brand-500',
     },
+    // chỉ thêm chú thích màu vàng khi có ít nhất một ghế đang được người khác giữ chỗ
+    ...(showHeldLegend
+      ? [
+          {
+            id: 'held',
+            label: 'Đang giữ chỗ',
+            boxClass:
+              'bg-yellow-300 text-yellow-950 border border-yellow-500 dark:bg-yellow-500/30 dark:text-yellow-200 dark:border-yellow-500',
+          },
+        ]
+      : []),
     {
       id: 'sold',
       label: 'Đã bán',
