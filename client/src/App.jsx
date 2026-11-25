@@ -23,7 +23,7 @@ import ShowtimePage from './pages/admin/Showtimes';
 import AdminMovies from './pages/admin/Movies';
 import MovieForm from './pages/admin/MovieForm';
 import Cinemas from './pages/admin/Cinemas';
-import Bookings from './pages/admin/Bookings';
+import AdminSnacks from './pages/admin/Snacks';
 
 function PlaceholderPage({ title, description }) {
   return (
