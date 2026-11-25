@@ -18,6 +18,7 @@ const ADMIN_LINKS = [
   { to: '/admin/showtimes', label: 'Suất chiếu' },
   { to: '/admin/snacks', label: 'Bắp nước' },
   { to: '/admin/bookings', label: 'Vé đã bán' },
+  { to: '/admin/scanner', label: 'Soát vé (QR)' },
 ];
 
 export function AdminLayout() {

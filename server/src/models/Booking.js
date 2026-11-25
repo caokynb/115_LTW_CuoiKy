@@ -30,6 +30,16 @@ const bookingSchema = new mongoose.Schema(
       min: [0, 'Số tiền giảm không được âm'],
       default: 0,
     },
+    pointsUsed: {
+      type: Number,
+      min: [0, 'Số điểm sử dụng không được âm'],
+      default: 0,
+    },
+    pointsEarned: {
+      type: Number,
+      min: [0, 'Số điểm tích lũy không được âm'],
+      default: 0,
+    },
     couponCode: {
       type: String,
       trim: true,
@@ -67,11 +77,20 @@ const bookingSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['confirmed', 'cancelled'],
-        message: 'Trạng thái đơn đặt vé chỉ chấp nhận confirmed hoặc cancelled',
+        values: ['confirmed', 'cancelled', 'checked-in'],
+        message: 'Trạng thái đơn đặt vé chỉ chấp nhận confirmed, cancelled hoặc checked-in',
       },
       default: 'confirmed',
       index: true,
+    },
+    checkedInAt: {
+      type: Date,
+      default: null,
+    },
+    checkedInBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
   },
   {

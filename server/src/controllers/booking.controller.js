@@ -5,6 +5,8 @@ const Showtime = require('../models/Showtime');
 const Coupon = require('../models/Coupon');
 const { evaluateCoupon } = require('./coupon.controller');
 const Snack = require('../models/Snack');
+const User = require('../models/User');
+const RewardPoint = require('../models/RewardPoint');
 const AppError = require('../utils/AppError');
 
 /**
@@ -237,6 +239,29 @@ const createBooking = async (req, res, next) => {
       appliedCouponCode = couponResult.coupon.code;
     }
 
+    // kiểm tra dùng điểm tích lũy thanh toán (T18)
+    let pointsToUse = Number(req.body.pointsToUse || req.body.usePoints || 0);
+    let currentUser = null;
+    if (pointsToUse > 0) {
+      if (!Number.isInteger(pointsToUse) || pointsToUse < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số điểm sử dụng phải là số nguyên dương.',
+        });
+      }
+      currentUser = await User.findById(req.user._id);
+      if (!currentUser || (currentUser.rewardPoints || 0) < pointsToUse) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số điểm tích lũy không đủ để thực hiện thanh toán.',
+        });
+      }
+      if (pointsToUse > totalPrice) {
+        pointsToUse = totalPrice;
+      }
+      totalPrice = Math.max(0, totalPrice - pointsToUse);
+    }
+
     // 7. Kiểm tra trùng ghế (Tier 1 - Pre-check query)
     const seatConditions = resolvedSeats.map((s) => ({
       row: s.row,
@@ -307,6 +332,43 @@ const createBooking = async (req, res, next) => {
       }));
 
       const tickets = await Ticket.insertMany(ticketDocs, { ordered: true });
+
+      // 1. Trừ điểm nếu dùng điểm thanh toán (T18)
+      if (pointsToUse > 0) {
+        if (!currentUser) currentUser = await User.findById(req.user._id);
+        currentUser.rewardPoints = Math.max(0, (currentUser.rewardPoints || 0) - pointsToUse);
+        await currentUser.save();
+
+        await RewardPoint.create({
+          userId: req.user._id,
+          bookingId: booking._id,
+          points: -pointsToUse,
+          type: 'redeem',
+          description: `Dùng điểm thanh toán đơn vé #${booking._id}`,
+          balanceAfter: currentUser.rewardPoints,
+        });
+      }
+
+      // 2. Tự động tích 5% giá trị đơn vé vào tài khoản (T18)
+      const pointsEarned = Math.floor(totalPrice * 0.05);
+      if (pointsEarned > 0) {
+        if (!currentUser) currentUser = await User.findById(req.user._id);
+        currentUser.rewardPoints = (currentUser.rewardPoints || 0) + pointsEarned;
+        await currentUser.save();
+
+        await RewardPoint.create({
+          userId: req.user._id,
+          bookingId: booking._id,
+          points: pointsEarned,
+          type: 'earn',
+          description: `Tích 5% điểm từ đơn vé #${booking._id}`,
+          balanceAfter: currentUser.rewardPoints,
+        });
+      }
+
+      booking.pointsUsed = pointsToUse;
+      booking.pointsEarned = pointsEarned;
+      await booking.save();
 
       return res.status(201).json({
         success: true,
@@ -636,10 +698,134 @@ const listBookings = async (req, res, next) => {
   }
 };
 
+/**
+ * Soát vé tại quầy (Check-in Scanner)
+ * PATCH /api/bookings/:id/check-in hoặc POST /api/bookings/check-in
+ * Chỉ dành cho admin / nhân viên
+ */
+const checkInBooking = async (req, res, next) => {
+  try {
+    const rawId = req.params.id || req.body.bookingId || req.body.code || req.body.ticketId;
+    if (!rawId) {
+      return res.status(400).json({
+        success: false,
+        code: 'MISSING_CODE',
+        message: 'Thiếu mã vé hoặc mã QR để soát vé',
+      });
+    }
+
+    const bookingIdStr = String(rawId).trim();
+    if (!mongoose.Types.ObjectId.isValid(bookingIdStr)) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_QR_FORMAT',
+        message: 'Mã QR không đúng định dạng vé của CineHub',
+      });
+    }
+
+    const booking = await Booking.findById(bookingIdStr)
+      .populate('userId', 'fullName email phone')
+      .populate({
+        path: 'showtimeId',
+        populate: [
+          { path: 'movieId', select: 'title duration posterUrl' },
+          { path: 'roomId', select: 'name' },
+        ],
+      })
+      .populate('tickets');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        code: 'BOOKING_NOT_FOUND',
+        message: 'Không tìm thấy vé trong hệ thống',
+      });
+    }
+
+    // 1. Kiểm tra vé đã bị hủy
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        code: 'TICKET_CANCELLED',
+        message: 'Vé này đã bị hủy, không thể soát vé',
+        data: {
+          bookingId: booking._id,
+          status: 'cancelled',
+          movieTitle: booking.showtimeId?.movieId?.title,
+          seats: booking.tickets,
+        },
+      });
+    }
+
+    // 2. Quét lại vé cũ báo trùng (đã check-in trước đó)
+    if (booking.status === 'checked-in') {
+      return res.status(409).json({
+        success: false,
+        code: 'ALREADY_CHECKED_IN',
+        message: 'Vé này đã được soát trước đó (Trùng mã soát vé)',
+        data: {
+          bookingId: booking._id,
+          status: 'checked-in',
+          checkedInAt: booking.checkedInAt,
+          movieTitle: booking.showtimeId?.movieId?.title,
+          roomName: booking.showtimeId?.roomId?.name,
+          startTime: booking.showtimeId?.startTime,
+          seats: booking.tickets,
+        },
+      });
+    }
+
+    // 3. Kiểm tra vé sai suất chiếu (nếu nhân viên truyền showtimeId hiện tại của phòng)
+    if (req.body.showtimeId && String(booking.showtimeId?._id) !== String(req.body.showtimeId)) {
+      return res.status(400).json({
+        success: false,
+        code: 'WRONG_SHOWTIME',
+        message: 'Vé không đúng suất chiếu đang soát tại phòng',
+        data: {
+          bookingId: booking._id,
+          expectedShowtimeId: req.body.showtimeId,
+          actualShowtimeId: booking.showtimeId?._id,
+        },
+      });
+    }
+
+    // 4. Cập nhật trạng thái vé sang checked-in
+    booking.status = 'checked-in';
+    booking.checkedInAt = new Date();
+    booking.checkedInBy = req.user._id;
+    await booking.save();
+
+    await Ticket.updateMany(
+      { bookingId: booking._id, status: 'active' },
+      { $set: { status: 'checked-in' } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Soát vé thành công',
+      data: {
+        bookingId: booking._id,
+        status: 'checked-in',
+        checkedInAt: booking.checkedInAt,
+        movieTitle: booking.showtimeId?.movieId?.title,
+        roomName: booking.showtimeId?.roomId?.name,
+        startTime: booking.showtimeId?.startTime,
+        customerName: booking.userId?.fullName,
+        customerEmail: booking.userId?.email,
+        seats: booking.tickets,
+        totalPrice: booking.totalPrice,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createBooking,
   listBookings,
   getMyBookings,
   getBookingById,
   cancelBooking,
+  checkInBooking,
 };

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test src/tests/booking.test.js src/tests/booking.cancel.test.js src/tests/booking.admin.test.js src/tests/booking.concurrency.test.js src/tests/price.test.js tests/movie.test.js tests/coupon.test.js tests/snack.test.js src/tests/security.test.js tests/room.test.js tests/showtime.test.js"
+    "test": "node --test src/tests/booking.test.js src/tests/booking.cancel.test.js src/tests/booking.admin.test.js src/tests/booking.scanner.test.js src/tests/loyalty.test.js src/tests/booking.concurrency.test.js src/tests/price.test.js tests/movie.test.js tests/coupon.test.js tests/snack.test.js src/tests/security.test.js tests/room.test.js tests/showtime.test.js"
   },
   "keywords": [],
   "author": "",

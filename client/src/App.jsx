@@ -25,6 +25,7 @@ import MovieForm from './pages/admin/MovieForm';
 import Cinemas from './pages/admin/Cinemas';
 import AdminSnacks from './pages/admin/Snacks';
 import AdminBookings from './pages/admin/Bookings';
+import TicketScanner from './pages/admin/TicketScanner';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -79,6 +80,7 @@ export function App() {
                 <Route path="showtimes" element={<ShowtimePage />} />
                 <Route path="snacks" element={<AdminSnacks />} />
                 <Route path="bookings" element={<AdminBookings />} />
+                <Route path="scanner" element={<TicketScanner />} />
               </Route>
             </Route>
           </Routes>
