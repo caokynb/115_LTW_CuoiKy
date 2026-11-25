@@ -4,16 +4,16 @@ import Seat from './Seat';
 export function SeatRow({ rowLabel, seats = [], onSeatClick }) {
   return (
     <div
-      className="flex items-center justify-center gap-2 sm:gap-3 py-1"
+      className="flex shrink-0 items-center justify-center gap-1.5 sm:gap-3 py-1"
       data-testid={`seat-row-${rowLabel}`}
     >
       {/* Left row indicator */}
-      <span className="w-6 sm:w-8 text-center text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 select-none">
+      <span className="w-5 sm:w-7 shrink-0 text-center text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 select-none">
         {rowLabel}
       </span>
 
       {/* Row seats */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {seats.map((seat) => (
           <Seat
             key={`${seat.row}-${seat.number}`}
@@ -28,7 +28,7 @@ export function SeatRow({ rowLabel, seats = [], onSeatClick }) {
       </div>
 
       {/* Right row indicator for symmetry */}
-      <span className="w-6 sm:w-8 text-center text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 select-none">
+      <span className="w-5 sm:w-7 shrink-0 text-center text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 select-none">
         {rowLabel}
       </span>
     </div>

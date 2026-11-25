@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
 const Showtime = require('../models/Showtime');
+const Coupon = require('../models/Coupon');
+const { evaluateCoupon } = require('./coupon.controller');
+const Snack = require('../models/Snack');
 const AppError = require('../utils/AppError');
 
 /**
@@ -17,7 +20,15 @@ const createBooking = async (req, res, next) => {
       });
     }
 
-    const { showtimeId, seats } = req.body || {};
+    // Tài khoản Admin chỉ dùng để quản trị hệ thống, không được phép đặt vé
+    if (req.user.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản Quản trị viên chỉ dùng để quản lý hệ thống, không được phép đặt vé xem phim',
+      });
+    }
+
+    const { showtimeId, seats, couponCode, snacks } = req.body || {};
 
     // 1. Kiểm tra tính hợp lệ của showtimeId
     if (!showtimeId || !mongoose.Types.ObjectId.isValid(showtimeId)) {
@@ -141,7 +152,90 @@ const createBooking = async (req, res, next) => {
     }
 
     // Tính tổng tiền dựa trên giá vé do Server xác định (bỏ qua mọi giá vé từ Client)
-    const totalPrice = resolvedSeats.reduce((sum, s) => sum + s.price, 0);
+    const seatTotal = resolvedSeats.reduce((sum, s) => sum + s.price, 0);
+
+    // kiểm tra và cộng tiền combo bắp nước từ giá gốc trong database
+    let snackTotal = 0;
+    const resolvedSnacks = [];
+
+    if (snacks !== undefined && snacks !== null) {
+      if (!Array.isArray(snacks)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Danh sách combo bắp nước không hợp lệ.',
+        });
+      }
+
+      if (snacks.length > 0) {
+        const quantityBySnackId = new Map();
+        for (const item of snacks) {
+          if (!item || typeof item !== 'object') {
+            return res.status(400).json({
+              success: false,
+              message: 'Thông tin combo bắp nước không hợp lệ.',
+            });
+          }
+          const { snackId, quantity } = item;
+          const qty = Number(quantity);
+          if (!snackId || !mongoose.Types.ObjectId.isValid(snackId)) {
+            return res.status(400).json({
+              success: false,
+              message: 'ID combo bắp nước không hợp lệ.',
+            });
+          }
+          if (!Number.isInteger(qty) || qty < 1 || qty > 20) {
+            return res.status(400).json({
+              success: false,
+              message: 'Số lượng mỗi combo phải là số nguyên từ 1 đến 20.',
+            });
+          }
+          const key = String(snackId);
+          const nextQty = (quantityBySnackId.get(key) || 0) + qty;
+          if (nextQty > 20) {
+            return res.status(400).json({
+              success: false,
+              message: 'Số lượng mỗi combo phải là số nguyên từ 1 đến 20.',
+            });
+          }
+          quantityBySnackId.set(key, nextQty);
+        }
+
+        const snackIds = Array.from(quantityBySnackId.keys());
+        const dbSnacks = await Snack.find({ _id: { $in: snackIds }, isAvailable: true });
+        if (dbSnacks.length !== snackIds.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'Một số combo bắp nước không tồn tại hoặc đã ngừng bán.',
+          });
+        }
+
+        for (const dbSnack of dbSnacks) {
+          const quantity = quantityBySnackId.get(String(dbSnack._id));
+          snackTotal += dbSnack.price * quantity;
+          resolvedSnacks.push({
+            snackId: dbSnack._id,
+            name: dbSnack.name,
+            price: dbSnack.price,
+            quantity,
+          });
+        }
+      }
+    }
+
+    const originalPrice = seatTotal + snackTotal;
+    let totalPrice = originalPrice;
+    let discountAmount = 0;
+    let appliedCouponCode = null;
+    let couponToReserve = null;
+
+    // nếu có mã giảm giá thì kiểm tra và tính lại tổng tiền trên server
+    if (couponCode !== undefined && couponCode !== null && String(couponCode).trim() !== '') {
+      const couponResult = await evaluateCoupon(couponCode, originalPrice);
+      couponToReserve = couponResult.coupon;
+      discountAmount = couponResult.discountAmount;
+      totalPrice = couponResult.finalAmount;
+      appliedCouponCode = couponResult.coupon.code;
+    }
 
     // 7. Kiểm tra trùng ghế (Tier 1 - Pre-check query)
     const seatConditions = resolvedSeats.map((s) => ({
@@ -166,12 +260,38 @@ const createBooking = async (req, res, next) => {
       });
     }
 
+    // giữ lượt sử dụng coupon an toàn trước khi tạo booking
+    let reservedCoupon = null;
+    if (couponToReserve) {
+      reservedCoupon = await Coupon.findOneAndUpdate(
+        {
+          _id: couponToReserve._id,
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+          $expr: { $lt: ['$usedCount', '$maxUses'] },
+        },
+        { $inc: { usedCount: 1 } },
+        { returnDocument: 'after' }
+      );
+      if (!reservedCoupon) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã giảm giá đã hết lượt sử dụng hoặc đã hết hạn.',
+        });
+      }
+    }
+
     // 8. Tạo đơn đặt vé và vé (Tier 2 - Bắt lỗi trùng khóa E11000 khi có tranh chấp đồng thời)
     let booking;
     try {
       booking = await Booking.create({
         userId: req.user._id,
         showtimeId: showtime._id,
+        snacks: resolvedSnacks,
+        snackTotal,
+        originalPrice,
+        discountAmount,
+        couponCode: appliedCouponCode,
         totalPrice,
         status: 'confirmed',
       });
@@ -197,6 +317,14 @@ const createBooking = async (req, res, next) => {
         },
       });
     } catch (err) {
+      // hoàn lại lượt dùng coupon nếu tạo đơn hoặc tạo vé thất bại
+      if (reservedCoupon && reservedCoupon._id) {
+        try {
+          await Coupon.findByIdAndUpdate(reservedCoupon._id, { $inc: { usedCount: -1 } });
+        } catch (couponErr) {
+          console.error('[Booking Controller] Lỗi hoàn lượt coupon:', couponErr);
+        }
+      }
       // Dọn dẹp booking và các vé đã chèn dở dang nếu xảy ra lỗi trong quá trình tạo vé
       if (booking && booking._id) {
         try {
@@ -314,8 +442,204 @@ const getBookingById = async (req, res, next) => {
   }
 };
 
+/**
+ * Hủy đơn đặt vé và giải phóng ghế (nhả ghế)
+ * PATCH /api/bookings/:id/cancel
+ */
+const cancelBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Kiểm tra ID hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID đơn đặt vé không hợp lệ',
+      });
+    }
+
+    // 2. Tìm đơn đặt vé và populate showtimeId
+    const booking = await Booking.findById(id).populate('showtimeId');
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn đặt vé',
+      });
+    }
+
+    // 3. Kiểm tra quyền sở hữu (chỉ chủ vé hoặc admin)
+    if (
+      booking.userId.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền hủy đơn đặt vé này',
+      });
+    }
+
+    // 4. Kiểm tra xem đơn đã bị hủy trước đó chưa
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn đặt vé này đã được hủy trước đó',
+      });
+    }
+
+    // 5. Kiểm tra thời gian trước giờ chiếu ít nhất 2 tiếng
+    if (!booking.showtimeId || !booking.showtimeId.startTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không tìm thấy thông tin suất chiếu của đơn đặt vé',
+      });
+    }
+
+    const startTime = new Date(booking.showtimeId.startTime).getTime();
+    const now = Date.now();
+    const diffHours = (startTime - now) / (1000 * 60 * 60);
+
+    if (diffHours < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ được phép hủy vé trước giờ chiếu ít nhất 2 tiếng',
+      });
+    }
+
+    // 6. Cập nhật trạng thái booking sang cancelled
+    booking.status = 'cancelled';
+    await booking.save();
+
+    // 7. Cập nhật trạng thái tất cả vé thuộc đơn sang cancelled để giải phóng ghế
+    await Ticket.updateMany(
+      { bookingId: booking._id },
+      { $set: { status: 'cancelled' } }
+    );
+
+    // 8. Lấy dữ liệu cập nhật đầy đủ để trả về client
+    const updatedBooking = await Booking.findById(booking._id)
+      .populate({
+        path: 'showtimeId',
+        populate: [
+          { path: 'movieId', select: 'title duration posterUrl' },
+          { path: 'roomId', select: 'name rows seatsPerRow' },
+        ],
+      })
+      .populate('tickets');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Hủy vé thành công, ghế đã được giải phóng',
+      data: updatedBooking,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Lấy danh sách toàn bộ đơn đặt vé (chỉ Admin)
+ * GET /api/bookings
+ */
+const ALLOWED_BOOKING_STATUSES = new Set(['confirmed', 'cancelled']);
+const ALLOWED_BOOKING_SORTS = new Set(['createdAt', 'status', 'totalPrice']);
+
+const listBookings = async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const filter = {};
+
+    if (req.query.status) {
+      const statuses = String(req.query.status)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const invalid = statuses.filter((s) => !ALLOWED_BOOKING_STATUSES.has(s));
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Trạng thái lọc không hợp lệ',
+        });
+      }
+      if (statuses.length > 0) {
+        filter.status = { $in: statuses };
+      }
+    }
+
+    const range = {};
+    if (req.query.from) {
+      const fromDate = new Date(String(req.query.from).trim());
+      if (Number.isNaN(fromDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tham số ngày bắt đầu (from) không hợp lệ',
+        });
+      }
+      range.$gte = fromDate;
+    }
+
+    if (req.query.to) {
+      const toStr = String(req.query.to).trim();
+      const toDate = new Date(toStr);
+      if (Number.isNaN(toDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tham số ngày kết thúc (to) không hợp lệ',
+        });
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(toStr)) {
+        toDate.setHours(23, 59, 59, 999);
+      }
+      range.$lte = toDate;
+    }
+
+    if (Object.keys(range).length > 0) {
+      filter.createdAt = range;
+    }
+
+    const rawSort = String(req.query.sort || '-createdAt').trim();
+    const sortDir = rawSort.startsWith('-') ? -1 : 1;
+    const sortField = rawSort.replace(/^-/, '');
+    const sortSpec = ALLOWED_BOOKING_SORTS.has(sortField)
+      ? { [sortField]: sortDir }
+      : { createdAt: -1 };
+
+    const [data, total] = await Promise.all([
+      Booking.find(filter)
+        .populate('userId', 'fullName email')
+        .populate({
+          path: 'showtimeId',
+          populate: [
+            { path: 'movieId', select: 'title duration posterUrl' },
+            { path: 'roomId', select: 'name rows seatsPerRow' },
+          ],
+        })
+        .populate('tickets')
+        .sort(sortSpec)
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Booking.countDocuments(filter),
+    ]);
+
+    const pages = Math.max(1, Math.ceil(total / limit));
+
+    return res.status(200).json({
+      success: true,
+      data,
+      page,
+      limit,
+      total,
+      pages,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createBooking,
+  listBookings,
   getMyBookings,
   getBookingById,
+  cancelBooking,
 };

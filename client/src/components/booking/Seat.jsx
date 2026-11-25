@@ -26,9 +26,9 @@ export function Seat({
     }
   };
 
-  // Base styling for all seats
+  // Base styling for all seats (minimum 36px touch target on mobile, 40px on sm+)
   const baseClasses =
-    'relative inline-flex items-center justify-center rounded text-xs font-semibold select-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-900 w-8 h-8 sm:w-9 sm:h-9';
+    'relative shrink-0 inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-semibold select-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-900 w-9 h-9 sm:w-10 sm:h-10';
 
   // Variant styling by status and type
   let statusClasses = '';

@@ -26,7 +26,9 @@ describe('Booking API Endpoints (POST /api/bookings)', () => {
   let server;
   let baseUrl;
   let authToken;
+  let adminToken;
   let testUser;
+  let testAdmin;
   let testRoom;
   let testMovie;
   let futureShowtime;
@@ -57,6 +59,15 @@ describe('Booking API Endpoints (POST /api/bookings)', () => {
     });
 
     authToken = signToken(testUser);
+
+    testAdmin = await User.create({
+      fullName: 'Test Admin',
+      email: `test_admin_${uniqueSuffix}@example.com`,
+      passwordHash: await User.hashPassword('Password123!'),
+      role: 'admin',
+    });
+
+    adminToken = signToken(testAdmin);
 
     testRoom = await Room.create({
       name: `Phòng Test M4 ${uniqueSuffix}`,
@@ -116,6 +127,7 @@ describe('Booking API Endpoints (POST /api/bookings)', () => {
     if (testMovie) await Movie.findByIdAndDelete(testMovie._id);
     if (testRoom) await Room.findByIdAndDelete(testRoom._id);
     if (testUser) await User.findByIdAndDelete(testUser._id);
+    if (testAdmin) await User.findByIdAndDelete(testAdmin._id);
 
     // Đóng HTTP server và kết nối MongoDB
     if (server) {
@@ -528,5 +540,30 @@ describe('Booking API Endpoints (POST /api/bookings)', () => {
         number: { $in: [1, 2] },
       });
     }
+  });
+
+  it('Test 7: Rejection of booking creation when user role is admin (HTTP 403 Forbidden)', async () => {
+    const payload = {
+      showtimeId: futureShowtime._id.toString(),
+      seats: [{ row: 'A', number: 5 }],
+    };
+
+    const res = await fetch(`${baseUrl}/api/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    assert.strictEqual(res.status, 403, `Expected status 403 but got ${res.status}`);
+    assert.strictEqual(data.success, false);
+    assert.strictEqual(
+      data.message,
+      'Tài khoản Quản trị viên chỉ dùng để quản lý hệ thống, không được phép đặt vé xem phim'
+    );
   });
 });

@@ -1,4 +1,5 @@
 const Movie = require('../models/Movie');
+const Showtime = require('../models/Showtime');
 const { validateMovieInput } = require('../validators/movie.validator');
 const AppError = require('../utils/AppError');
 
@@ -74,6 +75,46 @@ const getMovies = async (req, res, next) => {
             total,
             page: currentPage,
             pages: Math.ceil(total / limitPerPage) || 1,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// lấy danh sách thể loại kèm số lượng phim theo từng thể loại
+const getMovieGenres = async (req, res, next) => {
+    try {
+        const { status } = req.query;
+        const pipeline = [];
+
+        // nếu truyền status thì lọc trước khi gom nhóm
+        if (status && status.trim() !== '') {
+            pipeline.push({ $match: { status: status.trim() } });
+        }
+
+        pipeline.push(
+            { $unwind: '$genres' },
+            {
+                $group: {
+                    _id: '$genres',
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    genre: '$_id',
+                    count: 1,
+                },
+            },
+            { $sort: { count: -1, genre: 1 } }
+        );
+
+        const genres = await Movie.aggregate(pipeline);
+
+        return res.status(200).json({
+            success: true,
+            data: genres,
         });
     } catch (error) {
         next(error);
@@ -187,11 +228,23 @@ const deleteMovie = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const deletedMovie = await Movie.findByIdAndDelete(id);
-
-        if (!deletedMovie) {
+        const movie = await Movie.findById(id);
+        if (!movie) {
             return next(new AppError('Không tìm thấy phim để xóa!', 404));
         }
+
+        // kiểm tra nếu phim còn suất chiếu trong tương lai thì chặn xóa (trả về 409)
+        const hasFutureShowtime = await Showtime.exists({
+            movieId: id,
+            startTime: { $gt: new Date() },
+        });
+        if (hasFutureShowtime) {
+            return next(
+                new AppError('Không thể xóa phim vì vẫn còn suất chiếu trong tương lai!', 409)
+            );
+        }
+
+        await Movie.findByIdAndDelete(id);
 
         return res.status(200).json({
             success: true,
@@ -205,6 +258,7 @@ const deleteMovie = async (req, res, next) => {
 
 module.exports = {
     getMovies,
+    getMovieGenres,
     getMovieById,
     createMovie,
     updateMovie,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import GenreTag from './GenreTag';
+import AgeRatingBadge from './AgeRatingBadge';
 
 // Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
 const DEFAULT_POSTER =
@@ -13,9 +14,9 @@ const formatDate = (dateString) => {
     const d = new Date(dateString);
     if (isNaN(d.getTime())) return '';
     return d.toLocaleDateString('vi-VN', {
-      day: '2-digit',
+      day: '2-digit', //để dạng 2 ký tự
       month: '2-digit',
-      year: 'numeric',
+      year: 'numeric', //phải là số
     });
   } catch {
     return '';
@@ -27,7 +28,7 @@ export function MovieCard({ movie }) {
   // nếu không có dữ liệu phim thì không render
   if (!movie) return null;
 
-  // lấy các trường cần thiết, hỗ trợ cả posterUrl và posterURL
+  // lấy các trường cần thiết, hỗ trợ posterUrl
   const {
     _id,
     title,
@@ -35,8 +36,9 @@ export function MovieCard({ movie }) {
     duration,
     releaseDate,
     status,
+    ageRating = 'P',
   } = movie;
-  const poster = movie.posterUrl || movie.posterURL || DEFAULT_POSTER;
+  const poster = movie.posterUrl || DEFAULT_POSTER;
 
   // cờ kiểm tra phim đang chiếu hay sắp chiếu
   const isNowShowing = status === 'now_showing';
@@ -52,6 +54,7 @@ export function MovieCard({ movie }) {
           src={poster}
           alt={title}
           loading="lazy"
+          decoding="async"
           onError={(e) => {
             // nếu link ảnh hỏng thì tự đổi về ảnh mặc định tránh vỡ giao diện
             e.currentTarget.onerror = null;
@@ -73,6 +76,11 @@ export function MovieCard({ movie }) {
           )}
         </div>
 
+        {/* Nhãn phân loại độ tuổi gắn ở góc trên bên phải poster */}
+        <div className="absolute right-3 top-3">
+          <AgeRatingBadge rating={ageRating} />
+        </div>
+
         {/* Thời lượng phim gắn ở góc dưới bên phải poster */}
         {duration > 0 && (
           <div className="absolute bottom-3 right-3 rounded-md bg-slate-950/80 px-2 py-0.5 text-xs font-medium text-slate-200 backdrop-blur-sm">
@@ -82,7 +90,7 @@ export function MovieCard({ movie }) {
       </Link>
 
       {/* Phần nội dung chi tiết phía dưới poster */}
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex min-w-0 flex-1 flex-col p-4">
         {/* Danh sách nhãn thể loại, tối đa hiển thị 2 nhãn đầu để không bị tràn dòng */}
         {Array.isArray(genres) && genres.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">
@@ -98,7 +106,7 @@ export function MovieCard({ movie }) {
         )}
 
         {/* Tên phim (bấm vào chuyển sang trang chi tiết) */}
-        <h3 className="line-clamp-2 text-base font-bold text-slate-900 transition-colors group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-500">
+        <h3 className="line-clamp-2 break-words text-base font-bold text-slate-900 transition-colors group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-500">
           <Link to={`/movies/${_id}`} title={title}>
             {title}
           </Link>
@@ -115,7 +123,7 @@ export function MovieCard({ movie }) {
         <div className="mt-auto pt-4">
           <Link
             to={`/movies/${_id}`}
-            className="flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
+            className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
           >
             {isNowShowing ? 'Đặt vé ngay' : 'Xem thông tin'}
           </Link>

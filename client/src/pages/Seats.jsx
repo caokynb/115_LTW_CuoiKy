@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import api, { getErrorMessage } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { useToast, Spinner, EmptyState, Button } from '../components/ui';
+import { useToast, Spinner, EmptyState, Button, Modal } from '../components/ui';
 import { SeatMap, BookingSummary } from '../components/booking';
 import {
   setBookingShowtime,
   toggleSeat,
   clearError,
+  clearSeats,
   selectSelectedSeats,
   selectBookingError,
 } from '../store/slices/bookingSlice';
@@ -18,11 +19,13 @@ export function Seats({ onCheckout: onCheckoutProp }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const toast = useToast();
-  const { loading: authLoading } = useAuth();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const [showtime, setShowtime] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedSeats = useSelector(selectSelectedSeats);
   const reduxError = useSelector(selectBookingError);
@@ -119,13 +122,23 @@ export function Seats({ onCheckout: onCheckoutProp }) {
   // Handle seat click from SeatMap
   const handleSeatClick = useCallback(
     (seat) => {
+      if (isAdmin) {
+        toast.warning(
+          'Tài khoản Quản trị viên chỉ dùng để quản trị hệ thống, không được phép chọn ghế và đặt vé.'
+        );
+        return;
+      }
       dispatch(toggleSeat(seat));
     },
-    [dispatch]
+    [dispatch, isAdmin, toast]
   );
 
   // Handle checkout
   const handleCheckout = useCallback(() => {
+    if (isAdmin) {
+      toast.error('Tài khoản Quản trị viên không được phép đặt vé xem phim.');
+      return;
+    }
     if (selectedSeats.length === 0) return;
     if (onCheckoutProp) {
       onCheckoutProp({
@@ -135,14 +148,58 @@ export function Seats({ onCheckout: onCheckoutProp }) {
       });
       return;
     }
-    navigate(`/bookings/new`, {
-      state: {
+    setIsConfirmOpen(true);
+  }, [id, selectedSeats, totalAmount, onCheckoutProp, isAdmin, toast]);
+
+  // Handle confirm and create booking via API
+  const handleConfirmBooking = async () => {
+    if (selectedSeats.length === 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
         showtimeId: id,
-        selectedSeats,
-        totalAmount,
-      },
-    });
-  }, [id, selectedSeats, totalAmount, onCheckoutProp, navigate]);
+        seats: selectedSeats.map((s) => ({
+          row: s.row,
+          number: s.number,
+        })),
+      };
+
+      const res = await api.post('/bookings', payload);
+      const bookingData = res.data?.data?.booking;
+
+      toast.success('Đặt vé thành công!');
+      dispatch(clearSeats());
+      setIsConfirmOpen(false);
+
+      if (bookingData?._id) {
+        navigate(`/bookings/${bookingData._id}`);
+      } else {
+        navigate('/my-bookings');
+      }
+    } catch (err) {
+      if (err.response?.status === 409) {
+        const conflicting = err.response?.data?.conflictingSeats || [];
+        const conflictLabels = conflicting.map((s) => `${s.row}${s.number}`).join(', ');
+        toast.error(
+          conflictLabels
+            ? `Ghế ${conflictLabels} đã có người đặt trước. Vui lòng chọn ghế khác!`
+            : err.response?.data?.message || 'Một số ghế đã có người đặt trước.'
+        );
+        // Tải lại suất chiếu để cập nhật danh sách ghế đã bán
+        try {
+          const reloadRes = await api.get(`/showtimes/${id}`);
+          setShowtime(reloadRes.data?.data || null);
+        } catch {
+          // Bỏ qua lỗi tải lại
+        }
+      } else {
+        toast.error(getErrorMessage(err, 'Đặt vé thất bại. Vui lòng thử lại!'));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // F5 refresh / loading stability
   if (authLoading || (loading && !showtime)) {
@@ -227,6 +284,32 @@ export function Seats({ onCheckout: onCheckoutProp }) {
         </div>
       </div>
 
+      {/* Admin Notice Banner */}
+      {isAdmin && (
+        <div
+          className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300"
+          role="alert"
+          data-testid="admin-booking-warning"
+        >
+          <div className="flex items-center gap-3">
+            <svg
+              className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="text-sm font-medium">
+              <strong>Tài khoản Quản trị viên (Admin):</strong> Bạn đang đăng nhập bằng tài khoản quản trị. Tài khoản này chỉ dùng để quản lý hệ thống và không được phép đặt vé xem phim.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Grid: SeatMap + BookingSummary */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* SeatMap Container */}
@@ -262,9 +345,69 @@ export function Seats({ onCheckout: onCheckoutProp }) {
             vipCount={vipCount}
             totalAmount={totalAmount}
             onCheckout={handleCheckout}
+            disabled={isAdmin}
           />
         </aside>
       </div>
+
+      {/* Modal Xác nhận đặt vé */}
+      <Modal
+        isOpen={isConfirmOpen}
+        onClose={() => !isSubmitting && setIsConfirmOpen(false)}
+        title="Xác nhận đặt vé"
+        size="md"
+      >
+        <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
+          <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+            <p className="font-bold text-base text-slate-900 dark:text-white">{movie?.title}</p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <div>Phòng: <strong className="text-slate-800 dark:text-slate-200">{roomName}</strong></div>
+              <div>
+                Suất chiếu:{' '}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {showtime?.startTime
+                    ? new Date(showtime.startTime).toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : ''}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span className="block text-xs font-semibold uppercase text-slate-400">Ghế đã chọn:</span>
+            <p className="mt-1 font-bold text-brand-600 dark:text-brand-400">
+              {selectedSeats.map((s) => `${s.row}${s.number}`).join(', ')} ({selectedSeats.length} ghế)
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+            <span className="font-medium text-slate-600 dark:text-slate-400">Tổng tiền thanh toán:</span>
+            <span className="text-xl font-black text-brand-600 dark:text-brand-500">
+              {totalAmount.toLocaleString('vi-VN')} đ
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => setIsConfirmOpen(false)}
+            disabled={isSubmitting}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleConfirmBooking}
+            loading={isSubmitting}
+          >
+            Xác nhận thanh toán
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
