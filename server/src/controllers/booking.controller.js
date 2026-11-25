@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
 const Showtime = require('../models/Showtime');
+const Coupon = require('../models/Coupon');
+const { evaluateCoupon } = require('./coupon.controller');
 const Snack = require('../models/Snack');
 const AppError = require('../utils/AppError');
 
@@ -26,7 +28,7 @@ const createBooking = async (req, res, next) => {
       });
     }
 
-    const { showtimeId, seats, snacks } = req.body || {};
+    const { showtimeId, seats, couponCode, snacks } = req.body || {};
 
     // 1. Kiểm tra tính hợp lệ của showtimeId
     if (!showtimeId || !mongoose.Types.ObjectId.isValid(showtimeId)) {
@@ -188,7 +190,14 @@ const createBooking = async (req, res, next) => {
             });
           }
           const key = String(snackId);
-          quantityBySnackId.set(key, (quantityBySnackId.get(key) || 0) + qty);
+          const nextQty = (quantityBySnackId.get(key) || 0) + qty;
+          if (nextQty > 20) {
+            return res.status(400).json({
+              success: false,
+              message: 'Số lượng mỗi combo phải là số nguyên từ 1 đến 20.',
+            });
+          }
+          quantityBySnackId.set(key, nextQty);
         }
 
         const snackIds = Array.from(quantityBySnackId.keys());
@@ -213,7 +222,20 @@ const createBooking = async (req, res, next) => {
       }
     }
 
-    const totalPrice = seatTotal + snackTotal;
+    const originalPrice = seatTotal + snackTotal;
+    let totalPrice = originalPrice;
+    let discountAmount = 0;
+    let appliedCouponCode = null;
+    let couponToReserve = null;
+
+    // nếu có mã giảm giá thì kiểm tra và tính lại tổng tiền trên server
+    if (couponCode !== undefined && couponCode !== null && String(couponCode).trim() !== '') {
+      const couponResult = await evaluateCoupon(couponCode, originalPrice);
+      couponToReserve = couponResult.coupon;
+      discountAmount = couponResult.discountAmount;
+      totalPrice = couponResult.finalAmount;
+      appliedCouponCode = couponResult.coupon.code;
+    }
 
     // 7. Kiểm tra trùng ghế (Tier 1 - Pre-check query)
     const seatConditions = resolvedSeats.map((s) => ({
@@ -238,6 +260,27 @@ const createBooking = async (req, res, next) => {
       });
     }
 
+    // giữ lượt sử dụng coupon an toàn trước khi tạo booking
+    let reservedCoupon = null;
+    if (couponToReserve) {
+      reservedCoupon = await Coupon.findOneAndUpdate(
+        {
+          _id: couponToReserve._id,
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+          $expr: { $lt: ['$usedCount', '$maxUses'] },
+        },
+        { $inc: { usedCount: 1 } },
+        { returnDocument: 'after' }
+      );
+      if (!reservedCoupon) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã giảm giá đã hết lượt sử dụng hoặc đã hết hạn.',
+        });
+      }
+    }
+
     // 8. Tạo đơn đặt vé và vé (Tier 2 - Bắt lỗi trùng khóa E11000 khi có tranh chấp đồng thời)
     let booking;
     try {
@@ -246,6 +289,9 @@ const createBooking = async (req, res, next) => {
         showtimeId: showtime._id,
         snacks: resolvedSnacks,
         snackTotal,
+        originalPrice,
+        discountAmount,
+        couponCode: appliedCouponCode,
         totalPrice,
         status: 'confirmed',
       });
@@ -271,6 +317,14 @@ const createBooking = async (req, res, next) => {
         },
       });
     } catch (err) {
+      // hoàn lại lượt dùng coupon nếu tạo đơn hoặc tạo vé thất bại
+      if (reservedCoupon && reservedCoupon._id) {
+        try {
+          await Coupon.findByIdAndUpdate(reservedCoupon._id, { $inc: { usedCount: -1 } });
+        } catch (couponErr) {
+          console.error('[Booking Controller] Lỗi hoàn lượt coupon:', couponErr);
+        }
+      }
       // Dọn dẹp booking và các vé đã chèn dở dang nếu xảy ra lỗi trong quá trình tạo vé
       if (booking && booking._id) {
         try {

@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../../api/axios';
 import { Button, Modal, useToast } from '../ui';
+import CouponInput from './CouponInput';
 import { clearSeats, toggleSeat } from '../../store/slices/bookingSlice';
 
 const seatLabel = (s) => `${s.row}${s.number}`;
@@ -24,13 +25,24 @@ export function ConfirmDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [conflictMessage, setConflictMessage] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
       setError('');
       setConflictMessage('');
+    } else {
+      setAppliedCoupon(null);
     }
   }, [isOpen]);
+
+  // bỏ mã giảm giá nếu danh sách ghế đổi làm thay đổi tổng tiền gốc
+  useEffect(() => {
+    setAppliedCoupon(null);
+  }, [totalAmount]);
+
+  const discountAmount = Number(appliedCoupon?.discountAmount) || 0;
+  const finalAmount = Math.max(0, Number(totalAmount) - discountAmount);
 
   const handleConfirm = async () => {
     if (seats.length === 0 || submitting) return;
@@ -42,6 +54,7 @@ export function ConfirmDialog({
       const res = await api.post('/bookings', {
         showtimeId,
         seats: seats.map(({ row, number }) => ({ row, number })),
+        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
         ...(Array.isArray(snacks) && snacks.length > 0
           ? { snacks: snacks.map(({ snackId, quantity }) => ({ snackId, quantity })) }
           : {}),
@@ -133,11 +146,33 @@ export function ConfirmDialog({
               </div>
             )}
 
-            <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
-              <span className="font-medium text-slate-600 dark:text-slate-400">Tổng tiền thanh toán:</span>
-              <span className="text-xl font-black text-brand-600 dark:text-brand-500">
-                {Number(totalAmount).toLocaleString('vi-VN')} đ
-              </span>
+            <CouponInput
+              orderAmount={totalAmount}
+              appliedCoupon={appliedCoupon}
+              onApply={setAppliedCoupon}
+              onRemove={() => setAppliedCoupon(null)}
+              disabled={submitting}
+            />
+
+            <div className="space-y-1.5 border-t border-slate-200 pt-3 dark:border-slate-800">
+              {discountAmount > 0 && (
+                <>
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>Tạm tính:</span>
+                    <span>{Number(totalAmount).toLocaleString('vi-VN')} đ</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <span>Giảm giá ({appliedCoupon?.code}):</span>
+                    <span>-{discountAmount.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                </>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-slate-600 dark:text-slate-400">Tổng tiền thanh toán:</span>
+                <span className="text-xl font-black text-brand-600 dark:text-brand-500">
+                  {finalAmount.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
             </div>
 
             {error && (

@@ -110,9 +110,9 @@ const updateSnack = async (req, res, next) => {
 
     const updates = {};
     if (req.body.name !== undefined) updates.name = req.body.name.trim();
-    if (req.body.description !== undefined) updates.description = String(req.body.description).trim();
+    if (req.body.description !== undefined) updates.description = String(req.body.description ?? '').trim();
     if (req.body.price !== undefined) updates.price = Number(req.body.price);
-    if (req.body.imageUrl !== undefined) updates.imageUrl = String(req.body.imageUrl).trim();
+    if (req.body.imageUrl !== undefined) updates.imageUrl = String(req.body.imageUrl ?? '').trim();
     if (req.body.category !== undefined) updates.category = req.body.category;
     if (req.body.isAvailable !== undefined) updates.isAvailable = Boolean(req.body.isAvailable);
 
