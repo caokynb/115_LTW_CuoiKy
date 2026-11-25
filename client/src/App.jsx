@@ -17,6 +17,7 @@ import Home from './pages/Home';
 import MovieDetail from './pages/MovieDetail';
 import Dashboard from './pages/admin/Dashboard';
 import SeatSelection from './pages/SeatSelection';
+import Checkout from './pages/Checkout';
 import BookingDetail from './pages/BookingDetail';
 import MyBookings from './pages/MyBookings';
 import RoomPage from './pages/admin/Rooms';
@@ -44,6 +45,7 @@ export function App() {
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/showtimes/:id/seats" element={<SeatSelection />} />
+                <Route path="/checkout/:paymentId" element={<Checkout />} />
                 <Route path="/bookings/:id" element={<BookingDetail />} />
                 <Route path="/my-bookings" element={<MyBookings />} />
                 <Route path="/profile" element={<Profile />} />
