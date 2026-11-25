@@ -1,6 +1,8 @@
 const Booking = require('../models/Booking');
 const Movie = require('../models/Movie');
 const Showtime = require('../models/Showtime');
+const Room = require('../models/Room');
+const Ticket = require('../models/Ticket');
 const AppError = require('../utils/AppError');
 
 const SAIGON_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -152,4 +154,83 @@ const getRevenueByDay = async (req, res, next) => {
   }
 };
 
-module.exports = { getRevenueByMovie, getRevenueByDay };
+const getOccupancyByShowtime = async (req, res, next) => {
+  try {
+    const data = await Showtime.aggregate([
+      {
+        $lookup: {
+          from: Room.collection.name,
+          localField: 'roomId',
+          foreignField: '_id',
+          as: 'room',
+        },
+      },
+      { $unwind: { path: '$room', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: Ticket.collection.name,
+          let: { currentShowtime: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$showtimeId', '$$currentShowtime'] },
+                    { $eq: ['$status', 'active'] },
+                  ],
+                },
+              },
+            },
+            { $count: 'count' },
+          ],
+          as: 'ticketCount',
+        },
+      },
+      {
+        $lookup: {
+          from: Movie.collection.name,
+          localField: 'movieId',
+          foreignField: '_id',
+          as: 'movie',
+        },
+      },
+      { $unwind: { path: '$movie', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          totalSeats: { $multiply: ['$room.rows', '$room.seatsPerRow'] },
+          soldTickets: { $ifNull: [{ $arrayElemAt: ['$ticketCount.count', 0] }, 0] },
+        },
+      },
+      {
+        $addFields: {
+          occupancyRate: {
+            $cond: [
+              { $gt: ['$totalSeats', 0] },
+              { $multiply: [{ $divide: ['$soldTickets', '$totalSeats'] }, 100] },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          startTime: 1,
+          endTime: 1,
+          movieTitle: { $ifNull: ['$movie.title', 'Phim không xác định'] },
+          roomName: { $ifNull: ['$room.name', 'Phòng không xác định'] },
+          soldTickets: 1,
+          totalSeats: 1,
+          occupancyRate: 1,
+        },
+      },
+      { $sort: { occupancyRate: -1, startTime: 1 } },
+    ]);
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { getRevenueByMovie, getRevenueByDay, getOccupancyByShowtime };

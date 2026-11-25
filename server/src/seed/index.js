@@ -8,11 +8,15 @@ const User = require('../models/User');
 const Movie = require('../models/Movie');
 const Room = require('../models/Room');
 const Showtime = require('../models/Showtime');
+const Coupon = require('../models/Coupon');
+const Snack = require('../models/Snack');
 
 const demoUsers = require('./data/users');
 const movieSeeds = require('./data/movies');
 const roomSeeds = require('./data/rooms');
 const showtimeConfig = require('./data/showtimes');
+const couponSeeds = require('./data/coupons');
+const snackSeeds = require('./data/snacks');
 
 const saigonDateAfter = (daysAhead, reference = new Date()) => {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -146,6 +150,40 @@ const seedShowtimes = async (reference) => {
   return created;
 };
 
+const seedCoupons = async (reference) => {
+  let created = 0;
+
+  for (const { expiresOffsetDays, ...couponData } of couponSeeds) {
+    const document = {
+      ...couponData,
+      expiresAt: releaseDateFromOffset(expiresOffsetDays, reference),
+    };
+    const result = await Coupon.updateOne(
+      { code: document.code },
+      { $setOnInsert: document },
+      { upsert: true }
+    );
+    created += result.upsertedCount || 0;
+  }
+
+  return created;
+};
+
+const seedSnacks = async () => {
+  let created = 0;
+
+  for (const snackData of snackSeeds) {
+    const result = await Snack.updateOne(
+      { name: snackData.name },
+      { $setOnInsert: snackData },
+      { upsert: true }
+    );
+    created += result.upsertedCount || 0;
+  }
+
+  return created;
+};
+
 const seed = async () => {
   if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('<')) {
     throw new Error('Hãy cấu hình MONGODB_URI hợp lệ trong server/.env trước khi seed.');
@@ -153,15 +191,17 @@ const seed = async () => {
 
   await mongoose.connect(process.env.MONGODB_URI);
   const reference = new Date();
-  const [usersCreated, moviesCreated, roomsCreated] = await Promise.all([
+  const [usersCreated, moviesCreated, roomsCreated, couponsCreated, snacksCreated] = await Promise.all([
     seedUsers(),
     seedMovies(reference),
     seedRooms(),
+    seedCoupons(reference),
+    seedSnacks(),
   ]);
   const showtimesCreated = await seedShowtimes(reference);
 
   console.log('Seed hoàn tất.');
-  console.log(`Tài khoản mới: ${usersCreated}; phim mới: ${moviesCreated}; phòng mới: ${roomsCreated}; suất chiếu mới: ${showtimesCreated}.`);
+  console.log(`Tài khoản mới: ${usersCreated}; phim mới: ${moviesCreated}; phòng mới: ${roomsCreated}; suất chiếu mới: ${showtimesCreated}; mã giảm giá mới: ${couponsCreated}; bắp nước mới: ${snacksCreated}.`);
   console.log('Tài khoản demo:');
   for (const { email, password, role } of demoUsers) {
     console.log(`- ${role}: ${email} / ${password}`);
