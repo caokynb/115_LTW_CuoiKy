@@ -27,6 +27,11 @@ export function Pagination({ page = 1, pages = 1, onPageChange, className = '' }
     if (onPageChange) onPageChange(nextPage);
   };
 
+  const buttonBase =
+    'inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border px-3.5 py-2 text-sm font-semibold transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500';
+  const inactiveButton =
+    'border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100 hover:border-neutral-400 dark:border-cinema-border dark:bg-cinema-card dark:text-neutral-100 dark:hover:bg-cinema-elevated';
+
   return (
     <nav
       aria-label="Phân trang"
@@ -36,14 +41,14 @@ export function Pagination({ page = 1, pages = 1, onPageChange, className = '' }
         type="button"
         onClick={() => handleChange(page - 1)}
         disabled={page <= 1}
-        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        className={`${buttonBase} ${inactiveButton} disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
       >
         Trước
       </button>
 
       {getVisiblePages().map((item, index) =>
         item === '...' ? (
-          <span key={`ellipsis-${index}`} className="px-2 py-1 text-sm text-slate-400">
+          <span key={`ellipsis-${index}`} className="px-2 py-1 text-sm text-neutral-600 dark:text-neutral-400">
             ...
           </span>
         ) : (
@@ -52,10 +57,10 @@ export function Pagination({ page = 1, pages = 1, onPageChange, className = '' }
             type="button"
             onClick={() => handleChange(item)}
             aria-current={item === page ? 'page' : undefined}
-            className={`min-w-[36px] rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`${buttonBase} ${
               item === page
-                ? 'border-brand-600 bg-brand-600 text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                ? 'border-brand-500/50 bg-brand-600 text-white shadow-cinema-cta'
+                : inactiveButton
             }`}
           >
             {item}
@@ -67,7 +72,7 @@ export function Pagination({ page = 1, pages = 1, onPageChange, className = '' }
         type="button"
         onClick={() => handleChange(page + 1)}
         disabled={page >= pages}
-        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        className={`${buttonBase} ${inactiveButton} disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100`}
       >
         Sau
       </button>
