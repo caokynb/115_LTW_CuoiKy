@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { Button } from '../ui';
 
 const escapeHtml = (value) =>
   String(value ?? '')
@@ -151,7 +152,7 @@ export function TicketQR({ booking, size = 148 }) {
     <div
       ref={ticketRef}
       data-testid="ticket-qr"
-      className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+      className="mt-4 rounded-xl border border-neutral-200 bg-white/95 p-4 text-neutral-900 dark:border-neutral-700/80 dark:bg-[#1f1f1f] dark:text-white"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1 text-sm">
@@ -185,21 +186,13 @@ export function TicketQR({ booking, size = 148 }) {
         </div>
       </div>
 
-      <div className="no-print mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-        <button
-          type="button"
-          onClick={handleDownloadQr}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-        >
+      <div className="no-print mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-200 pt-3 dark:border-cinema-borderSubtle">
+        <Button variant="secondary" size="sm" onClick={handleDownloadQr}>
           Tải mã QR
-        </button>
-        <button
-          type="button"
-          onClick={handlePrintTicket}
-          className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-        >
+        </Button>
+        <Button variant="primary" size="sm" onClick={handlePrintTicket}>
           In vé
-        </button>
+        </Button>
       </div>
     </div>
   );

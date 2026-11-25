@@ -26,25 +26,24 @@ export function Seat({
     }
   };
 
-  // Base styling for all seats (minimum 36px touch target on mobile, 40px on sm+)
+  // vùng chạm tối thiểu 44x44px trên mobile, 40x40px trên sm+
   const baseClasses =
-    'relative shrink-0 inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-semibold select-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-900 w-9 h-9 sm:w-10 sm:h-10';
+    'relative shrink-0 inline-flex items-center justify-center rounded-lg text-xs sm:text-sm font-semibold select-none transition-[transform,background-color,border-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-cinema-card w-11 h-11 sm:w-10 sm:h-10';
 
-  // Variant styling by status and type
+  // định kiểu theo trạng thái và loại ghế
   let statusClasses = '';
   if (isSold) {
     statusClasses =
-      'bg-slate-300 text-slate-500 border border-slate-300 cursor-not-allowed opacity-60 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 pointer-events-none';
+      'bg-neutral-300 text-neutral-500 border border-neutral-300 cursor-not-allowed opacity-60 dark:bg-cinema-elevated dark:text-neutral-500 dark:border-cinema-border pointer-events-none';
   } else if (isSelected) {
     statusClasses =
-      'bg-brand-600 text-white border border-brand-600 shadow-md scale-105 ring-2 ring-brand-400 dark:bg-brand-500 dark:border-brand-500 cursor-pointer';
+      'bg-brand-600 text-white border border-brand-500 shadow-cinema-cta scale-105 ring-2 ring-brand-300 cursor-pointer';
   } else if (isVip) {
     statusClasses =
-      'bg-amber-100 text-amber-900 border border-amber-400 hover:bg-amber-200 hover:border-amber-500 hover:shadow-sm dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-600 dark:hover:bg-amber-900/80 cursor-pointer';
+      'bg-amber-100 text-amber-900 border border-amber-400 hover:bg-amber-200 hover:border-amber-500 hover:shadow-sm dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-500/80 dark:hover:bg-amber-900/80 cursor-pointer';
   } else {
-    // Available standard
     statusClasses =
-      'bg-white text-slate-700 border border-slate-300 hover:bg-brand-50 hover:border-brand-400 hover:text-brand-600 hover:shadow-sm dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-slate-500 cursor-pointer';
+      'bg-white text-neutral-700 border border-neutral-300 hover:bg-brand-50 hover:border-brand-500 hover:text-brand-700 hover:shadow-sm dark:bg-cinema-elevated dark:text-neutral-100 dark:border-cinema-border dark:hover:bg-neutral-700 dark:hover:border-neutral-500 cursor-pointer';
   }
 
   const ariaLabel = `Ghế ${row}${number} - ${isVip ? 'VIP' : 'Thường'} - ${
