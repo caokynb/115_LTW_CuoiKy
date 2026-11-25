@@ -1,0 +1,3674 @@
+{
+  "info": {
+    "name": "Cinema API - Ma trận quyền",
+    "description": "Ma trận quyền toàn bộ API Cinema (đối chiếu với server/src/app.js trên main). Tài khoản mặc định lấy từ dữ liệu seed (npm run seed hoặc node src/seed/index.js). Cách chạy: đặt baseUrl, chạy cả collection theo thứ tự. LƯU Ý: thư mục 6 làm khóa đăng nhập theo IP trong 15 phút nên luôn chạy cuối; chạy lại collection trong vòng 15 phút sẽ bị 429 ngay ở thư mục 0 (chờ hoặc khởi động lại server). Mỗi lần chạy đặt 1 ghế ở một suất chiếu ngẫu nhiên và tạo/xóa 1 phim, 1 phòng, 1 suất chiếu thử.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Chuẩn bị (lấy token và dữ liệu mẫu)",
+      "item": [
+        {
+          "name": "Đăng nhập admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng nhập admin -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set(\"adminToken\", pm.response.json().data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{adminEmail}}\", \"password\": \"{{adminPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Đăng nhập member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng nhập member -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set(\"memberToken\", pm.response.json().data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{memberEmail}}\", \"password\": \"{{memberPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Đăng ký user B (người dùng thứ hai)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"userBEmail\", 'userb.' + Date.now() + '@cinema.local');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng ký user B (người dùng thứ hai) -> 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"userBToken\", pm.response.json().data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"fullName\": \"Người dùng B\", \"email\": \"{{userBEmail}}\", \"password\": \"UserB@123\", \"phone\": \"0900000003\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Lấy phim mẫu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Lấy phim mẫu -> 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json(); const arr = Array.isArray(j.data) ? j.data : (j.data && (j.data.movies || j.data.items)) || [];",
+                  "pm.test(\"có phim mẫu\", function () { pm.expect(arr.length).to.be.above(0); });",
+                  "pm.collectionVariables.set(\"movieId\", arr[0]._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Lấy danh sách suất chiếu mẫu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Lấy danh sách suất chiếu mẫu -> 200\", function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test(\"có suất chiếu mẫu\", function () { pm.expect(j.data.length).to.be.above(0); });",
+                  "pm.collectionVariables.set(\"showtimeId\", j.data[0]._id);",
+                  "pm.collectionVariables.set(\"showtimeIds\", JSON.stringify(j.data.map(function (s) { return s._id; })));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Công khai và cấu hình bảo mật",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/health -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"helmet: có X-Content-Type-Options, ẩn X-Powered-By\", function () { pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\"); pm.expect(pm.response.headers.has(\"X-Powered-By\")).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "CORS: origin trong whitelist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"CORS: origin trong whitelist -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"origin hợp lệ được cho phép\", function () { pm.expect(pm.response.headers.get(\"Access-Control-Allow-Origin\")).to.eql(pm.variables.get(\"allowedOrigin\")); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{allowedOrigin}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "CORS: origin lạ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"CORS: origin lạ -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"origin lạ không được cho phép\", function () { pm.expect(pm.response.headers.has(\"Access-Control-Allow-Origin\")).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "https://evil.example.com",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Giới hạn body: JSON 200kb bị từ chối",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.raw = JSON.stringify({ email: \"a@b.com\", password: \"x\".repeat(200000) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Giới hạn body: JSON 200kb bị từ chối -> 413\", function () { pm.response.to.have.status(413); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/test-error (route kiểm thử công khai)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/test-error (route kiểm thử công khai) -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/test-error",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test-error"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/movies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/movies -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/movies/:id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/movies/:id -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{movieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{movieId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/movies/:id không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/movies/:id không tồn tại -> 404\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{nonExistentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/showtimes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/showtimes -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/showtimes/:id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/showtimes/:id -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes/{{showtimeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes",
+                "{{showtimeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Đăng ký thiếu trường",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng ký thiếu trường -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"thieu@cinema.local\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Đăng ký trùng email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng ký trùng email -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"fullName\": \"Trùng\", \"email\": \"{{userBEmail}}\", \"password\": \"UserB@123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Đăng nhập sai mật khẩu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng nhập sai mật khẩu -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });",
+                  "pm.test(\"không trả token\", function () { pm.expect(JSON.stringify(pm.response.json())).to.not.include(\"token\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{adminEmail}}\", \"password\": \"sai-mat-khau\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Đăng nhập thiếu mật khẩu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng nhập thiếu mật khẩu -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{adminEmail}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Không có token hoặc token sai -> 401",
+      "item": [
+        {
+          "name": "GET /api/auth/me (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/auth/me (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/users/me (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/users/me (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/users/me (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/users/me (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"phone\": \"0900000002\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/ping (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/admin/ping (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ping"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/movies (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/movies (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/movies/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/movies/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{movieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{movieId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"x\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/movies/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/movies/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{movieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{movieId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/rooms (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/rooms (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/rooms (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/rooms (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/rooms/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/rooms/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{nonExistentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/rooms/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/rooms/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{nonExistentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/rooms/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/rooms/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{nonExistentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/showtimes (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/showtimes (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/showtimes/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/showtimes/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes/{{showtimeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes",
+                "{{showtimeId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/showtimes/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/showtimes/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes/{{showtimeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes",
+                "{{showtimeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/stats/revenue-by-movie (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/stats/revenue-by-movie (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/revenue-by-movie",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "revenue-by-movie"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/stats/revenue-by-day (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/stats/revenue-by-day (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/revenue-by-day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "revenue-by-day"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/bookings (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/bookings (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/my-bookings (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/my-bookings (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/my-bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "my-bookings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/:id (không token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/:id (không token) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "{{nonExistentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Token sai chữ ký",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Token sai chữ ký -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer token.khong.hop.le",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sai kiểu Authorization (không phải Bearer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Sai kiểu Authorization (không phải Bearer) -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Token của admin nhưng bị sửa một ký tự",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.collectionVariables.get(\"adminToken\"); const last = t.slice(-1) === \"A\" ? \"B\" : \"A\"; pm.request.headers.add({ key: \"Authorization\", value: \"Bearer \" + t.slice(0, -1) + last });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Token của admin nhưng bị sửa một ký tự -> 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ping"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Member gọi route của admin -> 403",
+      "item": [
+        {
+          "name": "GET /api/admin/ping (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/admin/ping (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ping"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/movies (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/movies (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/movies/:id (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/movies/:id (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{movieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{movieId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"x\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/movies/:id (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/movies/:id (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{movieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{movieId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/rooms (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/rooms (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/rooms (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/rooms (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/rooms/:id (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/rooms/:id (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{nonExistentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/rooms/:id (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/rooms/:id (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{nonExistentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/rooms/:id (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/rooms/:id (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{nonExistentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/showtimes (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/showtimes (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/showtimes/:id (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/showtimes/:id (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes/{{showtimeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes",
+                "{{showtimeId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/showtimes/:id (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/showtimes/:id (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes/{{showtimeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes",
+                "{{showtimeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/stats/revenue-by-movie (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/stats/revenue-by-movie (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/revenue-by-movie",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "revenue-by-movie"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/stats/revenue-by-day (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/stats/revenue-by-day (member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/revenue-by-day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "revenue-by-day"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Người dùng thường: hồ sơ và đặt vé (đúng chủ vé)",
+      "item": [
+        {
+          "name": "GET /api/auth/me (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/auth/me (member) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/users/me (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/users/me (member) -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"không lộ passwordHash\", function () { pm.expect(JSON.stringify(pm.response.json())).to.not.include(\"passwordHash\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/users/me (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/users/me (member) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"phone\": \"0900000002\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/users/me không thể tự nâng quyền",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/users/me không thể tự nâng quyền -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"role vẫn là member\", function () { pm.expect(pm.response.json().data.user.role).to.eql(\"member\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\": \"admin\", \"phone\": \"0900000002\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/bookings: showtimeId sai",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/bookings: showtimeId sai -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"showtimeId\": \"abc\", \"seats\": [{\"row\": \"A\", \"number\": 1}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/bookings: không có ghế",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/bookings: không có ghế -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"showtimeId\": \"{{showtimeId}}\", \"seats\": []}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/bookings: đặt vé thành công",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ids = JSON.parse(pm.collectionVariables.get(\"showtimeIds\"));",
+                  "pm.collectionVariables.set(\"bookShowtimeId\", ids[Math.floor(Math.random() * ids.length)]);",
+                  "pm.collectionVariables.set(\"seatRow\", \"ABCDE\"[Math.floor(Math.random() * 5)]);",
+                  "pm.collectionVariables.set(\"seatNumber\", String(1 + Math.floor(Math.random() * 8)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/bookings: đặt vé thành công -> 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"bookingId\", pm.response.json().data.booking._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"showtimeId\":\"{{bookShowtimeId}}\",\"seats\":[{\"row\":\"{{seatRow}}\",\"number\":{{seatNumber}}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/bookings: đặt lại đúng ghế đó -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/bookings: đặt lại đúng ghế đó -> 409 -> 409\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"showtimeId\":\"{{bookShowtimeId}}\",\"seats\":[{\"row\":\"{{seatRow}}\",\"number\":{{seatNumber}}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/my-bookings (member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/my-bookings (member) -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"có đơn vừa đặt\", function () { const ids = pm.response.json().data.map(function (b) { return b._id; }); pm.expect(ids).to.include(pm.collectionVariables.get(\"bookingId\")); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/my-bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "my-bookings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/:id (chủ vé)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/:id (chủ vé) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "{{bookingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "{{bookingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/:id (user B xem vé của member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/:id (user B xem vé của member) -> 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Phản hồi lỗi không lộ dữ liệu\", function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); pm.expect(j).to.not.have.property(\"data\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userBToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "{{bookingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/my-bookings (user B không thấy vé của member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/my-bookings (user B không thấy vé của member) -> 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"không chứa đơn của người khác\", function () { const ids = pm.response.json().data.map(function (b) { return b._id; }); pm.expect(ids).to.not.include(pm.collectionVariables.get(\"bookingId\")); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userBToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/my-bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "my-bookings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/:id không tồn tại",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/:id không tồn tại -> 404\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{nonExistentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "{{nonExistentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/bookings/:id sai định dạng",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/bookings/:id sai định dạng -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "abc"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Admin: gọi được các route quản trị (và dọn dẹp dữ liệu thử)",
+      "item": [
+        {
+          "name": "GET /api/admin/ping (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/admin/ping (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ping"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/stats/revenue-by-movie (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/stats/revenue-by-movie (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/revenue-by-movie",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "revenue-by-movie"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/stats/revenue-by-day (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/stats/revenue-by-day (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats/revenue-by-day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "revenue-by-day"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/movies thiếu dữ liệu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/movies thiếu dữ liệu -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/movies (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/movies (admin) -> 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"newMovieId\", pm.response.json().data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Phim kiểm thử bảo mật\", \"description\": \"Phim tạo bởi Postman, sẽ bị xóa ngay.\", \"genres\": [\"Hành động\"], \"duration\": 100, \"releaseDate\": \"2026-12-01\", \"posterUrl\": \"https://example.com/poster.jpg\", \"trailerYoutubeId\": \"dQw4w9WgXcQ\", \"status\": \"coming_soon\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/movies/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/movies/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{newMovieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{newMovieId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Phim kiểm thử (đã sửa)\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/rooms (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/rooms (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/rooms dữ liệu sai",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/rooms dữ liệu sai -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"x\", \"rows\": 3, \"seatsPerRow\": 5}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/rooms (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/rooms (admin) -> 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"newRoomId\", pm.response.json().data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Phòng kiểm thử\", \"rows\": 5, \"seatsPerRow\": 5, \"vipRows\": [2]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/rooms/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET /api/rooms/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{newRoomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{newRoomId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/rooms/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/rooms/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{newRoomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{newRoomId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Phòng kiểm thử (đã sửa)\", \"rows\": 5, \"seatsPerRow\": 6, \"vipRows\": [2]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/showtimes dữ liệu sai",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/showtimes dữ liệu sai -> 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/showtimes (admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"newShowtimeStart\", new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"POST /api/showtimes (admin) -> 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"newShowtimeId\", pm.response.json().data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"movieId\":\"{{newMovieId}}\",\"roomId\":\"{{newRoomId}}\",\"startTime\":\"{{newShowtimeStart}}\",\"standardPrice\":80000,\"vipPrice\":120000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/showtimes/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"PUT /api/showtimes/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes/{{newShowtimeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes",
+                "{{newShowtimeId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"movieId\":\"{{newMovieId}}\",\"roomId\":\"{{newRoomId}}\",\"startTime\":\"{{newShowtimeStart}}\",\"standardPrice\":90000,\"vipPrice\":130000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/showtimes/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/showtimes/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/showtimes/{{newShowtimeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "showtimes",
+                "{{newShowtimeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/rooms/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/rooms/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{newRoomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{newRoomId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/movies/:id (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"DELETE /api/movies/:id (admin) -> 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/movies/{{newMovieId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{newMovieId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Giới hạn đăng nhập sai (CHẠY CUỐI CÙNG)",
+      "item": [
+        {
+          "name": "Đăng nhập sai liên tục -> 429 trước lần thứ 11",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const url = pm.variables.get('baseUrl') + '/api/auth/login';",
+                  "let failures = 0, limited = false, tries = 0;",
+                  "const next = () => {",
+                  "  if (limited || tries >= 15) { pm.collectionVariables.set('rlFailures', String(failures)); return; }",
+                  "  tries++;",
+                  "  pm.sendRequest({ url: url, method: 'POST', header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ email: 'khong-ton-tai@example.com', password: 'sai-mat-khau' }) } },",
+                  "    function (err, res) { if (res && res.code === 429) { limited = true; } else { failures++; } next(); });",
+                  "};",
+                  "next();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Đăng nhập sai liên tục -> 429 trước lần thứ 11 -> 429\", function () { pm.response.to.have.status(429); });",
+                  "pm.test(\"chỉ cho sai tối đa 10 lần trong 15 phút\", function () { pm.expect(Number(pm.collectionVariables.get(\"rlFailures\"))).to.be.at.most(10); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"khong-ton-tai@example.com\", \"password\": \"sai-mat-khau\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "allowedOrigin",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@cinema.local"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin@123"
+    },
+    {
+      "key": "memberEmail",
+      "value": "member@cinema.local"
+    },
+    {
+      "key": "memberPassword",
+      "value": "Member@123"
+    },
+    {
+      "key": "nonExistentId",
+      "value": "000000000000000000000000"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "memberToken",
+      "value": ""
+    },
+    {
+      "key": "userBToken",
+      "value": ""
+    },
+    {
+      "key": "userBEmail",
+      "value": ""
+    },
+    {
+      "key": "movieId",
+      "value": ""
+    },
+    {
+      "key": "showtimeId",
+      "value": ""
+    },
+    {
+      "key": "showtimeIds",
+      "value": ""
+    },
+    {
+      "key": "bookShowtimeId",
+      "value": ""
+    },
+    {
+      "key": "seatRow",
+      "value": ""
+    },
+    {
+      "key": "seatNumber",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": ""
+    },
+    {
+      "key": "newMovieId",
+      "value": ""
+    },
+    {
+      "key": "newRoomId",
+      "value": ""
+    },
+    {
+      "key": "newShowtimeId",
+      "value": ""
+    },
+    {
+      "key": "newShowtimeStart",
+      "value": ""
+    },
+    {
+      "key": "rlFailures",
+      "value": ""
+    }
+  ]
+}

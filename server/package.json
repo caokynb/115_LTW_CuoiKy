@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test src/tests/booking.test.js tests/movie.test.js"
+    "test": "node --test src/tests/booking.test.js src/tests/booking.cancel.test.js src/tests/booking.admin.test.js src/tests/booking.concurrency.test.js src/tests/price.test.js tests/movie.test.js tests/coupon.test.js tests/snack.test.js src/tests/security.test.js tests/room.test.js tests/showtime.test.js"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +17,9 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
+    "express-rate-limit": "^8.7.5",
     "express-validator": "^7.3.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.8.0",
     "mongoose": "^9.12.0"

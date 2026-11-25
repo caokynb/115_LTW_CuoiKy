@@ -1,0 +1,36 @@
+// danh sách mã giảm giá mẫu để seed vào DB
+module.exports = [
+  {
+    code: 'CINE10',
+    description: 'Giảm 10% giá vé (tối đa 50.000 đ)',
+    discountType: 'percent',
+    discountValue: 10,
+    maxDiscount: 50000,
+    minOrderAmount: 0,
+    expiresOffsetDays: 90,
+    maxUses: 100,
+    isActive: true,
+  },
+  {
+    code: 'GIAM20K',
+    description: 'Giảm trực tiếp 20.000 đ cho đơn từ 100.000 đ',
+    discountType: 'fixed',
+    discountValue: 20000,
+    maxDiscount: null,
+    minOrderAmount: 100000,
+    expiresOffsetDays: 90,
+    maxUses: 100,
+    isActive: true,
+  },
+  {
+    code: 'HETHAN50',
+    description: 'Mã mẫu đã hết hạn dùng để kiểm thử',
+    discountType: 'percent',
+    discountValue: 50,
+    maxDiscount: 100000,
+    minOrderAmount: 0,
+    expiresOffsetDays: -5,
+    maxUses: 50,
+    isActive: true,
+  },
+];

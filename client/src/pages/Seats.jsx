@@ -19,7 +19,7 @@ export function Seats({ onCheckout: onCheckoutProp }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const toast = useToast();
-  const { loading: authLoading } = useAuth();
+  const { isAdmin, loading: authLoading } = useAuth();
 
   const [showtime, setShowtime] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -122,13 +122,23 @@ export function Seats({ onCheckout: onCheckoutProp }) {
   // Handle seat click from SeatMap
   const handleSeatClick = useCallback(
     (seat) => {
+      if (isAdmin) {
+        toast.warning(
+          'Tài khoản Quản trị viên chỉ dùng để quản trị hệ thống, không được phép chọn ghế và đặt vé.'
+        );
+        return;
+      }
       dispatch(toggleSeat(seat));
     },
-    [dispatch]
+    [dispatch, isAdmin, toast]
   );
 
   // Handle checkout
   const handleCheckout = useCallback(() => {
+    if (isAdmin) {
+      toast.error('Tài khoản Quản trị viên không được phép đặt vé xem phim.');
+      return;
+    }
     if (selectedSeats.length === 0) return;
     if (onCheckoutProp) {
       onCheckoutProp({
@@ -139,7 +149,7 @@ export function Seats({ onCheckout: onCheckoutProp }) {
       return;
     }
     setIsConfirmOpen(true);
-  }, [id, selectedSeats, totalAmount, onCheckoutProp]);
+  }, [id, selectedSeats, totalAmount, onCheckoutProp, isAdmin, toast]);
 
   // Handle confirm and create booking via API
   const handleConfirmBooking = async () => {
@@ -274,6 +284,32 @@ export function Seats({ onCheckout: onCheckoutProp }) {
         </div>
       </div>
 
+      {/* Admin Notice Banner */}
+      {isAdmin && (
+        <div
+          className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300"
+          role="alert"
+          data-testid="admin-booking-warning"
+        >
+          <div className="flex items-center gap-3">
+            <svg
+              className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="text-sm font-medium">
+              <strong>Tài khoản Quản trị viên (Admin):</strong> Bạn đang đăng nhập bằng tài khoản quản trị. Tài khoản này chỉ dùng để quản lý hệ thống và không được phép đặt vé xem phim.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Grid: SeatMap + BookingSummary */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* SeatMap Container */}
@@ -309,6 +345,7 @@ export function Seats({ onCheckout: onCheckoutProp }) {
             vipCount={vipCount}
             totalAmount={totalAmount}
             onCheckout={handleCheckout}
+            disabled={isAdmin}
           />
         </aside>
       </div>

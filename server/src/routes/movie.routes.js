@@ -7,6 +7,7 @@ const {
     updateMovie,
     deleteMovie,
 } = require('../controllers/movie.controller');
+const { getMovieReviews, createMovieReview } = require('../controllers/review.controller');
 const { verifyToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -20,6 +21,10 @@ router.get('/', getMovies);
 
 // đặt route /genres trước /:id để tránh bị hiểu nhầm thành id phim
 router.get('/genres', getMovieGenres);
+
+// Đánh giá phim: xem công khai, gửi đánh giá cần đăng nhập.
+router.get('/:id/reviews', getMovieReviews);
+router.post('/:id/reviews', verifyToken, createMovieReview);
 
 /**
  * @route   GET /api/movies/:id
