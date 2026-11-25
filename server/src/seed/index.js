@@ -8,6 +8,8 @@ const User = require('../models/User');
 const Movie = require('../models/Movie');
 const Room = require('../models/Room');
 const Showtime = require('../models/Showtime');
+const Booking = require('../models/Booking');
+const Ticket = require('../models/Ticket');
 const Coupon = require('../models/Coupon');
 const Snack = require('../models/Snack');
 
@@ -150,6 +152,87 @@ const seedShowtimes = async (reference) => {
   return created;
 };
 
+const getRowName = (number) => {
+  let row = '';
+  let current = number;
+
+  while (current > 0) {
+    const remainder = (current - 1) % 26;
+    row = String.fromCharCode(65 + remainder) + row;
+    current = Math.floor((current - 1) / 26);
+  }
+
+  return row;
+};
+
+const seedSampleBooking = async (reference) => {
+  const memberSeed = demoUsers.find(({ role }) => role === 'member');
+  const [member, showtime] = await Promise.all([
+    User.findOne({ email: memberSeed.email }),
+    Showtime.findOne({ startTime: { $gt: reference } }).sort({ startTime: 1 }),
+  ]);
+
+  if (!member || !showtime) return { bookingsCreated: 0, ticketsCreated: 0 };
+
+  const existingBooking = await Booking.findOne({
+    userId: member._id,
+    showtimeId: showtime._id,
+    status: 'confirmed',
+  }).select('_id');
+  if (existingBooking) return { bookingsCreated: 0, ticketsCreated: 0 };
+
+  const room = await Room.findById(showtime.roomId);
+  if (!room) return { bookingsCreated: 0, ticketsCreated: 0 };
+
+  const occupiedTickets = await Ticket.find({ showtimeId: showtime._id, status: 'active' })
+    .select('row number')
+    .lean();
+  const occupiedSeats = new Set(occupiedTickets.map(({ row, number }) => `${row}-${number}`));
+  const seats = [];
+
+  for (let rowNumber = 1; rowNumber <= room.rows && seats.length < 2; rowNumber += 1) {
+    const row = getRowName(rowNumber);
+    for (let number = 1; number <= room.seatsPerRow && seats.length < 2; number += 1) {
+      if (!occupiedSeats.has(`${row}-${number}`)) {
+        seats.push({ row, number, seatType: room.vipRows.includes(rowNumber) ? 'vip' : 'standard' });
+      }
+    }
+  }
+
+  if (seats.length === 0) return { bookingsCreated: 0, ticketsCreated: 0 };
+
+  const tickets = seats.map((seat) => ({
+    ...seat,
+    price: seat.seatType === 'vip' ? showtime.vipPrice : showtime.standardPrice,
+  }));
+  const totalPrice = tickets.reduce((total, ticket) => total + ticket.price, 0);
+  const booking = await Booking.create({
+    userId: member._id,
+    showtimeId: showtime._id,
+    totalPrice,
+    originalPrice: totalPrice,
+    status: 'confirmed',
+  });
+
+  try {
+    await Ticket.insertMany(tickets.map((ticket) => ({
+      bookingId: booking._id,
+      showtimeId: showtime._id,
+      row: ticket.row,
+      number: ticket.number,
+      seatType: ticket.seatType,
+      price: ticket.price,
+      status: 'active',
+    })));
+  } catch (error) {
+    await Ticket.deleteMany({ bookingId: booking._id });
+    await Booking.deleteOne({ _id: booking._id });
+    throw error;
+  }
+
+  return { bookingsCreated: 1, ticketsCreated: tickets.length };
+};
+
 const seedCoupons = async (reference) => {
   let created = 0;
 
@@ -199,9 +282,10 @@ const seed = async () => {
     seedSnacks(),
   ]);
   const showtimesCreated = await seedShowtimes(reference);
+  const sampleBooking = await seedSampleBooking(reference);
 
   console.log('Seed hoàn tất.');
-  console.log(`Tài khoản mới: ${usersCreated}; phim mới: ${moviesCreated}; phòng mới: ${roomsCreated}; suất chiếu mới: ${showtimesCreated}; mã giảm giá mới: ${couponsCreated}; bắp nước mới: ${snacksCreated}.`);
+  console.log(`Tài khoản mới: ${usersCreated}; phim mới: ${moviesCreated}; phòng mới: ${roomsCreated}; suất chiếu mới: ${showtimesCreated}; booking mẫu mới: ${sampleBooking.bookingsCreated}; vé mẫu mới: ${sampleBooking.ticketsCreated}; mã giảm giá mới: ${couponsCreated}; bắp nước mới: ${snacksCreated}.`);
   console.log('Tài khoản demo:');
   for (const { email, password, role } of demoUsers) {
     console.log(`- ${role}: ${email} / ${password}`);
