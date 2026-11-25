@@ -15,6 +15,7 @@ import Profile from './pages/Profile';
 import Movies from './pages/Movies';
 import MovieDetail from './pages/MovieDetail';
 import Seats from './pages/Seats';
+import Dashboard from './pages/admin/Dashboard';
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -78,12 +79,7 @@ export function App() {
               <Route path="/admin" element={<AdminLayout />}>
                 <Route
                   index
-                  element={
-                    <PlaceholderPage
-                      title="Tổng quan hệ thống"
-                      description="Thống kê doanh thu và hoạt động đặt vé."
-                    />
-                  }
+                  element={<Dashboard />}
                 />
                 <Route
                   path="movies"
