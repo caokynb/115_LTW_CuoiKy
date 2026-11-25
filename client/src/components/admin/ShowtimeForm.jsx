@@ -91,7 +91,7 @@ export function ShowtimeForm({
           id="showtime-movie"
           value={values.movieId}
           onChange={(event) => update('movieId', event.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white"
           aria-invalid={Boolean(errors.movieId)}
           required
         >
@@ -102,14 +102,14 @@ export function ShowtimeForm({
       </div>
 
       <div>
-        <label htmlFor="showtime-room" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor="showtime-room" className="mb-1.5 block text-sm font-medium text-neutral-700 dark:text-neutral-200">
           Phòng chiếu <span className="text-red-500" aria-hidden="true">*</span>
         </label>
         <select
           id="showtime-room"
           value={values.roomId}
           onChange={(event) => update('roomId', event.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white"
           aria-invalid={Boolean(errors.roomId)}
           required
         >

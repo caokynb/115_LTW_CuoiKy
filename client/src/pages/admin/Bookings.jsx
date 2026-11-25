@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
-import { Button, EmptyState, Pagination, Spinner } from '../../components/ui';
+import { Button, EmptyState, Pagination, Select, TableSkeleton } from '../../components/ui';
 
 const LIMIT = 10;
 
@@ -23,7 +23,7 @@ const STATUS_BADGE = {
 };
 
 const inputClass =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white';
+  'min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white';
 
 const formatDateTime = (value) =>
   value
@@ -100,24 +100,24 @@ export function Bookings() {
   return (
     <section className="space-y-5">
       <div>
-        <p className="text-sm font-medium text-brand-600 dark:text-brand-400">Quản trị</p>
-        <h2 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Vé đã bán</h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm font-medium text-brand-600 dark:text-brand-300">Quản trị</p>
+        <h2 className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">Vé đã bán</h2>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
           Tra cứu đơn đặt vé theo trạng thái và khoảng ngày đặt.
         </p>
       </div>
 
-      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card sm:grid-cols-2 lg:grid-cols-4">
         <fieldset className="space-y-1.5">
-          <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">Trạng thái</legend>
+          <legend className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Trạng thái</legend>
           <div className="flex flex-wrap gap-3 pt-1">
             {STATUS_OPTIONS.map((option) => (
-              <label key={option.value} className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <label key={option.value} className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200">
                 <input
                   type="checkbox"
                   checked={statuses.includes(option.value)}
                   onChange={() => toggleStatus(option.value)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
                 />
                 {option.label}
               </label>
@@ -126,25 +126,28 @@ export function Bookings() {
         </fieldset>
 
         <label className="space-y-1.5">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Từ ngày</span>
+          <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Từ ngày</span>
           <input type="date" value={from} onChange={changeFilter(setFrom)} className={inputClass} />
         </label>
 
         <label className="space-y-1.5">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Đến ngày</span>
+          <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Đến ngày</span>
           <input type="date" value={to} onChange={changeFilter(setTo)} className={inputClass} />
         </label>
 
-        <label className="space-y-1.5">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Sắp xếp</span>
-          <select value={sort} onChange={changeFilter(setSort)} className={inputClass}>
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="space-y-1.5">
+          <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-200">Sắp xếp</span>
+          <Select
+            id="admin-booking-sort"
+            value={sort}
+            onChange={(nextSort) => {
+              setSort(nextSort);
+              setPage(1);
+            }}
+            ariaLabel="Sắp xếp"
+            options={SORT_OPTIONS}
+          />
+        </div>
       </div>
 
       {error && (
@@ -159,11 +162,9 @@ export function Bookings() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Spinner label="Đang tải danh sách vé..." />
-          </div>
+          <TableSkeleton rows={5} columns={5} />
         ) : bookings.length === 0 && !error ? (
           <EmptyState
             title="Không có vé nào"
@@ -200,7 +201,7 @@ export function Bookings() {
                     </td>
                     <td className="px-4 py-4">{booking.showtimeId?.roomId?.name || '—'}</td>
                     <td className="whitespace-nowrap px-4 py-4">{formatDateTime(booking.showtimeId?.startTime)}</td>
-                    <td className="px-4 py-4 font-semibold text-brand-600 dark:text-brand-400">{formatSeats(booking.tickets)}</td>
+                    <td className="px-4 py-4 font-semibold text-brand-600 dark:text-brand-300">{formatSeats(booking.tickets)}</td>
                     <td className="whitespace-nowrap px-4 py-4">{formatPrice(booking.totalPrice)}</td>
                     <td className="px-4 py-4">
                       <span
