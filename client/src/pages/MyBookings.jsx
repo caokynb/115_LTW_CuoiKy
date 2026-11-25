@@ -20,7 +20,7 @@ const formatDateTime = (dateStr) => {
 };
 
 /**
-- Kiểm tra xem suất chiếu có còn ít nhất 2 tiếng trước giờ chiếu hay không
+ * Kiểm tra xem suất chiếu có còn ít nhất 2 tiếng trước giờ chiếu hay không
  */
 const canCancelBooking = (startTimeStr) => {
   if (!startTimeStr) return false;
