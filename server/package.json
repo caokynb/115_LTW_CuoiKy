@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test src/tests/booking.test.js tests/movie.test.js"
+    "test": "node --test src/tests/booking.concurrency.test.js src/tests/price.test.js",
+    "test:all": "node --test src/tests/*.test.js"
   },
   "keywords": [],
   "author": "",

@@ -9,17 +9,17 @@ try {
 }
 
 const dotenv = require('dotenv');
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const mongoose = require('mongoose');
-const app = require('../src/app');
-const User = require('../src/models/User');
-const Movie = require('../src/models/Movie');
-const Room = require('../src/models/Room');
-const Showtime = require('../src/models/Showtime');
-const Booking = require('../src/models/Booking');
-const Ticket = require('../src/models/Ticket');
-const { signToken } = require('../src/utils/token');
+const app = require('../app');
+const User = require('../models/User');
+const Movie = require('../models/Movie');
+const Room = require('../models/Room');
+const Showtime = require('../models/Showtime');
+const Booking = require('../models/Booking');
+const Ticket = require('../models/Ticket');
+const { signToken } = require('../utils/token');
 
 describe('Seat Price Calculation (Standard vs VIP)', () => {
   let server;
