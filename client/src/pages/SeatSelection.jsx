@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSeatPolling } from '../hooks/useSeatPolling';
+import { useSocketSeats } from '../hooks/useSocketSeats';
 import { useToast } from '../components/ui';
 import { SeatMap, BookingSummary, SnackSelector } from '../components/booking';
 import ConfirmDialog from '../components/seat/ConfirmDialog';
@@ -18,6 +19,8 @@ export function SeatSelection() {
   const dispatch = useDispatch();
   const toast = useToast();
   const { showtime, loading, error } = useSeatPolling(id);
+  // kết nối Socket.io lấy danh sách ghế người khác đang giữ và hàm phát sự kiện giữ/nhả ghế
+  const { heldByOthers, emitSeatHold } = useSocketSeats(id);
   const selectedSeats = useSelector(selectSelectedSeats);
   const [selectedSnacks, setSelectedSnacks] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -54,6 +57,17 @@ export function SeatSelection() {
     });
   }, [showtime?.soldSeats, selectedSeats, dispatch]);
 
+  // nếu ghế đang chọn trên máy mình vừa bị người khác giữ trước thì tự động bỏ chọn
+  useEffect(() => {
+    if (!heldByOthers.length || selectedSeats.length === 0) return;
+    const heldSet = new Set(heldByOthers.map((seat) => `${seat.row}-${seat.number}`));
+    selectedSeats.forEach((seat) => {
+      if (heldSet.has(`${seat.row}-${seat.number}`)) {
+        dispatch(toggleSeat(seat));
+      }
+    });
+  }, [heldByOthers, selectedSeats, dispatch]);
+
   if (loading && !showtime) {
     return <div className="p-8 text-center" role="status">Đang tải sơ đồ ghế...</div>;
   }
@@ -74,6 +88,20 @@ export function SeatSelection() {
     (movie && (movie._id || movie.id)) ||
     (typeof showtime.movieId === 'string' ? showtime.movieId : null);
   const roomName = room.name || 'Phòng chiếu';
+
+  // khi bấm chọn hoặc bỏ chọn ghế: cập nhật Redux đồng thời phát tín hiệu Socket.io sang người dùng khác
+  const handleSeatToggle = (seat) => {
+    const alreadySelected = selectedSeats.some(
+      (s) => s.row === seat.row && Number(s.number) === Number(seat.number)
+    );
+    // nếu đã đủ 8 ghế thì chỉ dispatch để Redux báo lỗi giới hạn, không gửi lệnh hold lên socket
+    if (!alreadySelected && selectedSeats.length >= 8) {
+      dispatch(toggleSeat(seat));
+      return;
+    }
+    dispatch(toggleSeat(seat));
+    emitSeatHold(seat, alreadySelected ? 'release' : 'hold');
+  };
 
   const handleCheckout = () => {
     if (selectedSeats.length === 0) {
@@ -104,8 +132,9 @@ export function SeatSelection() {
               seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
               vipRows={showtime.vipRows || room.vipRows || []}
               soldSeats={showtime.soldSeats || []}
+              heldSeats={heldByOthers}
               selectedSeats={selectedSeats}
-              onSeatClick={(seat) => dispatch(toggleSeat(seat))}
+              onSeatClick={handleSeatToggle}
               standardPrice={standardPrice}
               vipPrice={vipPrice}
             />

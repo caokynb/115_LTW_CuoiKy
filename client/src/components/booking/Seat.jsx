@@ -9,11 +9,14 @@ export function Seat({
   onClick,
 }) {
   const isSold = status === 'sold';
+  // ghế đang được người khác giữ chỗ qua Socket.io cũng bị khóa không cho bấm chọn
+  const isHeld = status === 'held';
+  const isDisabled = isSold || isHeld;
   const isSelected = status === 'selected';
   const isVip = type === 'vip';
 
   const handleClick = () => {
-    if (isSold) {
+    if (isDisabled) {
       return;
     }
     if (onClick) {
@@ -35,6 +38,10 @@ export function Seat({
   if (isSold) {
     statusClasses =
       'bg-slate-300 text-slate-500 border border-slate-300 cursor-not-allowed opacity-60 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 pointer-events-none';
+  } else if (isHeld) {
+    // tô màu vàng cho ghế đang có người khác giữ chỗ theo chuẩn khóa ghế thời gian thực
+    statusClasses =
+      'bg-yellow-300 text-yellow-950 border border-yellow-500 cursor-not-allowed opacity-85 dark:bg-yellow-500/30 dark:text-yellow-200 dark:border-yellow-500 pointer-events-none';
   } else if (isSelected) {
     statusClasses =
       'bg-brand-600 text-white border border-brand-600 shadow-md scale-105 ring-2 ring-brand-400 dark:bg-brand-500 dark:border-brand-500 cursor-pointer';
@@ -48,13 +55,13 @@ export function Seat({
   }
 
   const ariaLabel = `Ghế ${row}${number} - ${isVip ? 'VIP' : 'Thường'} - ${
-    isSold ? 'Đã bán' : isSelected ? 'Đang chọn' : 'Còn trống'
+    isSold ? 'Đã bán' : isHeld ? 'Đang giữ chỗ' : isSelected ? 'Đang chọn' : 'Còn trống'
   }`;
 
   return (
     <button
       type="button"
-      disabled={isSold}
+      disabled={isDisabled}
       onClick={handleClick}
       aria-label={ariaLabel}
       data-testid={`seat-${row}-${number}`}
