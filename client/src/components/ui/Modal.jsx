@@ -38,7 +38,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
@@ -47,15 +47,15 @@ export function Modal({
       }}
     >
       <div
-        className={`w-full rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 ${
+        className={`cinema-surface cinema-modal-enter w-full rounded-2xl shadow-2xl ${
           SIZE_CLASSES[size] || SIZE_CLASSES.md
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || onClose) && (
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-cinema-borderSubtle">
             {title && (
-              <h2 id="modal-title" className="text-lg font-semibold text-slate-900 dark:text-white">
+              <h2 id="modal-title" className="text-lg font-bold text-neutral-900 dark:text-white">
                 {title}
               </h2>
             )}
@@ -64,7 +64,7 @@ export function Modal({
                 type="button"
                 onClick={onClose}
                 aria-label="Đóng hộp thoại"
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-300 dark:hover:bg-cinema-elevated dark:hover:text-white"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -77,7 +77,7 @@ export function Modal({
         <div className="max-h-[75vh] overflow-y-auto px-5 py-4">{children}</div>
 
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2 border-t border-neutral-200 px-5 py-3.5 dark:border-cinema-borderSubtle">
             {footer}
           </div>
         )}

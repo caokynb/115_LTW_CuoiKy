@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
+import { Select } from '../ui';
 
 export function CinemaSelector({ value, onChange }) {
   const [cinemas, setCinemas] = useState([]);
@@ -33,28 +34,31 @@ export function CinemaSelector({ value, onChange }) {
     }
   }, [loading, cinemas, selectedValue, onChange]);
 
+  const options = useMemo(
+    () => [
+      { value: '', label: 'Tất cả cụm rạp' },
+      ...cinemas.map((cinema) => ({ value: cinema._id, label: cinema.name })),
+    ],
+    [cinemas]
+  );
+
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-      <span className="sr-only">Chọn cụm rạp</span>
-      <select
+    <div className="w-full min-w-[170px] max-w-56">
+      <Select
         value={selectedValue}
         disabled={loading || Boolean(error)}
-        onChange={(event) => {
-          const cinemaId = event.target.value;
+        align="right"
+        ariaLabel="Chọn cụm rạp"
+        placeholder="Tất cả cụm rạp"
+        options={options}
+        onChange={(cinemaId) => {
           setLocalValue(cinemaId);
           const cinema = cinemas.find((item) => item._id === cinemaId) || null;
           onChange?.(cinemaId, cinema);
         }}
-        aria-label="Chọn cụm rạp"
-        className="max-w-56 rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-      >
-        <option value="">Tất cả cụm rạp</option>
-        {cinemas.map((cinema) => (
-          <option key={cinema._id} value={cinema._id}>{cinema.name}</option>
-        ))}
-      </select>
+      />
       {error && <span role="status" className="sr-only">{error}</span>}
-    </label>
+    </div>
   );
 }
 

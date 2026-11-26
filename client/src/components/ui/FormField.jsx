@@ -21,10 +21,10 @@ export function FormField({
   const generatedId = useId();
   const fieldId = name ? `field-${name}-${generatedId}` : generatedId;
 
-  const baseInputStyle = `w-full rounded-lg border px-3.5 py-2 text-sm transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800/60 ${
+  const baseInputStyle = `w-full min-h-[44px] rounded-xl border px-3.5 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-600 dark:disabled:bg-neutral-900 dark:disabled:text-neutral-400 ${
     error
-      ? 'border-red-500 bg-red-50/40 text-slate-900 focus:border-red-500 focus:ring-red-200 dark:border-red-500 dark:bg-red-950/20 dark:text-slate-100 dark:focus:ring-red-900/40'
-      : 'border-slate-300 bg-white text-slate-900 focus:border-brand-500 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-500 dark:focus:ring-brand-900/40'
+      ? 'border-red-500 bg-red-50/60 text-neutral-900 placeholder:text-neutral-500 focus:border-red-500 focus:ring-red-200 dark:border-red-500 dark:bg-red-950/30 dark:text-neutral-100 dark:placeholder:text-neutral-400 dark:focus:ring-red-900/40'
+      : 'border-neutral-300 bg-white text-neutral-900 placeholder:text-neutral-500 focus:border-brand-600 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100 dark:placeholder:text-neutral-400 dark:focus:border-brand-400 dark:focus:ring-brand-500/30'
   } ${inputClassName}`;
 
   return (
@@ -32,10 +32,10 @@ export function FormField({
       {label && (
         <label
           htmlFor={fieldId}
-          className="block text-sm font-medium text-slate-700 dark:text-slate-200"
+          className="block text-sm font-medium text-neutral-900 dark:text-neutral-100"
         >
           {label}
-          {required && <span className="ml-1 text-red-500" aria-hidden="true">*</span>}
+          {required && <span className="ml-1 text-red-600 dark:text-red-400" aria-hidden="true">*</span>}
         </label>
       )}
 
@@ -75,11 +75,11 @@ export function FormField({
       )}
 
       {error ? (
-        <p id={`${fieldId}-error`} role="alert" className="text-xs font-medium text-red-600 dark:text-red-400">
+        <p id={`${fieldId}-error`} role="alert" className="text-xs font-medium text-red-700 dark:text-red-300">
           {error}
         </p>
       ) : helperText ? (
-        <p className="text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
+        <p className="text-xs text-neutral-600 dark:text-neutral-300">{helperText}</p>
       ) : null}
     </div>
   );
