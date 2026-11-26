@@ -28,6 +28,8 @@ describe('Coupon API & Server Discount Calculation (A12)', () => {
   let baseUrl;
   let memberUser;
   let memberToken;
+  let adminUser;
+  let adminToken;
   let testMovie;
   let testRoom;
   let testShowtime;
@@ -35,6 +37,7 @@ describe('Coupon API & Server Discount Calculation (A12)', () => {
   let expiredCoupon;
   let exhaustedCoupon;
   const createdBookingIds = [];
+  const createdCouponIds = [];
 
   before(async () => {
     if (mongoose.connection.readyState === 0) {
@@ -53,6 +56,14 @@ describe('Coupon API & Server Discount Calculation (A12)', () => {
       role: 'member',
     });
     memberToken = signToken(memberUser);
+
+    adminUser = await User.create({
+      fullName: 'Coupon Test Admin',
+      email: `coupon_admin_${suffix}@example.com`,
+      passwordHash: await User.hashPassword('Password123!'),
+      role: 'admin',
+    });
+    adminToken = signToken(adminUser);
 
     testRoom = await Room.create({
       name: `Phòng Coupon ${suffix}`,
@@ -124,12 +135,15 @@ describe('Coupon API & Server Discount Calculation (A12)', () => {
       await Booking.deleteMany({ _id: { $in: createdBookingIds } });
     }
     await Coupon.deleteMany({
-      _id: { $in: [validCoupon?._id, expiredCoupon?._id, exhaustedCoupon?._id].filter(Boolean) },
+      _id: {
+        $in: [validCoupon?._id, expiredCoupon?._id, exhaustedCoupon?._id, ...createdCouponIds].filter(Boolean),
+      },
     });
     if (testShowtime) await Showtime.findByIdAndDelete(testShowtime._id);
     if (testMovie) await Movie.findByIdAndDelete(testMovie._id);
     if (testRoom) await Room.findByIdAndDelete(testRoom._id);
     if (memberUser) await User.findByIdAndDelete(memberUser._id);
+    if (adminUser) await User.findByIdAndDelete(adminUser._id);
     if (server) server.close();
     await mongoose.disconnect();
   });
@@ -197,5 +211,154 @@ describe('Coupon API & Server Discount Calculation (A12)', () => {
 
     const updatedCoupon = await Coupon.findById(validCoupon._id);
     assert.equal(updatedCoupon.usedCount, 1);
+  });
+
+  it('Admin CRUD voucher: chặn member (403), validate đầu vào (400/409), tạo/sửa/khóa-mở/xóa thành công', async () => {
+    // 1. Chưa đăng nhập -> 401; member -> 403
+    const unauthRes = await fetch(`${baseUrl}/api/coupons`);
+    assert.equal(unauthRes.status, 401);
+
+    const memberListRes = await fetch(`${baseUrl}/api/coupons`, {
+      headers: { Authorization: `Bearer ${memberToken}` },
+    });
+    assert.equal(memberListRes.status, 403);
+
+    const memberCreateRes = await fetch(`${baseUrl}/api/coupons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${memberToken}`,
+      },
+      body: JSON.stringify({
+        code: 'MEMBERFAIL',
+        discountType: 'percent',
+        discountValue: 10,
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        maxUses: 5,
+      }),
+    });
+    assert.equal(memberCreateRes.status, 403);
+
+    // 2. Validate đầu vào khi Admin tạo voucher sai
+    const invalidPercentRes = await fetch(`${baseUrl}/api/coupons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        code: 'BADPCT',
+        discountType: 'percent',
+        discountValue: 150,
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        maxUses: 5,
+      }),
+    });
+    assert.equal(invalidPercentRes.status, 400);
+
+    const pastDateRes = await fetch(`${baseUrl}/api/coupons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        code: 'PASTDATE',
+        discountType: 'fixed',
+        discountValue: 20000,
+        expiresAt: new Date(Date.now() - 86400000).toISOString(),
+        maxUses: 5,
+      }),
+    });
+    assert.equal(pastDateRes.status, 400);
+
+    // 3. Admin tạo mới thành công (201)
+    const adminCode = `ADMIN_${Date.now()}`;
+    const createRes = await fetch(`${baseUrl}/api/coupons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        code: adminCode.toLowerCase(),
+        description: 'Ưu đãi Admin test',
+        discountType: 'fixed',
+        discountValue: 30000,
+        minOrderAmount: 100000,
+        expiresAt: new Date(Date.now() + 5 * 86400000).toISOString(),
+        maxUses: 10,
+      }),
+    });
+    assert.equal(createRes.status, 201);
+    const createBody = await createRes.json();
+    const created = createBody.data;
+    createdCouponIds.push(created._id);
+    assert.equal(created.code, adminCode.toUpperCase());
+
+    // 4. Tạo trùng mã -> 409
+    const dupRes = await fetch(`${baseUrl}/api/coupons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        code: adminCode,
+        discountType: 'fixed',
+        discountValue: 15000,
+        expiresAt: new Date(Date.now() + 5 * 86400000).toISOString(),
+        maxUses: 10,
+      }),
+    });
+    assert.equal(dupRes.status, 409);
+
+    // 5. Admin lấy danh sách
+    const listRes = await fetch(`${baseUrl}/api/coupons`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    assert.equal(listRes.status, 200);
+    const listBody = await listRes.json();
+    assert.ok(Array.isArray(listBody.data));
+    assert.ok(listBody.data.some((c) => c._id === created._id));
+
+    // 6. Admin cập nhật voucher
+    const updateRes = await fetch(`${baseUrl}/api/coupons/${created._id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        code: `${adminCode}_V2`,
+        description: 'Đã cập nhật',
+        discountType: 'percent',
+        discountValue: 20,
+        maxDiscount: 40000,
+        minOrderAmount: 50000,
+        expiresAt: new Date(Date.now() + 10 * 86400000).toISOString(),
+        maxUses: 20,
+      }),
+    });
+    assert.equal(updateRes.status, 200);
+    const updateBody = await updateRes.json();
+    assert.equal(updateBody.data.discountType, 'percent');
+    assert.equal(updateBody.data.discountValue, 20);
+
+    // 7. Admin khóa / mở voucher
+    const toggleRes = await fetch(`${baseUrl}/api/coupons/${created._id}/toggle`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    assert.equal(toggleRes.status, 200);
+    const toggleBody = await toggleRes.json();
+    assert.equal(toggleBody.data.isActive, false);
+
+    // 8. Admin xóa voucher
+    const deleteRes = await fetch(`${baseUrl}/api/coupons/${created._id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    assert.equal(deleteRes.status, 200);
   });
 });

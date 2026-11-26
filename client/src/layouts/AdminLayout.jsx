@@ -46,6 +46,11 @@ const ADMIN_LINKS = [
     icon: 'M6 9h12l-1.5 11h-9L6 9Zm3-4a3 3 0 0 1 6 0',
   },
   {
+    to: '/admin/coupons',
+    label: 'Voucher',
+    icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4Z',
+  },
+  {
     to: '/admin/bookings',
     label: 'Vé đã bán',
     icon: 'M15 5v2m0 4v2m0 4v2M5 5a2 2 0 0 0-2 2v3a2 2 0 1 1 0 4v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 1 1 0-4V7a2 2 0 0 0-2-2H5Z',
