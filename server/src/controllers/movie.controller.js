@@ -1,7 +1,26 @@
 const Movie = require('../models/Movie');
 const Showtime = require('../models/Showtime');
 const { validateMovieInput } = require('../validators/movie.validator');
+const { fetchPostersByTitle, fetchPostersById } = require('../services/tmdb.service');
 const AppError = require('../utils/AppError');
+
+// chuẩn hóa mảng poster phụ, loại bỏ phần tử rỗng và phần tử trùng với poster chính
+const normalizePosterUrls = (rawPosterUrls, primaryPosterUrl) => {
+    if (!Array.isArray(rawPosterUrls)) return undefined;
+    const seen = new Set(primaryPosterUrl ? [String(primaryPosterUrl).trim()] : []);
+    const normalized = [];
+
+    for (const url of rawPosterUrls) {
+        if (typeof url !== 'string') continue;
+        const clean = url.trim();
+        if (!clean || seen.has(clean)) continue;
+        seen.add(clean);
+        normalized.push(clean);
+        if (normalized.length >= 6) break;
+    }
+
+    return normalized;
+};
 
 /**
  * @route   GET /api/movies
@@ -165,6 +184,9 @@ const createMovie = async (req, res, next) => {
         if (movieData.posterURL && !movieData.posterUrl) {
             movieData.posterUrl = movieData.posterURL;
         }
+        if (movieData.posterUrls !== undefined) {
+            movieData.posterUrls = normalizePosterUrls(movieData.posterUrls, movieData.posterUrl);
+        }
 
         const newMovie = await Movie.create(movieData);
         return res.status(201).json({
@@ -198,6 +220,9 @@ const updateMovie = async (req, res, next) => {
         const movieData = { ...req.body };
         if (movieData.posterURL && !movieData.posterUrl) {
             movieData.posterUrl = movieData.posterURL;
+        }
+        if (movieData.posterUrls !== undefined) {
+            movieData.posterUrls = normalizePosterUrls(movieData.posterUrls, movieData.posterUrl);
         }
 
         const updatedMovie = await Movie.findByIdAndUpdate(id, movieData, {
@@ -256,6 +281,37 @@ const deleteMovie = async (req, res, next) => {
     }
 };
 
+// lấy danh sách poster tiếng Việt từ TMDB cho trang quản trị
+const getTmdbPosters = async (req, res, next) => {
+    try {
+        const { q, tmdbId } = req.query;
+
+        if (tmdbId !== undefined && String(tmdbId).trim() !== '') {
+            const result = await fetchPostersById(tmdbId);
+            return res.status(200).json({
+                success: true,
+                data: result,
+            });
+        }
+
+        if (!q || String(q).trim() === '') {
+            return next(new AppError('Vui lòng nhập tên phim hoặc tmdbId để tìm poster!', 400));
+        }
+
+        const result = await fetchPostersByTitle(String(q).trim());
+        if (!result) {
+            return next(new AppError('Không tìm thấy phim phù hợp trên TMDB!', 404));
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getMovies,
     getMovieGenres,
@@ -263,4 +319,5 @@ module.exports = {
     createMovie,
     updateMovie,
     deleteMovie,
+    getTmdbPosters,
 };

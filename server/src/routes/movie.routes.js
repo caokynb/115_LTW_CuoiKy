@@ -6,6 +6,7 @@ const {
     createMovie,
     updateMovie,
     deleteMovie,
+    getTmdbPosters,
 } = require('../controllers/movie.controller');
 const { getMovieReviews, createMovieReview } = require('../controllers/review.controller');
 const { verifyToken, requireRole } = require('../middleware/auth');
@@ -19,8 +20,9 @@ const router = express.Router();
  */
 router.get('/', getMovies);
 
-// đặt route /genres trước /:id để tránh bị hiểu nhầm thành id phim
+// đặt route /genres và /tmdb/posters trước /:id để tránh bị hiểu nhầm thành id phim
 router.get('/genres', getMovieGenres);
+router.get('/tmdb/posters', verifyToken, requireRole('admin'), getTmdbPosters);
 
 // Đánh giá phim: xem công khai, gửi đánh giá cần đăng nhập.
 router.get('/:id/reviews', getMovieReviews);

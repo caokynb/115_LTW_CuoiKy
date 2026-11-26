@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import GenreTag from './GenreTag';
 import AgeRatingBadge from './AgeRatingBadge';
@@ -6,6 +6,8 @@ import AgeRatingBadge from './AgeRatingBadge';
 // Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
 const DEFAULT_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60';
+
+const POSTER_ROTATE_MS = 4500;
 
 // Format ngày khởi chiếu sang định dạng ngày/tháng/năm của Việt Nam
 const formatDate = (dateString) => {
@@ -25,10 +27,6 @@ const formatDate = (dateString) => {
 
 // Component thẻ hiển thị thông tin từng bộ phim
 export function MovieCard({ movie }) {
-  // nếu không có dữ liệu phim thì không render
-  if (!movie) return null;
-
-  // lấy các trường cần thiết, hỗ trợ posterUrl
   const {
     _id,
     title,
@@ -37,31 +35,91 @@ export function MovieCard({ movie }) {
     releaseDate,
     status,
     ageRating = 'P',
-  } = movie;
-  const poster = movie.posterUrl || DEFAULT_POSTER;
+    posterUrls = [],
+  } = movie || {};
+
+  // gom danh sách poster không trùng lặp để luân phiên trên thẻ phim
+  const posters = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    [movie?.posterUrl, ...(Array.isArray(posterUrls) ? posterUrls : [])].forEach((url) => {
+      if (typeof url === 'string' && url.trim() && !seen.has(url.trim())) {
+        seen.add(url.trim());
+        list.push(url.trim());
+      }
+    });
+    return list.length > 0 ? list : [DEFAULT_POSTER];
+  }, [movie?.posterUrl, posterUrls]);
+
+  const [activePosterIndex, setActivePosterIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    setActivePosterIndex(0);
+  }, [_id, posters.length]);
+
+  useEffect(() => {
+    if (!movie || posters.length <= 1 || isPaused) return undefined;
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return undefined;
+      }
+    }
+
+    // lệch pha thời gian bắt đầu nhẹ theo _id để các thẻ không chớp cùng lúc
+    const staggerMs = _id
+      ? (_id.charCodeAt(_id.length - 1) % 4) * 350
+      : 0;
+    let intervalId = null;
+    const timeoutId = setTimeout(() => {
+      intervalId = setInterval(() => {
+        setActivePosterIndex((prev) => (prev + 1) % posters.length);
+      }, POSTER_ROTATE_MS);
+    }, staggerMs);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [movie, _id, posters.length, isPaused]);
+
+  // nếu không có dữ liệu phim thì không render
+  if (!movie) return null;
 
   // cờ kiểm tra phim đang chiếu hay sắp chiếu
   const isNowShowing = status === 'now_showing';
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
+    <div
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocus={() => setIsPaused(true)}
+      onBlur={() => setIsPaused(false)}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+    >
       {/* Vùng ảnh poster có hiệu ứng hover zoom nhẹ */}
       <Link
         to={`/movies/${_id}`}
         className="relative aspect-[2/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-800"
       >
-        <img
-          src={poster}
-          alt={title}
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            // nếu link ảnh hỏng thì tự đổi về ảnh mặc định tránh vỡ giao diện
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = DEFAULT_POSTER;
-          }}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {posters.map((src, idx) => (
+          <img
+            key={`${src}-${idx}`}
+            src={src}
+            alt={idx === 0 ? title : `${title} - poster ${idx + 1}`}
+            loading={idx === 0 ? 'lazy' : 'eager'}
+            decoding="async"
+            onError={(e) => {
+              // nếu link ảnh hỏng thì tự đổi về ảnh mặc định tránh vỡ giao diện
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = DEFAULT_POSTER;
+            }}
+            aria-hidden={idx !== activePosterIndex}
+            className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-700 ease-in-out group-hover:scale-105 motion-reduce:transition-none ${
+              idx === activePosterIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
 
         {/* Nhãn trạng thái đang chiếu hoặc sắp chiếu gắn ở góc trên bên trái */}
         <div className="absolute left-3 top-3">

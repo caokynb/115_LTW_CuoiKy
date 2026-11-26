@@ -87,6 +87,28 @@ const validateMovieInput = (data, isUpdate = false) => {
         }
     }
 
+    // kiểm tra danh sách poster phụ luân phiên nếu được truyền lên
+    if (data.posterUrls !== undefined) {
+        if (!Array.isArray(data.posterUrls)) {
+            errors.push('Danh sách posterUrls phải là một mảng URL hợp lệ!');
+        } else if (data.posterUrls.length > 6) {
+            errors.push('Mỗi phim chỉ được lưu tối đa 6 poster phụ!');
+        } else if (
+            data.posterUrls.some(
+                (url) => typeof url !== 'string' || !/^https?:\/\/.+/i.test(url.trim())
+            )
+        ) {
+            errors.push('Mỗi đường dẫn trong posterUrls phải bắt đầu bằng http:// hoặc https://!');
+        }
+    }
+
+    // kiểm tra URL ảnh nền ngang (backdropUrl) nếu có truyền lên
+    if (data.backdropUrl !== undefined && data.backdropUrl !== null && String(data.backdropUrl).trim() !== '') {
+        if (typeof data.backdropUrl !== 'string' || !/^https?:\/\/.+/i.test(data.backdropUrl.trim())) {
+            errors.push('URL ảnh nền ngang (backdropUrl) phải bắt đầu bằng http:// hoặc https://!');
+        }
+    }
+
     // 8. Kiểm tra Trailer YouTube ID (trailerYoutubeId)
     if (!isUpdate || trailerYoutubeId !== undefined) {
         if (!trailerYoutubeId || typeof trailerYoutubeId !== 'string' || trailerYoutubeId.trim() === '') {
