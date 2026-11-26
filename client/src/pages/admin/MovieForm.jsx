@@ -14,6 +14,9 @@ const INITIAL_VALUES = {
   status: 'now_showing',
   ageRating: 'P',
   posterUrl: '',
+  posterUrls: [],
+  backdropUrl: '',
+  tmdbId: null,
   trailerInput: '',
 };
 
@@ -56,6 +59,11 @@ function validateMovieForm(values) {
     errors.posterUrl = 'URL ảnh poster phải bắt đầu bằng http:// hoặc https://';
   }
 
+  const backdrop = values.backdropUrl.trim();
+  if (backdrop && !/^https?:\/\/.+/i.test(backdrop)) {
+    errors.backdropUrl = 'URL ảnh nền ngang phải bắt đầu bằng http:// hoặc https://';
+  }
+
   const youtubeId = extractYoutubeId(values.trailerInput);
   if (!values.trailerInput.trim()) {
     errors.trailerInput = 'Link hoặc ID trailer YouTube không được để trống';
@@ -80,6 +88,10 @@ export function MovieForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [posterLoadFailed, setPosterLoadFailed] = useState(false);
+  const [backdropLoadFailed, setBackdropLoadFailed] = useState(false);
+  const [fetchingTmdb, setFetchingTmdb] = useState(false);
+  const [tmdbCandidates, setTmdbCandidates] = useState([]);
+  const [tmdbBackdropCandidates, setTmdbBackdropCandidates] = useState([]);
 
   // tách YouTube ID trực tiếp từ ô nhập trailer để xem trước
   const extractedYoutubeId = useMemo(
@@ -119,9 +131,17 @@ export function MovieForm() {
           status: movie.status === 'coming_soon' ? 'coming_soon' : 'now_showing',
           ageRating: AGE_RATINGS.includes(movie.ageRating) ? movie.ageRating : 'P',
           posterUrl: movie.posterUrl || '',
+          posterUrls: Array.isArray(movie.posterUrls) ? movie.posterUrls : [],
+          backdropUrl: movie.backdropUrl || '',
+          tmdbId: movie.tmdbId || null,
           trailerInput: movie.trailerYoutubeId || '',
         });
+        setTmdbCandidates(
+          [movie.posterUrl, ...(Array.isArray(movie.posterUrls) ? movie.posterUrls : [])].filter(Boolean)
+        );
+        setTmdbBackdropCandidates(movie.backdropUrl ? [movie.backdropUrl] : []);
         setPosterLoadFailed(false);
+        setBackdropLoadFailed(false);
       })
       .catch((error) => {
         if (error.name !== 'CanceledError' && error.code !== 'ERR_CANCELED') {
@@ -143,6 +163,9 @@ export function MovieForm() {
     setValues((prev) => ({ ...prev, [field]: nextValue }));
     if (field === 'posterUrl') {
       setPosterLoadFailed(false);
+    }
+    if (field === 'backdropUrl') {
+      setBackdropLoadFailed(false);
     }
     if (errors[field]) {
       setErrors((prev) => {
@@ -170,6 +193,74 @@ export function MovieForm() {
     }
   };
 
+  // bấm lấy bộ poster tiếng Việt từ TMDB theo tên phim đang nhập
+  const handleFetchTmdbPosters = async () => {
+    const query = values.title.trim();
+    if (!query) {
+      toast.error('Vui lòng nhập tên phim trước khi tìm poster TMDB.');
+      return;
+    }
+
+    setFetchingTmdb(true);
+    try {
+      const { data } = await api.get('/movies/tmdb/posters', { params: { q: query } });
+      const payload = data?.data;
+      if (!payload || !payload.posterUrl) {
+        toast.error('Không tìm thấy poster phù hợp trên TMDB.');
+        return;
+      }
+
+      const candidates = Array.isArray(payload.candidates) && payload.candidates.length > 0
+        ? payload.candidates
+        : [payload.posterUrl, ...(payload.posterUrls || [])].filter(Boolean);
+
+      const backdropCandidates = Array.isArray(payload.backdropCandidates) && payload.backdropCandidates.length > 0
+        ? payload.backdropCandidates
+        : payload.backdropUrl
+        ? [payload.backdropUrl]
+        : [];
+
+      setValues((prev) => ({
+        ...prev,
+        posterUrl: payload.posterUrl,
+        posterUrls: payload.posterUrls || [],
+        backdropUrl: payload.backdropUrl || prev.backdropUrl,
+        tmdbId: payload.tmdbId || null,
+      }));
+      setTmdbCandidates(candidates);
+      setTmdbBackdropCandidates(backdropCandidates);
+      setPosterLoadFailed(false);
+      setBackdropLoadFailed(false);
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.posterUrl;
+        delete copy.backdropUrl;
+        return copy;
+      });
+      toast.success(
+        backdropCandidates.length > 0
+          ? `Đã lấy ${candidates.length} poster và ${backdropCandidates.length} ảnh nền ngang từ TMDB.`
+          : `Đã lấy ${candidates.length} poster từ TMDB.`
+      );
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Không lấy được poster từ TMDB.'));
+    } finally {
+      setFetchingTmdb(false);
+    }
+  };
+
+  // bật/tắt poster phụ trong danh sách luân phiên
+  const handleToggleExtraPoster = (url) => {
+    if (url === values.posterUrl.trim()) return;
+    setValues((prev) => {
+      const exists = prev.posterUrls.includes(url);
+      const next = exists
+        ? prev.posterUrls.filter((item) => item !== url)
+        : [...prev.posterUrls, url].slice(0, 6);
+      return { ...prev, posterUrls: next };
+    });
+  };
+
   // gửi dữ liệu tạo/cập nhật phim lên API
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -190,6 +281,9 @@ export function MovieForm() {
       status: values.status,
       ageRating: values.ageRating,
       posterUrl: values.posterUrl.trim(),
+      ...(values.posterUrls.length > 0 ? { posterUrls: values.posterUrls } : {}),
+      backdropUrl: values.backdropUrl.trim(),
+      ...(values.tmdbId ? { tmdbId: values.tmdbId } : {}),
       trailerYoutubeId: extractedYoutubeId,
     };
 
@@ -377,15 +471,127 @@ export function MovieForm() {
             </div>
           </div>
 
-          <FormField
-            label="URL ảnh Poster"
-            name="posterUrl"
-            value={values.posterUrl}
-            onChange={handleChange('posterUrl')}
-            placeholder="https://example.com/poster.jpg"
-            error={errors.posterUrl}
-            required
-          />
+          <div className="space-y-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <FormField
+                  label="URL ảnh Poster"
+                  name="posterUrl"
+                  value={values.posterUrl}
+                  onChange={handleChange('posterUrl')}
+                  placeholder="https://example.com/poster.jpg"
+                  error={errors.posterUrl}
+                  required
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                loading={fetchingTmdb}
+                onClick={handleFetchTmdbPosters}
+                className="shrink-0 sm:mb-0.5"
+              >
+                Lấy poster từ TMDB (VI)
+              </Button>
+            </div>
+
+            {tmdbCandidates.length > 1 && (
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Poster luân phiên từ TMDB ({values.posterUrls.length} ảnh phụ đang bật):
+                </p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                  {tmdbCandidates.map((url, idx) => {
+                    const isPrimary = url === values.posterUrl.trim();
+                    const isExtraSelected = values.posterUrls.includes(url);
+                    return (
+                      <button
+                        key={`${url}-${idx}`}
+                        type="button"
+                        onClick={() => handleToggleExtraPoster(url)}
+                        title={
+                          isPrimary
+                            ? 'Poster chính'
+                            : isExtraSelected
+                            ? 'Bấm để bỏ khỏi danh sách luân phiên'
+                            : 'Bấm để thêm vào danh sách luân phiên'
+                        }
+                        className={`relative aspect-[2/3] overflow-hidden rounded-lg border-2 transition ${
+                          isPrimary
+                            ? 'border-brand-600 ring-2 ring-brand-500/40'
+                            : isExtraSelected
+                            ? 'border-emerald-500'
+                            : 'border-transparent opacity-50 hover:opacity-80'
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt={`Poster TMDB ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        {isPrimary && (
+                          <span className="absolute bottom-1 left-1 rounded bg-brand-600 px-1 py-0.5 text-[10px] font-bold text-white">
+                            Chính
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <FormField
+              label="URL ảnh nền ngang (Backdrop)"
+              name="backdropUrl"
+              value={values.backdropUrl}
+              onChange={handleChange('backdropUrl')}
+              placeholder="https://image.tmdb.org/t/p/w1280/..."
+              helperText="Ảnh khổ ngang 16:9 dùng làm nền cho Banner trang chủ và trang chi tiết phim"
+              error={errors.backdropUrl}
+            />
+
+            {tmdbBackdropCandidates.length > 1 && (
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Chọn ảnh nền ngang từ TMDB:
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {tmdbBackdropCandidates.map((url, idx) => {
+                    const isSelected = url === values.backdropUrl.trim();
+                    return (
+                      <button
+                        key={`${url}-${idx}`}
+                        type="button"
+                        onClick={() => {
+                          setValues((prev) => ({ ...prev, backdropUrl: url }));
+                          setBackdropLoadFailed(false);
+                        }}
+                        className={`relative aspect-video overflow-hidden rounded-lg border-2 transition ${
+                          isSelected
+                            ? 'border-brand-600 ring-2 ring-brand-500/40'
+                            : 'border-transparent opacity-65 hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt={`Backdrop TMDB ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        {isSelected && (
+                          <span className="absolute bottom-1 left-1 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                            Đang chọn
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           <FormField
             label="Link YouTube Trailer (hoặc YouTube ID)"
@@ -433,6 +639,28 @@ export function MovieForm() {
                   {posterLoadFailed
                     ? 'Không tải được ảnh từ URL này. Vui lòng kiểm tra lại đường dẫn.'
                     : 'Dán URL ảnh poster để xem trước tại đây'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              Xem trước ảnh nền ngang
+            </h3>
+            <div className="mt-3 flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60">
+              {values.backdropUrl.trim() && !backdropLoadFailed ? (
+                <img
+                  src={values.backdropUrl.trim()}
+                  alt={values.title || 'Backdrop xem trước'}
+                  onError={() => setBackdropLoadFailed(true)}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <p className="px-4 text-center text-xs text-slate-400">
+                  {backdropLoadFailed
+                    ? 'Không tải được ảnh nền từ URL này.'
+                    : 'Bấm lấy TMDB hoặc dán URL ảnh ngang 16:9 tại đây'}
                 </p>
               )}
             </div>

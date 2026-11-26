@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import GenreTag from './GenreTag';
 import AgeRatingBadge from './AgeRatingBadge';
@@ -7,6 +7,9 @@ import { getButtonClasses } from '../ui';
 const DEFAULT_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60';
 
+const POSTER_ROTATE_MS = 4500;
+
+// Format ngày khởi chiếu sang định dạng ngày/tháng/năm của Việt Nam
 const formatDate = (dateString) => {
   if (!dateString) return '';
   try {
@@ -23,8 +26,6 @@ const formatDate = (dateString) => {
 };
 
 export function MovieCard({ movie }) {
-  if (!movie) return null;
-
   const {
     _id,
     title,
@@ -34,29 +35,88 @@ export function MovieCard({ movie }) {
     releaseDate,
     status,
     ageRating = 'P',
-  } = movie;
-  const poster = movie.posterUrl || DEFAULT_POSTER;
+    posterUrls = [],
+  } = movie || {};
+
+  // gom danh sách poster không trùng lặp để luân phiên trên thẻ phim
+  const posters = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    [movie?.posterUrl, ...(Array.isArray(posterUrls) ? posterUrls : [])].forEach((url) => {
+      if (typeof url === 'string' && url.trim() && !seen.has(url.trim())) {
+        seen.add(url.trim());
+        list.push(url.trim());
+      }
+    });
+    return list.length > 0 ? list : [DEFAULT_POSTER];
+  }, [movie?.posterUrl, posterUrls]);
+
+  const [activePosterIndex, setActivePosterIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    setActivePosterIndex(0);
+  }, [_id, posters.length]);
+
+  useEffect(() => {
+    if (!movie || posters.length <= 1 || isPaused) return undefined;
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return undefined;
+      }
+    }
+
+    // lệch pha thời gian bắt đầu nhẹ theo _id để các thẻ không chớp cùng lúc
+    const staggerMs = _id
+      ? (_id.charCodeAt(_id.length - 1) % 4) * 350
+      : 0;
+    let intervalId = null;
+    const timeoutId = setTimeout(() => {
+      intervalId = setInterval(() => {
+        setActivePosterIndex((prev) => (prev + 1) % posters.length);
+      }, POSTER_ROTATE_MS);
+    }, staggerMs);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [movie, _id, posters.length, isPaused]);
+
+  if (!movie) return null;
   const isNowShowing = status === 'now_showing';
   const synopsisText =
     description || 'Khám phá chi tiết suất chiếu và đặt ghế trực tuyến tại CineHub.';
 
   return (
-    <article className="cinema-surface cinema-movie-card group relative z-0 flex flex-col overflow-hidden rounded-2xl transition-[transform,border-color,box-shadow] duration-300 ease-out hover:z-30 focus-within:z-30 hover:border-brand-500/70 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] sm:hover:-translate-y-1.5 sm:hover:scale-[1.06]">
+    <article
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocus={() => setIsPaused(true)}
+      onBlur={() => setIsPaused(false)}
+      className="cinema-surface cinema-movie-card group relative z-0 flex flex-col overflow-hidden rounded-2xl transition-[transform,border-color,box-shadow] duration-300 ease-out hover:z-30 focus-within:z-30 hover:border-brand-500/70 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] sm:hover:-translate-y-1.5 sm:hover:scale-[1.06]"
+    >
       <Link
         to={`/movies/${_id}`}
         className="relative aspect-[2/3] w-full overflow-hidden bg-neutral-200 dark:bg-cinema-elevated"
       >
-        <img
-          src={poster}
-          alt={title}
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = DEFAULT_POSTER;
-          }}
-          className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
-        />
+        {posters.map((src, idx) => (
+          <img
+            key={`${src}-${idx}`}
+            src={src}
+            alt={idx === 0 ? title : `${title} - poster ${idx + 1}`}
+            loading={idx === 0 ? 'lazy' : 'eager'}
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = DEFAULT_POSTER;
+            }}
+            aria-hidden={idx !== activePosterIndex}
+            className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-700 ease-in-out group-hover:scale-105 motion-reduce:transition-none ${
+              idx === activePosterIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
 
         <div
           aria-hidden="true"
