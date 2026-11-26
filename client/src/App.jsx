@@ -17,6 +17,7 @@ import Home from './pages/Home';
 import MovieDetail from './pages/MovieDetail';
 import Dashboard from './pages/admin/Dashboard';
 import SeatSelection from './pages/SeatSelection';
+import Checkout from './pages/Checkout';
 import BookingDetail from './pages/BookingDetail';
 import MyBookings from './pages/MyBookings';
 import RoomPage from './pages/admin/Rooms';
@@ -33,42 +34,40 @@ export function App() {
       <AuthProvider>
         <ToastProvider>
           <BrowserRouter>
-          <Routes>
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/movies" element={<Movies />} />
-              <Route path="/movies/:id" element={<MovieDetail />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forbidden" element={<Forbidden />} />
+            <Routes>
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/movies" element={<Movies />} />
+                <Route path="/movies/:id" element={<MovieDetail />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forbidden" element={<Forbidden />} />
 
-              <Route element={<ProtectedRoute />}>
-                <Route path="/showtimes/:id/seats" element={<SeatSelection />} />
-                <Route path="/bookings/:id" element={<BookingDetail />} />
-                <Route path="/my-bookings" element={<MyBookings />} />
-                <Route path="/profile" element={<Profile />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/showtimes/:id/seats" element={<SeatSelection />} />
+                  <Route path="/checkout/:paymentId" element={<Checkout />} />
+                  <Route path="/bookings/:id" element={<BookingDetail />} />
+                  <Route path="/my-bookings" element={<MyBookings />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
+
+                <Route path="*" element={<NotFound />} />
               </Route>
 
-              <Route path="*" element={<NotFound />} />
-            </Route>
-
-            <Route element={<AdminRoute />}>
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route
-                  index
-                  element={<Dashboard />}
-                />
-                <Route path="movies" element={<AdminMovies />} />
-                <Route path="movies/new" element={<MovieForm />} />
-                <Route path="movies/:id/edit" element={<MovieForm />} />
-                <Route path="rooms" element={<RoomPage />} />
-                <Route path="cinemas" element={<Cinemas />} />
-                <Route path="showtimes" element={<ShowtimePage />} />
-                <Route path="snacks" element={<AdminSnacks />} />
-                <Route path="bookings" element={<AdminBookings />} />
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="movies" element={<AdminMovies />} />
+                  <Route path="movies/new" element={<MovieForm />} />
+                  <Route path="movies/:id/edit" element={<MovieForm />} />
+                  <Route path="rooms" element={<RoomPage />} />
+                  <Route path="cinemas" element={<Cinemas />} />
+                  <Route path="showtimes" element={<ShowtimePage />} />
+                  <Route path="snacks" element={<AdminSnacks />} />
+                  <Route path="bookings" element={<AdminBookings />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
+            </Routes>
           </BrowserRouter>
         </ToastProvider>
       </AuthProvider>

@@ -172,7 +172,7 @@ export function Profile() {
       {fetchError && <Toast type="error" message={fetchError} />}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
           <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
             Thông tin cá nhân
           </h2>
@@ -231,8 +231,8 @@ export function Profile() {
           </form>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
+          <h2 className="mb-4 text-lg font-semibold text-neutral-900 dark:text-white">
             Đổi mật khẩu
           </h2>
 

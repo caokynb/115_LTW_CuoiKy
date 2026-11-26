@@ -71,7 +71,7 @@ export function BookingSummary({
 
   return (
     <div
-      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-slate-900 ${className}`}
+      className={`rounded-2xl border border-neutral-200 bg-white p-5 shadow-lg dark:border-cinema-borderSubtle dark:bg-cinema-card ${className}`}
       data-testid="booking-summary"
     >
       <h2 className="mb-4 text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -218,11 +218,11 @@ export function BookingSummary({
       {/* Overall Total Amount & Checkout Button */}
       <div className="pt-4 flex flex-col gap-4">
         <div className="flex justify-between items-baseline">
-          <span className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <span className="text-sm font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
             Tổng cộng:
           </span>
           <span
-            className="text-2xl font-extrabold text-brand-600 dark:text-brand-400"
+            className="text-2xl font-extrabold tabular-nums text-brand-600 dark:text-brand-300"
             data-testid="total-amount"
           >
             {formatVND(effectiveTotal)}

@@ -140,7 +140,7 @@ export function RoomForm({ room, onSubmit, onCancel, submitting = false, serverE
         {errors.vipRows && <p role="alert" className="mt-1 text-xs text-red-600">{errors.vipRows}</p>}
       </fieldset>
 
-      <section aria-label="Xem trước sơ đồ phòng" className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+      <section aria-label="Xem trước sơ đồ phòng" className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-cinema-border dark:bg-cinema-elevated/60">
         <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Xem trước sơ đồ</h3>
         <div className="mt-3 overflow-x-auto pb-1">
           <div className="min-w-max">

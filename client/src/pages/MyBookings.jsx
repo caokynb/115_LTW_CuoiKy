@@ -86,6 +86,7 @@ export function MyBookings() {
     };
   }, []);
 
+  // tính sẵn số lượng từng nhóm trạng thái để gắn huy hiệu trên các tab lọc
   const counts = useMemo(() => {
     const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
     const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
@@ -96,6 +97,7 @@ export function MyBookings() {
     };
   }, [bookings]);
 
+  // lọc danh sách đơn vé hiển thị theo tab trạng thái đang chọn
   const filteredBookings = useMemo(() => {
     if (filter === 'confirmed') {
       return bookings.filter((b) => b.status === 'confirmed');
@@ -106,6 +108,7 @@ export function MyBookings() {
     return bookings;
   }, [bookings, filter]);
 
+  // gửi yêu cầu hủy đơn vé khi người dùng xác nhận trên hộp thoại
   const handleConfirmCancel = async () => {
     if (!bookingToCancel) return;
     setCancelling(true);
@@ -170,22 +173,22 @@ export function MyBookings() {
 
       {/* Tabs lọc trạng thái */}
       {bookings.length > 0 && (
-        <div className="mb-6 flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+        <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-neutral-200 pb-3 dark:border-cinema-borderSubtle">
           <button
             type="button"
             onClick={() => setFilter('all')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
               filter === 'all'
-                ? 'bg-brand-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                ? 'bg-brand-600 text-white shadow-cinema-cta'
+                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700'
             }`}
           >
             <span>Tất cả</span>
             <span
-              className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                 filter === 'all'
                   ? 'bg-white/20 text-white'
-                  : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
               }`}
             >
               {counts.all}
@@ -195,18 +198,18 @@ export function MyBookings() {
           <button
             type="button"
             onClick={() => setFilter('confirmed')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
               filter === 'confirmed'
-                ? 'bg-brand-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                ? 'bg-brand-600 text-white shadow-cinema-cta'
+                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700'
             }`}
           >
             <span>Đã xác nhận</span>
             <span
-              className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                 filter === 'confirmed'
                   ? 'bg-white/20 text-white'
-                  : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
               }`}
             >
               {counts.confirmed}
@@ -216,18 +219,18 @@ export function MyBookings() {
           <button
             type="button"
             onClick={() => setFilter('cancelled')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
               filter === 'cancelled'
-                ? 'bg-brand-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                ? 'bg-brand-600 text-white shadow-cinema-cta'
+                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700'
             }`}
           >
             <span>Đã hủy</span>
             <span
-              className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                 filter === 'cancelled'
                   ? 'bg-white/20 text-white'
-                  : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
               }`}
             >
               {counts.cancelled}
@@ -237,7 +240,7 @@ export function MyBookings() {
       )}
 
       {bookings.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-12 text-center dark:border-cinema-border dark:bg-cinema-card">
           <EmptyState
             title="Bạn chưa có đơn đặt vé nào"
             description="Hãy chọn cho mình một bộ phim ưng ý và đặt vé xem cùng bạn bè ngay hôm nay!"
@@ -248,12 +251,13 @@ export function MyBookings() {
           />
         </div>
       ) : filteredBookings.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-10 text-center dark:border-cinema-border dark:bg-cinema-card">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
             Không có đơn đặt vé nào ở trạng thái này.
           </p>
         </div>
       ) : (
+        // danh sách vé thiết kế dạng cuống vé ngang rạp chiếu
         <div className="flex flex-col gap-4">
           {filteredBookings.map((booking) => {
             const showtime = booking.showtimeId || {};
@@ -272,9 +276,18 @@ export function MyBookings() {
             return (
               <div
                 key={booking._id}
-                className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center"
+                className="relative flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-r from-white via-neutral-50 to-neutral-100/80 shadow-lg transition-shadow hover:shadow-xl dark:border-neutral-700/80 dark:from-[#262626] dark:via-[#202020] dark:to-[#1b1b1b] sm:flex-row sm:items-stretch"
               >
-                <div className="flex items-start gap-4">
+                {/* dải màu mép trái phân biệt trạng thái vé */}
+                <div
+                  className={`h-1.5 w-full shrink-0 sm:h-auto sm:w-2 ${
+                    isConfirmed ? 'bg-brand-600' : 'bg-neutral-500'
+                  }`}
+                  aria-hidden="true"
+                />
+
+                {/* phần thân vé bên trái gồm poster và thông tin suất chiếu */}
+                <div className="flex flex-1 items-start gap-4 p-5">
                   <img
                     src={
                       movie.posterUrl ||
@@ -322,7 +335,7 @@ export function MyBookings() {
                       </span>
                       <span>
                         Ghế:{' '}
-                        <strong className="text-brand-600 dark:text-brand-400">
+                        <strong className="text-brand-600 dark:text-brand-300">
                           {seatLabels || '—'}
                         </strong>
                       </span>
@@ -330,17 +343,35 @@ export function MyBookings() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-100 pt-3 sm:flex-col sm:items-end sm:border-t-0 sm:pt-0">
+                {/* rãnh xé ngang trên mobile */}
+                <div className="relative flex items-center bg-neutral-100/75 dark:bg-[#2b2b2b]/85 sm:hidden" aria-hidden="true">
+                  <div className="-ml-3 h-6 w-6 shrink-0 rounded-full border border-neutral-200 bg-neutral-50 dark:border-neutral-700/80 dark:bg-cinema-bg" />
+                  <div className="mx-2 flex-1 border-b-2 border-dashed border-neutral-300 dark:border-neutral-600" />
+                  <div className="-mr-3 h-6 w-6 shrink-0 rounded-full border border-neutral-200 bg-neutral-50 dark:border-neutral-700/80 dark:bg-cinema-bg" />
+                </div>
+
+                {/* cuống vé bên phải */}
+                <div className="relative flex shrink-0 items-center justify-between gap-3 bg-neutral-100/75 p-5 dark:bg-[#2b2b2b]/85 sm:min-w-[235px] sm:flex-col sm:items-end sm:justify-center sm:border-l-2 sm:border-dashed sm:border-neutral-300 dark:sm:border-neutral-600">
+                  <div
+                    className="pointer-events-none absolute -left-3 -top-3 hidden h-6 w-6 rounded-full border border-neutral-200 bg-neutral-50 dark:border-neutral-700/80 dark:bg-cinema-bg sm:block"
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="pointer-events-none absolute -bottom-3 -left-3 hidden h-6 w-6 rounded-full border border-neutral-200 bg-neutral-50 dark:border-neutral-700/80 dark:bg-cinema-bg sm:block"
+                    aria-hidden="true"
+                  />
+
                   <div className="text-left sm:text-right">
-                    <span className="block text-xs text-slate-400">
+                    <span className="block text-xs text-neutral-500 dark:text-neutral-400">
                       Tổng tiền
                     </span>
-                    <strong className="text-base font-black text-brand-600 dark:text-brand-500">
-                      {Number(booking.totalPrice || 0).toLocaleString('vi-VN')} đ
+                    <strong className="text-base font-black tabular-nums text-brand-600 dark:text-brand-300">
+                      {Number(booking.totalPrice || 0).toLocaleString('vi-VN')} ₫
                     </strong>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {/* cụm nút thao tác: xem chi tiết, mở mã QR và hủy vé nếu còn hạn */}
+                  <div className="flex flex-wrap items-center justify-end gap-2 sm:mt-2">
                     <Link to={`/bookings/${booking._id}`}>
                       <Button variant="secondary" size="sm">
                         Chi tiết

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
-import { Button, EmptyState, Modal, Pagination, Spinner, useToast } from '../../components/ui';
+import { Button, EmptyState, Modal, Pagination, Select, TableSkeleton, useToast } from '../../components/ui';
 import ShowtimeForm from '../../components/admin/ShowtimeForm';
 
 const PAGE_SIZE = 10;
@@ -151,9 +151,9 @@ export function ShowtimePage() {
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-brand-600 dark:text-brand-400">Quản trị</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Suất chiếu</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Lịch chiếu được kiểm tra chồng giờ ngay trên máy chủ.</p>
+          <p className="text-sm font-medium text-brand-600 dark:text-brand-300">Quản trị</p>
+          <h2 className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">Suất chiếu</h2>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Lịch chiếu được kiểm tra chồng giờ ngay trên máy chủ.</p>
         </div>
         <Button onClick={openCreate} disabled={lookupsLoading || Boolean(lookupError)}>Thêm suất chiếu</Button>
       </div>
@@ -166,32 +166,34 @@ export function ShowtimePage() {
         </div>
       )}
 
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2">
+      <div className="grid gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card sm:grid-cols-2">
         <label className="space-y-1.5">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Ngày chiếu</span>
+          <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Ngày chiếu</span>
           <input
             type="date"
             value={filters.date}
             onChange={(event) => updateFilter('date', event.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white"
           />
         </label>
-        <label className="space-y-1.5">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Phòng chiếu</span>
-          <select
+        <div className="space-y-1.5">
+          <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-200">Phòng chiếu</span>
+          <Select
+            id="admin-showtime-room"
             value={filters.roomId}
-            onChange={(event) => updateFilter('roomId', event.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          >
-            <option value="">Tất cả phòng</option>
-            {rooms.map((room) => <option key={room._id} value={room._id}>{room.name}</option>)}
-          </select>
-        </label>
+            onChange={(roomId) => updateFilter('roomId', roomId)}
+            ariaLabel="Phòng chiếu"
+            options={[
+              { value: '', label: 'Tất cả phòng' },
+              ...rooms.map((room) => ({ value: room._id, label: room.name })),
+            ]}
+          />
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
         {loading || lookupsLoading ? (
-          <div className="flex justify-center p-12"><Spinner label="Đang tải lịch chiếu..." /></div>
+          <TableSkeleton rows={5} columns={5} />
         ) : showtimes.length === 0 ? (
           <EmptyState title="Không có suất chiếu" description="Thử đổi ngày hoặc phòng chiếu, hoặc tạo suất mới." action={<Button onClick={openCreate} disabled={Boolean(lookupError)}>Thêm suất chiếu</Button>} />
         ) : (

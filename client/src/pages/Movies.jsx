@@ -131,7 +131,7 @@ export function Movies() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="w-full py-2">
       {/* Tiêu đề trang và phần chuyển tab */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>

@@ -86,6 +86,54 @@ export function ConfirmDialog({
     }
   };
 
+  // tạo phiên thanh toán VietQR giữ chỗ 10 phút và chuyển sang trang Checkout
+  const handleVietQrCheckout = async () => {
+    if (seats.length === 0 || submitting) return;
+
+    setSubmitting(true);
+    setError('');
+    try {
+      // gửi suất chiếu, ghế, mã giảm giá và combo để server tạo đơn pending + mã VietQR
+      const res = await api.post('/payments/create', {
+        showtimeId,
+        seats: seats.map(({ row, number }) => ({ row, number })),
+        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
+        ...(Array.isArray(snacks) && snacks.length > 0
+          ? { snacks: snacks.map(({ snackId, quantity }) => ({ snackId, quantity })) }
+          : {}),
+      });
+      const payment = res.data?.data?.payment;
+      toast.success('Đã tạo mã thanh toán VietQR. Vui lòng hoàn tất trong 10 phút.');
+      // xóa ghế đang chọn trong Redux vì ghế đã được chuyển sang giữ chỗ pending ở server
+      dispatch(clearSeats());
+      onClose();
+      if (payment?._id) {
+        navigate(`/checkout/${payment._id}`);
+      } else {
+        navigate('/my-bookings');
+      }
+    } catch (err) {
+      // nếu có người khác nhanh tay đặt mất ghế thì bỏ ghế trùng và tải lại sơ đồ
+      if (err.response?.status === 409) {
+        const lost = err.response.data?.conflictingSeats || [];
+        lost.forEach((l) => {
+          const selected = seats.find((s) => s.row === l.row && s.number === l.number);
+          if (selected) dispatch(toggleSeat(selected));
+        });
+        setConflictMessage(
+          lost.length
+            ? `Ghế ${lost.map(seatLabel).join(', ')} đã có người đặt trước. Ghế này đã được bỏ khỏi lựa chọn của bạn, vui lòng chọn ghế khác!`
+            : err.response.data?.message || 'Một số ghế đã có người đặt trước.'
+        );
+        if (onConflict) await onConflict();
+      } else {
+        setError(getErrorMessage(err, 'Không thể khởi tạo thanh toán VietQR.'));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleClose = () => {
     if (!submitting) onClose();
   };
@@ -131,8 +179,8 @@ export function ConfirmDialog({
             </div>
 
             <div>
-              <span className="block text-xs font-semibold uppercase text-slate-400">Ghế đã chọn:</span>
-              <p className="mt-1 font-bold text-brand-600 dark:text-brand-400">
+              <span className="block text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400">Ghế đã chọn:</span>
+              <p className="mt-1 font-bold text-brand-600 dark:text-brand-300">
                 {seats.map(seatLabel).join(', ')} ({seats.length} ghế)
               </p>
             </div>
@@ -168,8 +216,8 @@ export function ConfirmDialog({
                 </>
               )}
               <div className="flex items-center justify-between">
-                <span className="font-medium text-slate-600 dark:text-slate-400">Tổng tiền thanh toán:</span>
-                <span className="text-xl font-black text-brand-600 dark:text-brand-500">
+                <span className="font-medium text-neutral-600 dark:text-neutral-400">Tổng tiền thanh toán:</span>
+                <span className="text-xl font-black tabular-nums text-brand-600 dark:text-brand-300">
                   {finalAmount.toLocaleString('vi-VN')} đ
                 </span>
               </div>
@@ -185,9 +233,17 @@ export function ConfirmDialog({
             )}
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
             <Button variant="secondary" onClick={handleClose} disabled={submitting}>
               Hủy
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleVietQrCheckout}
+              disabled={submitting}
+              data-testid="confirm-vietqr"
+            >
+              Thanh toán VietQR
             </Button>
             <Button
               variant="primary"

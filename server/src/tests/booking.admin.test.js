@@ -47,6 +47,7 @@ describe('Admin Bookings API (GET /api/bookings)', () => {
     memberUser = await User.create({
       fullName: 'Admin Booking Member',
       email: `ab_member_${suffix}@example.com`,
+      phone: '0901234567',
       passwordHash: await User.hashPassword('Password123!'),
       role: 'member',
     });
@@ -148,5 +149,71 @@ describe('Admin Bookings API (GET /api/bookings)', () => {
     assert.ok(Array.isArray(body.data));
     assert.ok(body.pages >= 1);
     assert.ok(body.data.every((item) => item.status === 'confirmed'));
+  });
+
+  it('admin tìm kiếm theo SĐT, mã vé và lọc theo showtimeId', async () => {
+    const byPhone = await fetch(
+      `${baseUrl}/api/bookings?q=0901234567&showtimeId=${testShowtime._id}`,
+      {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      }
+    );
+    const phoneBody = await byPhone.json();
+    assert.strictEqual(byPhone.status, 200);
+    assert.ok(phoneBody.data.length >= 2);
+    assert.strictEqual(phoneBody.data[0].userId.phone, '0901234567');
+
+    const firstBookingId = String(createdBookingIds[0]);
+    const shortCode = firstBookingId.slice(-6).toUpperCase();
+    const byCode = await fetch(`${baseUrl}/api/bookings?q=${encodeURIComponent(`#${shortCode}`)}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const codeBody = await byCode.json();
+    assert.strictEqual(byCode.status, 200);
+    assert.ok(codeBody.data.some((b) => String(b._id) === firstBookingId));
+  });
+
+  it('admin có thể hủy hỗ trợ đơn đặt vé ngay cả khi suất chiếu dưới 2 tiếng', async () => {
+    const nearStart = new Date(Date.now() + 30 * 60 * 1000);
+    const nearEnd = new Date(nearStart.getTime() + 100 * 60 * 1000);
+    const nearShowtime = await Showtime.create({
+      movieId: testMovie._id,
+      roomId: testRoom._id,
+      startTime: nearStart,
+      endTime: nearEnd,
+      standardPrice: 80000,
+      vipPrice: 110000,
+    });
+    const nearBooking = await Booking.create({
+      userId: memberUser._id,
+      showtimeId: nearShowtime._id,
+      totalPrice: 80000,
+      status: 'confirmed',
+    });
+    createdBookingIds.push(nearBooking._id);
+
+    await Ticket.create({
+      bookingId: nearBooking._id,
+      showtimeId: nearShowtime._id,
+      row: 'B',
+      number: 2,
+      seatType: 'standard',
+      price: 80000,
+      status: 'active',
+    });
+
+    const res = await fetch(`${baseUrl}/api/bookings/${nearBooking._id}/cancel`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const body = await res.json();
+
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(body.success, true);
+    assert.strictEqual(body.data.status, 'cancelled');
+
+    const releasedTicket = await Ticket.findOne({ bookingId: nearBooking._id });
+    assert.strictEqual(releasedTicket.status, 'cancelled');
+    await Showtime.findByIdAndDelete(nearShowtime._id);
   });
 });

@@ -69,6 +69,28 @@ const seedMovies = async (reference) => {
       { upsert: true }
     );
     created += result.upsertedCount || 0;
+
+    // nâng cấp dữ liệu phim mẫu cũ nếu vẫn dùng ảnh placeholder, chưa có poster phụ hoặc chưa có backdrop ngang
+    await Movie.updateOne(
+      {
+        title: document.title,
+        $or: [
+          { posterUrl: /placehold\.co/i },
+          { posterUrls: { $exists: false } },
+          { posterUrls: { $size: 0 } },
+          { backdropUrl: { $exists: false } },
+          { backdropUrl: '' },
+        ],
+      },
+      {
+        $set: {
+          posterUrl: document.posterUrl,
+          posterUrls: document.posterUrls || [],
+          backdropUrl: document.backdropUrl || '',
+          ...(document.tmdbId ? { tmdbId: document.tmdbId } : {}),
+        },
+      }
+    );
   }
 
   return created;

@@ -112,6 +112,7 @@ export function MovieDetail() {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [pendingShowtimeId, setPendingShowtimeId] = useState(null);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [backdropLoadFailed, setBackdropLoadFailed] = useState(false);
 
   // Gọi API lấy chi tiết phim khi id thay đổi
   useEffect(() => {
@@ -126,6 +127,7 @@ export function MovieDetail() {
     setLoading(true);
     setNotFound(false);
     setErrorMessage('');
+    setBackdropLoadFailed(false);
 
     // gọi endpoint GET /api/movies/:id
     api
@@ -215,7 +217,7 @@ export function MovieDetail() {
       <div className="mx-auto max-w-xl px-4 py-12 text-center">
         <div
           role="alert"
-          className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
+          className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
         >
           <p className="font-medium">{errorMessage}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-3">
@@ -246,6 +248,8 @@ export function MovieDetail() {
     trailerYoutubeId,
   } = movie;
   const poster = movie.posterUrl || DEFAULT_POSTER;
+  const backdrop = (movie.backdropUrl || '').trim();
+  const showBackdrop = Boolean(backdrop) && !backdropLoadFailed;
   const isNowShowing = status === 'now_showing';
   const ageMeta = AGE_RATING_META[ageRating] || AGE_RATING_META.P;
 
@@ -269,14 +273,35 @@ export function MovieDetail() {
 
   return (
     <div className="overflow-x-hidden pb-16">
-      {/* Khối Hero Banner trên cùng với ảnh poster mờ phía sau */}
-      <div className="relative overflow-hidden border-b border-slate-200 bg-slate-900 text-white dark:border-slate-800">
-        {/* Ảnh nền phủ mờ tạo chiều sâu */}
+      {/* khối Hero Banner trên cùng chỉ dùng ảnh nền ngang backdrop sắc nét (hoặc nền tối chuyển sắc nếu chưa có backdrop) */}
+      <div className="relative overflow-hidden border-b border-neutral-200 bg-cinema-card text-white dark:border-cinema-borderSubtle">
+        {/* ảnh nền phủ tạo chiều sâu */}
+        {showBackdrop ? (
+          <img
+            src={backdrop}
+            alt=""
+            aria-hidden="true"
+            onError={() => setBackdropLoadFailed(true)}
+            className="absolute inset-0 h-full w-full object-cover object-center opacity-80"
+          />
+        ) : (
+          <div
+            className="absolute inset-0 bg-gradient-to-br from-cinema-bg via-cinema-card to-brand-950/50"
+            aria-hidden="true"
+          />
+        )}
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-20 blur-2xl filter"
-          style={{ backgroundImage: `url(${poster})` }}
+          className="absolute inset-0 bg-black/35 backdrop-blur-[5px]"
+          aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-slate-900/40" />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-cinema-bg/85 via-cinema-bg/50 to-cinema-bg/20"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-cinema-bg via-cinema-bg/40 to-transparent"
+          aria-hidden="true"
+        />
 
         <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
           <div className="flex flex-col gap-8 md:flex-row md:items-start lg:gap-12">
@@ -401,8 +426,8 @@ export function MovieDetail() {
           <h2 className="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">
             Nội dung phim
           </h2>
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="whitespace-pre-line text-base leading-relaxed text-slate-700 dark:text-slate-300">
+          <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
+            <p className="whitespace-pre-line text-base leading-relaxed text-neutral-700 dark:text-neutral-300">
               {description || 'Chưa có thông tin mô tả cho bộ phim này.'}
             </p>
           </div>
@@ -414,7 +439,7 @@ export function MovieDetail() {
             <h2 className="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">
               Lịch chiếu phim
             </h2>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-neutral-600 dark:text-neutral-400">
               Chọn suất chiếu để tiến hành đặt vé
             </span>
           </div>
@@ -428,7 +453,7 @@ export function MovieDetail() {
               {Array.from({ length: 4 }).map((_, idx) => (
                 <div
                   key={`st-skeleton-${idx}`}
-                  className="h-36 animate-pulse rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-800/70"
+                  className="h-36 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100 dark:border-cinema-borderSubtle dark:bg-cinema-card"
                 />
               ))}
             </div>
@@ -437,29 +462,30 @@ export function MovieDetail() {
               {showtimes.map((st) => (
                 <div
                   key={st._id}
-                  className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-brand-500 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                  className="flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition-colors hover:border-brand-500 hover:shadow-md dark:border-cinema-borderSubtle dark:bg-cinema-card"
                 >
                   <div>
-                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400">
                       <span>Phòng: {st.roomId?.name || 'Phòng chiếu'}</span>
                       <span>{formatDate(st.startTime)}</span>
                     </div>
-                    <div className="mt-2 text-2xl font-black text-brand-600 dark:text-brand-500">
+                    <div className="mt-2 text-2xl font-black tabular-nums text-brand-600 dark:text-brand-300">
                       {formatTime(st.startTime)}
                     </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Giá từ: {st.standardPrice?.toLocaleString('vi-VN')} đ
+                    <div className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+                      Giá từ: {st.standardPrice?.toLocaleString('vi-VN')} ₫
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
+                      size="md"
+                      fullWidth
                       onClick={() => handleSelectShowtime(st._id)}
-                      className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-brand-600 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-brand-700 active:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500"
                     >
                       Chọn ghế
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}

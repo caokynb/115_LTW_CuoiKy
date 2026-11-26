@@ -86,7 +86,7 @@ export function Login() {
   };
 
   return (
-    <section className="mx-auto my-8 max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+    <section className="mx-auto my-8 max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card sm:p-8">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Đăng nhập</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -135,11 +135,11 @@ export function Login() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-6 text-center text-sm text-neutral-600 dark:text-neutral-400">
         Chưa có tài khoản?{' '}
         <Link
           to="/register"
-          className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-500"
+          className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200"
         >
           Đăng ký ngay
         </Link>

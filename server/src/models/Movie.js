@@ -54,6 +54,21 @@ const movieSchema = new mongoose.Schema(
             trim: true,
             alias: 'posterURL',
         },
+        // danh sách các URL poster phụ từ TMDB để luân phiên hiển thị trên thẻ phim
+        posterUrls: {
+            type: [String],
+            default: [],
+        },
+        // URL ảnh nền ngang (16:9 backdrop) hiển thị cho banner trang chủ và chi tiết phim
+        backdropUrl: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        tmdbId: {
+            type: Number,
+            default: null,
+        },
         trailerYoutubeId: {
             type: String,
             required: [true, 'YouTube ID của trailer là bắt buộc'],

@@ -67,8 +67,8 @@ const bookingSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['confirmed', 'cancelled'],
-        message: 'Trạng thái đơn đặt vé chỉ chấp nhận confirmed hoặc cancelled',
+        values: ['pending', 'confirmed', 'cancelled'],
+        message: 'Trạng thái đơn đặt vé chỉ chấp nhận pending, confirmed hoặc cancelled',
       },
       default: 'confirmed',
       index: true,

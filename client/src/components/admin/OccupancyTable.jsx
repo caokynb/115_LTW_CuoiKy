@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
-import { Button, EmptyState, Spinner } from '../ui';
+import { Button, EmptyState, TableSkeleton } from '../ui';
 
 const formatDateTime = (value) => {
   const date = new Date(value);
@@ -44,10 +44,10 @@ export function OccupancyTable() {
   }, [retryKey]);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Tỷ lệ lấp đầy suất chiếu</h2>
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
+      <h2 className="text-base font-semibold text-neutral-900 dark:text-white">Tỷ lệ lấp đầy suất chiếu</h2>
       {loading ? (
-        <div className="flex justify-center py-8"><Spinner label="Đang tải suất chiếu..." /></div>
+        <div className="mt-4"><TableSkeleton rows={4} columns={5} /></div>
       ) : error ? (
         <div className="flex flex-wrap items-center justify-between gap-3 py-4" role="alert">
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>

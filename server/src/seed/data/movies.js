@@ -1,6 +1,3 @@
-const poster = (title) =>
-  `https://placehold.co/600x900/111827/f9fafb?text=${encodeURIComponent(title)}`;
-
 module.exports = [
   {
     title: 'Interstellar',
@@ -10,7 +7,14 @@ module.exports = [
     status: 'now_showing',
     ageRating: 'T13',
     releaseOffsetDays: -12,
-    posterUrl: poster('Interstellar'),
+    tmdbId: 157336,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/if4TI9LbqNIrzkoOgWjX5PZYDYe.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/8KuUAZ1HtTMBMKKOi8xYPrw90Je.jpg',
+      'https://image.tmdb.org/t/p/w500/rct7HdAfPyvSqbr4H86b6z10tCE.jpg',
+      'https://image.tmdb.org/t/p/w500/tXRVjWjiPMEz9z0Y2bu0Nnuqjz7.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/8sNiAPPYU14PUepFNeSNGUTiHW.jpg',
     trailerYoutubeId: 'zSWdZVtXT7E',
   },
   {
@@ -21,7 +25,14 @@ module.exports = [
     status: 'now_showing',
     ageRating: 'T13',
     releaseOffsetDays: -9,
-    posterUrl: poster('Inception'),
+    tmdbId: 27205,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/eBtqGWtR5KUiNl6OXHLR3ri6nVm.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/bhX2wFzkbKU2cTGuhDbaUww5BDm.jpg',
+      'https://image.tmdb.org/t/p/w500/jVaSzQpA1WODQjFdeqgozbR5tdS.jpg',
+      'https://image.tmdb.org/t/p/w500/hgccaDPGW9u897xjqw6udRHsKft.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg',
     trailerYoutubeId: 'YoHD9XEInc0',
   },
   {
@@ -32,7 +43,14 @@ module.exports = [
     status: 'now_showing',
     ageRating: 'T16',
     releaseOffsetDays: -7,
-    posterUrl: poster('The Dark Knight'),
+    tmdbId: 155,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/7EfSqviKvXwbiGhUjHyUBGVdoiW.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/AabbWDWAwtxHxTJV3v8C9e67E2p.jpg',
+      'https://image.tmdb.org/t/p/w500/pJAKIBOvsCc9dBhDDgIRGQGULRR.jpg',
+      'https://image.tmdb.org/t/p/w500/kTzY2df2WlYqf6jv1cD0zJ7K2Oc.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/cfT29Im5VDvjE0RpyKOSdCKZal7.jpg',
     trailerYoutubeId: 'EXeTwQWrcwY',
   },
   {
@@ -43,7 +61,14 @@ module.exports = [
     status: 'now_showing',
     ageRating: 'P',
     releaseOffsetDays: -5,
-    posterUrl: poster('Coco'),
+    tmdbId: 354912,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/tKd5zI6gLBwrqqyicHyRD3IyosW.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/dWvsTGo8NkoFVQs5A7GtwXnXUOW.jpg',
+      'https://image.tmdb.org/t/p/w500/9qCiCy4xw6nttcNTT50YH5bZTbz.jpg',
+      'https://image.tmdb.org/t/p/w500/6Ryitt95xrO8KXuqRGm1fUuNwqF.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/g7CHF8gTLGooTbP4GznIGwaqAGL.jpg',
     trailerYoutubeId: 'xlnPHQ3TLX8',
   },
   {
@@ -54,7 +79,14 @@ module.exports = [
     status: 'now_showing',
     ageRating: 'T18',
     releaseOffsetDays: -2,
-    posterUrl: poster('A Quiet Place'),
+    tmdbId: 447332,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/tdpQzOgilar5xKxpTFTJPoezbYd.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/cb3l5BBvG3eLYwT6wVHwdZl93Ak.jpg',
+      'https://image.tmdb.org/t/p/w500/cYtpjSt6ak37M0uutz1z8m0uWbG.jpg',
+      'https://image.tmdb.org/t/p/w500/pZunUFew9ge4HFT2XYxjIVJXq1o.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/nHRUtBwFNnNN70vcQ7lAsjc2T6S.jpg',
     trailerYoutubeId: 'WR7cc5t7tv8',
   },
   {
@@ -65,7 +97,14 @@ module.exports = [
     status: 'coming_soon',
     ageRating: 'T13',
     releaseOffsetDays: 5,
-    posterUrl: poster('Dune Part Two'),
+    tmdbId: 693134,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/8QdnKQyZDlN6rBSrfU1V5PctfUu.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/izsvc93pgm09w4zQMkgqpxDeBMa.jpg',
+      'https://image.tmdb.org/t/p/w500/SjJagusBQrYueissAFd2wd4EsF.jpg',
+      'https://image.tmdb.org/t/p/w500/f9FZAnooCgtfpwRlBRPKJVNMTaZ.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
     trailerYoutubeId: 'Way9Dexny3w',
   },
   {
@@ -76,7 +115,14 @@ module.exports = [
     status: 'coming_soon',
     ageRating: 'T13',
     releaseOffsetDays: 10,
-    posterUrl: poster('Spider-Man No Way Home'),
+    tmdbId: 634649,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/y4SQ2dJ1y2LBUnxTH7hCe8sr29c.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/7XzmrGu23xFPPWdaF29357Y420a.jpg',
+      'https://image.tmdb.org/t/p/w500/fBX6hBsXKhFT0VRp3TXI6vRDVV0.jpg',
+      'https://image.tmdb.org/t/p/w500/6rz125mkB3KqEBNao8fE2v3C1kg.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/iQFcwSGbZXMkeyKrxbPnwnRo5fl.jpg',
     trailerYoutubeId: 'JfVOs4VSpmA',
   },
   {
@@ -87,7 +133,14 @@ module.exports = [
     status: 'coming_soon',
     ageRating: 'P',
     releaseOffsetDays: 15,
-    posterUrl: poster('Frozen II'),
+    tmdbId: 330457,
+    posterUrl: 'https://image.tmdb.org/t/p/w500/tXjHSZFS87uJ433dbeOSV3jBEBl.jpg',
+    posterUrls: [
+      'https://image.tmdb.org/t/p/w500/mkw8VVHpNrBX2zRXLs7zb0MbPDZ.jpg',
+      'https://image.tmdb.org/t/p/w500/6jQ9rc2EevKA5Gw9s3bvYHjaVp4.jpg',
+      'https://image.tmdb.org/t/p/w500/pemxEOGqm6W2ftNCJBIYE1kgwS7.jpg',
+    ],
+    backdropUrl: 'https://image.tmdb.org/t/p/w1280/AoSZyb37ljMAxw0RdeQEBHKtgcc.jpg',
     trailerYoutubeId: 'Zi4LMpSDccc',
   },
 ];

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
-import { Button, EmptyState, FormField, Spinner } from '../../components/ui';
+import { Button, EmptyState, FormField, TableSkeleton } from '../../components/ui';
 
 const emptyForm = { name: '', address: '', hotline: '', rooms: [] };
 
@@ -112,15 +112,15 @@ export function Cinemas() {
       {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
       {notice && <p role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-950/30 dark:text-green-300">{notice}</p>}
 
-      <form onSubmit={saveCinema} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="font-semibold text-slate-900 dark:text-white">{editingId ? 'Sửa cụm rạp' : 'Thêm cụm rạp'}</h2>
+      <form onSubmit={saveCinema} className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
+        <h2 className="font-semibold text-neutral-900 dark:text-white">{editingId ? 'Sửa cụm rạp' : 'Thêm cụm rạp'}</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <FormField label="Tên rạp" name="name" value={form.name} onChange={updateField} required maxLength={120} />
           <FormField label="Địa chỉ" name="address" value={form.address} onChange={updateField} required maxLength={250} />
           <FormField label="Hotline" name="hotline" value={form.hotline} onChange={updateField} required maxLength={20} />
         </div>
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">Phòng thuộc rạp</legend>
+          <legend className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-200">Phòng thuộc rạp</legend>
           {rooms.length ? (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => {
@@ -128,7 +128,7 @@ export function Cinemas() {
                   cinema._id !== editingId && (cinema.rooms || []).some((assignedRoom) => assignedRoom._id === room._id)
                 );
                 return (
-                  <label key={room._id} className="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
+                  <label key={room._id} className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 p-3 text-sm dark:border-cinema-border">
                     <input
                       type="checkbox"
                       checked={form.rooms.includes(room._id)}
@@ -140,7 +140,7 @@ export function Cinemas() {
                 );
               })}
             </div>
-          ) : <p className="text-sm text-slate-500">Chưa có phòng chiếu.</p>}
+          ) : <p className="text-sm text-neutral-500">Chưa có phòng chiếu.</p>}
         </fieldset>
         <div className="flex gap-2">
           <Button type="submit" loading={saving}>{editingId ? 'Lưu thay đổi' : 'Thêm rạp'}</Button>
@@ -148,10 +148,10 @@ export function Cinemas() {
         </div>
       </form>
 
-      {loading ? <div className="flex justify-center p-8"><Spinner label="Đang tải cụm rạp..." /></div> : cinemas.length === 0 ? (
+      {loading ? <TableSkeleton rows={4} columns={4} /> : cinemas.length === 0 ? (
         <EmptyState title="Chưa có cụm rạp" description="Thêm cụm rạp đầu tiên bằng biểu mẫu phía trên." />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
           <table className="w-full min-w-[680px] text-left text-sm">
             <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-700 dark:text-slate-400">
               <tr><th className="px-4 py-3">Cụm rạp</th><th className="px-4 py-3">Phòng</th><th className="px-4 py-3">Hotline</th><th className="px-4 py-3">Thao tác</th></tr>

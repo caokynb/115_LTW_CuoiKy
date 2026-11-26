@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../../api/axios';
 import { useDebounce } from '../../hooks/useDebounce';
-import { Button, EmptyState, Modal, Pagination, Spinner, useToast } from '../../components/ui';
+import { Button, EmptyState, Modal, Pagination, Select, TableSkeleton, useToast } from '../../components/ui';
 import { GenreTag, SearchBar, AgeRatingBadge } from '../../components/movie';
 
 const PAGE_SIZE = 8;
@@ -50,8 +50,8 @@ export function AdminMovies() {
     setPage(1);
   };
 
-  const handleStatusChange = (e) => {
-    setStatusFilter(e.target.value);
+  const handleStatusChange = (value) => {
+    setStatusFilter(value);
     setPage(1);
   };
 
@@ -127,9 +127,9 @@ export function AdminMovies() {
       {/* tiêu đề trang và nút thêm phim mới */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-brand-600 dark:text-brand-400">Quản trị</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Quản lý phim</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-medium text-brand-600 dark:text-brand-300">Quản trị</p>
+          <h2 className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">Quản lý phim</h2>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             Theo dõi, tìm kiếm, thêm mới và cập nhật danh sách phim trong rạp.
           </p>
         </div>
@@ -137,28 +137,25 @@ export function AdminMovies() {
       </div>
 
       {/* thanh tìm kiếm theo tên và lọc trạng thái */}
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card sm:flex-row sm:items-center">
         <SearchBar
           value={searchInput}
           onChange={handleSearchChange}
           placeholder="Tìm kiếm phim theo tên..."
         />
 
-        <div className="sm:w-48">
-          <label htmlFor="admin-movie-status" className="sr-only">
-            Lọc theo trạng thái
-          </label>
-          <select
+        <div className="sm:w-52">
+          <Select
             id="admin-movie-status"
             value={statusFilter}
             onChange={handleStatusChange}
-            aria-label="Lọc theo trạng thái phim"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="now_showing">Đang chiếu</option>
-            <option value="coming_soon">Sắp chiếu</option>
-          </select>
+            ariaLabel="Lọc theo trạng thái phim"
+            options={[
+              { value: '', label: 'Tất cả trạng thái' },
+              { value: 'now_showing', label: 'Đang chiếu' },
+              { value: 'coming_soon', label: 'Sắp chiếu' },
+            ]}
+          />
         </div>
 
         {(searchInput || statusFilter) && (
@@ -182,11 +179,9 @@ export function AdminMovies() {
       )}
 
       {/* bảng danh sách phim */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
         {loading ? (
-          <div className="flex justify-center p-12">
-            <Spinner label="Đang tải danh sách phim..." />
-          </div>
+          <TableSkeleton rows={5} columns={5} />
         ) : movies.length === 0 ? (
           <EmptyState
             title={searchInput || statusFilter ? 'Không tìm thấy phim phù hợp' : 'Chưa có bộ phim nào'}

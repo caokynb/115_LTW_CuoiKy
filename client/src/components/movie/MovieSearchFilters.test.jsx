@@ -38,19 +38,25 @@ describe('Movie Search & Filter Components', () => {
   });
 
   describe('GenreFilter Component', () => {
-    test('renders select with default genres and all-option', () => {
+    test('renders custom rounded combobox with default genres and all-option', () => {
       render(<GenreFilter selectedGenre="" onSelectGenre={jest.fn()} />);
-      const select = screen.getByRole('combobox', { name: /lọc theo thể loại/i });
-      expect(select).toBeInTheDocument();
-      expect(screen.getByText('Tất cả thể loại')).toBeInTheDocument();
-      expect(screen.getByText('Hành động')).toBeInTheDocument();
+      const trigger = screen.getByRole('combobox', { name: /lọc theo thể loại/i });
+      expect(trigger).toBeInTheDocument();
+      expect(trigger).toHaveTextContent('Tất cả thể loại');
+
+      fireEvent.click(trigger);
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Tất cả thể loại' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Hành động' })).toBeInTheDocument();
     });
 
-    test('triggers onSelectGenre when user selects a genre', () => {
+    test('triggers onSelectGenre when user selects a genre option', () => {
       const handleSelect = jest.fn();
       render(<GenreFilter selectedGenre="" onSelectGenre={handleSelect} />);
-      const select = screen.getByRole('combobox');
-      fireEvent.change(select, { target: { value: 'Hành động' } });
+      const trigger = screen.getByRole('combobox', { name: /lọc theo thể loại/i });
+
+      fireEvent.click(trigger);
+      fireEvent.click(screen.getByRole('option', { name: 'Hành động' }));
       expect(handleSelect).toHaveBeenCalledWith('Hành động');
     });
 
@@ -60,8 +66,9 @@ describe('Movie Search & Filter Components', () => {
         { genre: 'Tài liệu', count: 1 },
       ];
       render(<GenreFilter selectedGenre="" onSelectGenre={jest.fn()} genres={apiGenres} />);
-      expect(screen.getByText('Hành động (5)')).toBeInTheDocument();
-      expect(screen.getByText('Tài liệu (1)')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('combobox', { name: /lọc theo thể loại/i }));
+      expect(screen.getByRole('option', { name: 'Hành động (5)' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Tài liệu (1)' })).toBeInTheDocument();
     });
   });
 
