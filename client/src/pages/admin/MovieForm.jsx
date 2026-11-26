@@ -236,8 +236,8 @@ export function MovieForm() {
       {/* tiêu đề trang và nút quay lại */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-brand-600 dark:text-brand-400">Quản lý phim</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+          <p className="text-sm font-medium text-brand-600 dark:text-brand-300">Quản lý phim</p>
+          <h2 className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">
             {isEdit ? 'Chỉnh sửa phim' : 'Thêm phim mới'}
           </h2>
         </div>
@@ -248,7 +248,7 @@ export function MovieForm() {
 
       <form onSubmit={handleSubmit} noValidate className="grid gap-6 lg:grid-cols-3">
         {/* cột bên trái: các trường nhập liệu */}
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
+        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card lg:col-span-2">
           {submitError && (
             <div
               role="alert"
@@ -338,7 +338,7 @@ export function MovieForm() {
             <div className="space-y-1.5">
               <label
                 htmlFor="movie-status-select"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-200"
+                className="block text-sm font-medium text-neutral-700 dark:text-neutral-200"
               >
                 Trạng thái <span className="text-red-500">*</span>
               </label>
@@ -347,7 +347,7 @@ export function MovieForm() {
                 name="status"
                 value={values.status}
                 onChange={handleChange('status')}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100"
               >
                 <option value="now_showing">Đang chiếu</option>
                 <option value="coming_soon">Sắp chiếu</option>
@@ -357,7 +357,7 @@ export function MovieForm() {
             <div className="space-y-1.5">
               <label
                 htmlFor="movie-age-rating-select"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-200"
+                className="block text-sm font-medium text-neutral-700 dark:text-neutral-200"
               >
                 Phân loại tuổi <span className="text-red-500">*</span>
               </label>
@@ -366,7 +366,7 @@ export function MovieForm() {
                 name="ageRating"
                 value={values.ageRating}
                 onChange={handleChange('ageRating')}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100"
               >
                 {AGE_RATINGS.map((rating) => (
                   <option key={rating} value={rating}>

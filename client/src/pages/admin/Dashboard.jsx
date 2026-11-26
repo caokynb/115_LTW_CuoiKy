@@ -85,14 +85,14 @@ export function Dashboard() {
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Doanh thu và tình hình đặt vé theo khoảng ngày.</p>
       </header>
 
-      <form onSubmit={applyRange} className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <label className="grid gap-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+      <form onSubmit={applyRange} className="flex flex-wrap items-end gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
+        <label className="grid gap-1 text-sm font-medium text-neutral-700 dark:text-neutral-200">
           Từ ngày
-          <input type="date" value={fromDate} max={toDate} onChange={(event) => setFromDate(event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+          <input type="date" value={fromDate} max={toDate} onChange={(event) => setFromDate(event.target.value)} className="min-h-[44px] rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white" />
         </label>
-        <label className="grid gap-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label className="grid gap-1 text-sm font-medium text-neutral-700 dark:text-neutral-200">
           Đến ngày
-          <input type="date" value={toDate} min={fromDate} onChange={(event) => setToDate(event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+          <input type="date" value={toDate} min={fromDate} onChange={(event) => setToDate(event.target.value)} className="min-h-[44px] rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white" />
         </label>
         <Button type="submit" disabled={loading}>Lọc dữ liệu</Button>
       </form>
@@ -105,7 +105,7 @@ export function Dashboard() {
       )}
 
       {loading ? (
-        <div className="flex justify-center rounded-xl border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex justify-center rounded-2xl border border-neutral-200 bg-white p-10 dark:border-cinema-borderSubtle dark:bg-cinema-card">
           <Spinner label="Đang tải thống kê..." />
         </div>
       ) : !error && (
@@ -118,7 +118,12 @@ export function Dashboard() {
 
           <div className="grid gap-4 xl:grid-cols-2">
             <RevenueChart title="Doanh thu theo phim" data={movieData} labelKey="title" />
-            <RevenueChart title="Doanh thu theo ngày" data={dayData.map((item) => ({ ...item, label: formatDay(item.date) }))} labelKey="label" />
+            <RevenueChart
+              title="Doanh thu theo ngày"
+              data={dayData.map((item) => ({ ...item, label: formatDay(item.date) }))}
+              labelKey="label"
+              type="area"
+            />
           </div>
 
           <OccupancyTable />

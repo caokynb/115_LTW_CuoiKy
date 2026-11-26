@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
-import { Button, EmptyState, FormField, Modal, Spinner, useToast } from '../../components/ui';
+import { Button, EmptyState, FormField, Modal, Select, TableSkeleton, useToast } from '../../components/ui';
 
 const CATEGORY_LABELS = {
   combo: 'Combo',
@@ -136,11 +136,11 @@ export function AdminSnacks() {
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-brand-600 dark:text-brand-400">Quản trị</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+          <p className="text-sm font-medium text-brand-600 dark:text-brand-300">Quản trị</p>
+          <h2 className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">
             Combo Bắp Nước (F&amp;B)
           </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             Quản lý thực đơn combo, bắp rang và nước uống bán kèm khi đặt vé.
           </p>
         </div>
@@ -159,11 +159,9 @@ export function AdminSnacks() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
         {loading ? (
-          <div className="flex justify-center p-12">
-            <Spinner label="Đang tải danh sách bắp nước..." />
-          </div>
+          <TableSkeleton rows={4} columns={5} />
         ) : snacks.length === 0 ? (
           <EmptyState
             title="Chưa có combo bắp nước nào"
@@ -275,20 +273,21 @@ export function AdminSnacks() {
             <div className="space-y-1.5">
               <label
                 htmlFor="snack-category"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-200"
+                className="block text-sm font-medium text-neutral-700 dark:text-neutral-200"
               >
                 Danh mục
               </label>
-              <select
+              <Select
                 id="snack-category"
                 value={formValues.category}
-                onChange={(e) => setFormValues((p) => ({ ...p, category: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              >
-                <option value="combo">Combo</option>
-                <option value="popcorn">Bắp rang</option>
-                <option value="drink">Nước uống</option>
-              </select>
+                onChange={(nextCategory) => setFormValues((p) => ({ ...p, category: nextCategory }))}
+                ariaLabel="Danh mục"
+                options={[
+                  { value: 'combo', label: 'Combo' },
+                  { value: 'popcorn', label: 'Bắp rang' },
+                  { value: 'drink', label: 'Nước uống' },
+                ]}
+              />
             </div>
           </div>
 

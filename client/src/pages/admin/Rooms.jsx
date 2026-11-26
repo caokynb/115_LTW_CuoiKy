@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
-import { Button, EmptyState, Modal, Spinner, useToast } from '../../components/ui';
+import { Button, EmptyState, Modal, TableSkeleton, useToast } from '../../components/ui';
 import RoomForm from '../../components/admin/RoomForm';
 
 export function RoomPage() {
@@ -91,9 +91,9 @@ export function RoomPage() {
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-brand-600 dark:text-brand-400">Quản trị</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Phòng chiếu</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Thiết lập sức chứa và các hàng ghế VIP.</p>
+          <p className="text-sm font-medium text-brand-600 dark:text-brand-300">Quản trị</p>
+          <h2 className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">Phòng chiếu</h2>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Thiết lập sức chứa và các hàng ghế VIP.</p>
         </div>
         <Button onClick={openCreate}>Thêm phòng</Button>
       </div>
@@ -105,9 +105,9 @@ export function RoomPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
         {loading ? (
-          <div className="flex justify-center p-12"><Spinner label="Đang tải phòng chiếu..." /></div>
+          <TableSkeleton rows={4} columns={5} />
         ) : rooms.length === 0 ? (
           <EmptyState title="Chưa có phòng chiếu" description="Tạo phòng đầu tiên để bắt đầu xếp lịch chiếu." action={<Button onClick={openCreate}>Thêm phòng</Button>} />
         ) : (
