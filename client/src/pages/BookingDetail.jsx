@@ -107,8 +107,14 @@ export function BookingDetail() {
         </div>
       </div>
 
-      {/* Vé điện tử mô phỏng */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+      {/* Vé điện tử mô phỏng hình vé xem phim */}
+      <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-b from-white via-neutral-50 to-neutral-100/90 shadow-2xl dark:border-neutral-700/80 dark:from-[#262626] dark:via-[#1e1e1e] dark:to-[#191919]">
+        {/* Dải đầu vé đặc trưng */}
+        <div className="flex items-center justify-between bg-brand-600 px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white sm:px-8">
+          <span>CineHub E-Ticket</span>
+          <span className="font-mono">#{String(booking._id || '').slice(-6).toUpperCase()}</span>
+        </div>
+
         <div className="p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row">
             {/* Poster phim */}
@@ -126,67 +132,69 @@ export function BookingDetail() {
             {/* Chi tiết phim & suất chiếu */}
             <div className="flex flex-1 flex-col justify-between">
               <div>
-                <span className="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 dark:bg-brand-950/60 dark:text-brand-400">
+                <span className="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 dark:bg-brand-950/60 dark:text-brand-300">
                   {booking.status === 'confirmed'
                     ? 'Đã xác nhận'
                     : booking.status === 'cancelled'
                     ? 'Đã hủy'
                     : booking.status}
                 </span>
-                <h2 className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+                <h2 className="mt-2 text-2xl font-black text-neutral-900 dark:text-white">
                   {movie.title || 'Phim chiếu rạp'}
                 </h2>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                   Thời lượng: {movie.duration || 120} phút
                 </p>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <span className="block text-xs text-slate-400">Phòng chiếu</span>
-                  <strong className="text-slate-800 dark:text-slate-200">{room.name || 'Phòng chiếu'}</strong>
+                  <span className="block text-xs text-neutral-500 dark:text-neutral-400">Phòng chiếu</span>
+                  <strong className="text-neutral-800 dark:text-neutral-200">{room.name || 'Phòng chiếu'}</strong>
                 </div>
                 <div>
-                  <span className="block text-xs text-slate-400">Ghế ngồi</span>
-                  <strong className="text-brand-600 dark:text-brand-400">{seatLabels || 'Chưa xác định'}</strong>
+                  <span className="block text-xs text-neutral-500 dark:text-neutral-400">Ghế ngồi</span>
+                  <strong className="text-brand-600 dark:text-brand-300">{seatLabels || 'Chưa xác định'}</strong>
                 </div>
                 <div>
-                  <span className="block text-xs text-slate-400">Ngày chiếu</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{formatDate(showtime.startTime)}</span>
+                  <span className="block text-xs text-neutral-500 dark:text-neutral-400">Ngày chiếu</span>
+                  <span className="font-medium text-neutral-700 dark:text-neutral-300">{formatDate(showtime.startTime)}</span>
                 </div>
                 <div>
-                  <span className="block text-xs text-slate-400">Giờ chiếu</span>
-                  <strong className="text-lg font-bold text-slate-900 dark:text-white">
+                  <span className="block text-xs text-neutral-500 dark:text-neutral-400">Giờ chiếu</span>
+                  <strong className="text-lg font-bold text-neutral-900 dark:text-white">
                     {formatTime(showtime.startTime)}
                   </strong>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Đường ngăn cách vé đục lỗ phong cách vé xem phim */}
-          <div className="relative -mx-6 my-6 flex items-center sm:-mx-8">
-            <div className="h-6 w-3 rounded-r-full bg-slate-100 dark:bg-slate-950" />
-            <div className="flex-1 border-b-2 border-dashed border-slate-200 dark:border-slate-800" />
-            <div className="h-6 w-3 rounded-l-full bg-slate-100 dark:bg-slate-950" />
-          </div>
+        {/* Đường rãnh xé cuống vé đục lỗ hai bên */}
+        <div className="relative flex items-center bg-neutral-100/75 dark:bg-[#2a2a2a]/85">
+          <div className="-ml-4 h-8 w-8 shrink-0 rounded-full border border-neutral-200 bg-neutral-50 dark:border-neutral-700/80 dark:bg-cinema-bg" />
+          <div className="mx-2 flex-1 border-b-2 border-dashed border-neutral-300 dark:border-neutral-600" />
+          <div className="-mr-4 h-8 w-8 shrink-0 rounded-full border border-neutral-200 bg-neutral-50 dark:border-neutral-700/80 dark:bg-cinema-bg" />
+        </div>
 
-          {/* Phần thanh toán & Mã đặt vé */}
+        {/* Phần cuống vé: thanh toán & mã QR */}
+        <div className="bg-neutral-100/75 p-6 pt-4 dark:bg-[#2a2a2a]/85 sm:p-8 sm:pt-5">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div>
-              <span className="text-xs text-slate-400">Mã đơn đặt vé</span>
-              <p className="font-mono text-sm font-bold tracking-wider text-slate-800 dark:text-slate-200">
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">Mã đơn đặt vé</span>
+              <p className="font-mono text-sm font-bold tracking-wider text-neutral-800 dark:text-neutral-200">
                 #{booking._id}
               </p>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
                 Ngày đặt: {new Date(booking.createdAt).toLocaleString('vi-VN')}
               </span>
             </div>
 
             <div className="text-right">
-              <span className="text-xs text-slate-400">Tổng thanh toán</span>
-              <p className="text-2xl font-black text-brand-600 dark:text-brand-500">
-                {Number(booking.totalPrice || 0).toLocaleString('vi-VN')} đ
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">Tổng thanh toán</span>
+              <p className="text-2xl font-black tabular-nums text-brand-600 dark:text-brand-300">
+                {Number(booking.totalPrice || 0).toLocaleString('vi-VN')} ₫
               </p>
             </div>
           </div>
@@ -195,7 +203,7 @@ export function BookingDetail() {
         </div>
 
         {/* Chân vé */}
-        <div className="border-t border-slate-100 bg-slate-50 p-4 text-center text-xs text-slate-500 dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400">
+        <div className="border-t border-neutral-200 bg-neutral-100 px-6 py-4 text-center text-xs text-neutral-600 dark:border-neutral-700/80 dark:bg-[#222222] dark:text-neutral-300">
           Vui lòng xuất trình mã vé này tại quầy vé hoặc cửa soát vé trước giờ chiếu 15 phút.
         </div>
       </div>

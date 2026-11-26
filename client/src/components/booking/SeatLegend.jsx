@@ -11,19 +11,19 @@ export function SeatLegend({ standardPrice, vipPrice, showHeldLegend = false, cl
       id: 'standard',
       label: `Ghế thường${formatVND(standardPrice)}`,
       boxClass:
-        'bg-white text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700',
+        'bg-white text-neutral-700 border border-neutral-300 dark:bg-cinema-elevated dark:text-neutral-200 dark:border-cinema-border',
     },
     {
       id: 'vip',
       label: `Ghế VIP${formatVND(vipPrice)}`,
       boxClass:
-        'bg-amber-100 text-amber-900 border border-amber-400 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-600',
+        'bg-amber-100 text-amber-900 border border-amber-400 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-500/80',
     },
     {
       id: 'selected',
       label: 'Đang chọn',
       boxClass:
-        'bg-brand-600 text-white border border-brand-600 shadow-sm ring-2 ring-brand-400 dark:bg-brand-500 dark:border-brand-500',
+        'bg-brand-600 text-white border border-brand-500 shadow-sm ring-2 ring-brand-300',
     },
     // chỉ thêm chú thích màu vàng khi có ít nhất một ghế đang được người khác giữ chỗ
     ...(showHeldLegend
@@ -40,7 +40,7 @@ export function SeatLegend({ standardPrice, vipPrice, showHeldLegend = false, cl
       id: 'sold',
       label: 'Đã bán',
       boxClass:
-        'bg-slate-300 text-slate-500 border border-slate-300 opacity-60 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700',
+        'bg-neutral-300 text-neutral-500 border border-neutral-300 opacity-60 dark:bg-cinema-elevated dark:text-neutral-500 dark:border-cinema-border',
     },
   ];
 

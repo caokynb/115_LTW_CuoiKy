@@ -179,8 +179,8 @@ export function ConfirmDialog({
             </div>
 
             <div>
-              <span className="block text-xs font-semibold uppercase text-slate-400">Ghế đã chọn:</span>
-              <p className="mt-1 font-bold text-brand-600 dark:text-brand-400">
+              <span className="block text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400">Ghế đã chọn:</span>
+              <p className="mt-1 font-bold text-brand-600 dark:text-brand-300">
                 {seats.map(seatLabel).join(', ')} ({seats.length} ghế)
               </p>
             </div>
@@ -216,8 +216,8 @@ export function ConfirmDialog({
                 </>
               )}
               <div className="flex items-center justify-between">
-                <span className="font-medium text-slate-600 dark:text-slate-400">Tổng tiền thanh toán:</span>
-                <span className="text-xl font-black text-brand-600 dark:text-brand-500">
+                <span className="font-medium text-neutral-600 dark:text-neutral-400">Tổng tiền thanh toán:</span>
+                <span className="text-xl font-black tabular-nums text-brand-600 dark:text-brand-300">
                   {finalAmount.toLocaleString('vi-VN')} đ
                 </span>
               </div>

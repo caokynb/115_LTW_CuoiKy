@@ -95,7 +95,7 @@ export function CouponInput({
             }}
             placeholder="Nhập mã (VD: CINE10)"
             disabled={disabled || checking}
-            className="min-h-[44px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm uppercase text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            className="min-h-[44px] flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm uppercase text-neutral-900 placeholder-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100"
           />
           <Button
             variant="secondary"

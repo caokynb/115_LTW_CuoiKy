@@ -76,7 +76,7 @@ export function SnackSelector({
   return (
     <section
       aria-label="Chọn combo bắp nước"
-      className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+      className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card"
     >
       <div className="mb-3 flex items-center justify-between">
         <div>
@@ -111,8 +111,8 @@ export function SnackSelector({
                 data-testid={`snack-item-${snack._id}`}
                 className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors ${
                   qty > 0
-                    ? 'border-brand-500 bg-brand-50/40 dark:border-brand-500/70 dark:bg-brand-950/20'
-                    : 'border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/40'
+                    ? 'border-brand-500 bg-brand-50/40 dark:border-brand-400/70 dark:bg-brand-950/30'
+                    : 'border-neutral-200 bg-neutral-50/60 dark:border-cinema-border dark:bg-cinema-elevated/50'
                 }`}
               >
                 <div className="flex min-w-0 items-center gap-3">
@@ -137,8 +137,8 @@ export function SnackSelector({
                         {snack.description}
                       </p>
                     )}
-                    <p className="mt-1 text-xs font-bold text-brand-600 dark:text-brand-400">
-                      {Number(snack.price || 0).toLocaleString('vi-VN')} đ
+                    <p className="mt-1 text-xs font-bold text-brand-600 dark:text-brand-300">
+                      {Number(snack.price || 0).toLocaleString('vi-VN')} ₫
                     </p>
                   </div>
                 </div>
@@ -150,13 +150,13 @@ export function SnackSelector({
                     onClick={() => updateQuantity(snack, -1)}
                     disabled={disabled || qty === 0}
                     aria-label={`Giảm số lượng ${snack.name}`}
-                    className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-300 bg-white text-base font-bold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-300 bg-white text-base font-bold text-neutral-700 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700"
                   >
                     −
                   </button>
                   <span
                     data-testid={`snack-qty-${snack._id}`}
-                    className="min-w-[24px] text-center text-sm font-bold text-slate-900 dark:text-white"
+                    className="min-w-[24px] text-center text-sm font-bold text-neutral-900 dark:text-white"
                   >
                     {qty}
                   </span>
@@ -165,7 +165,7 @@ export function SnackSelector({
                     onClick={() => updateQuantity(snack, 1)}
                     disabled={disabled || qty >= 20}
                     aria-label={`Tăng số lượng ${snack.name}`}
-                    className="flex h-11 w-11 items-center justify-center rounded-lg border border-brand-600 bg-brand-600 text-base font-bold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-brand-600 bg-brand-600 text-base font-bold text-white transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     +
                   </button>

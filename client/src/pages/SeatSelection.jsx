@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSeatPolling } from '../hooks/useSeatPolling';
 import { useSocketSeats } from '../hooks/useSocketSeats';
-import { useToast } from '../components/ui';
+import { Button, SeatMapSkeleton, useToast } from '../components/ui';
 import { SeatMap, BookingSummary, SnackSelector } from '../components/booking';
 import ConfirmDialog from '../components/seat/ConfirmDialog';
 import CountdownTimer from '../components/seat/CountdownTimer';
@@ -69,15 +69,21 @@ export function SeatSelection() {
   }, [heldByOthers, selectedSeats, dispatch]);
 
   if (loading && !showtime) {
-    return <div className="p-8 text-center" role="status">Đang tải sơ đồ ghế...</div>;
+    return (
+      <div className="space-y-5">
+        <SeatMapSkeleton />
+      </div>
+    );
   }
 
   if (!showtime) {
     return (
-      <section className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-6 text-center dark:border-slate-800 dark:bg-slate-900">
-        <h1 className="text-lg font-semibold">Không tải được suất chiếu</h1>
+      <section className="mx-auto max-w-xl rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
+        <h1 className="text-lg font-semibold text-neutral-900 dark:text-white">Không tải được suất chiếu</h1>
         <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error || 'Suất chiếu không tồn tại.'}</p>
-        <button type="button" onClick={() => navigate(-1)} className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Quay lại</button>
+        <Button variant="primary" size="sm" onClick={() => navigate(-1)} className="mt-4">
+          Quay lại
+        </Button>
       </section>
     );
   }
@@ -112,11 +118,11 @@ export function SeatSelection() {
   };
 
   return (
-    <main className="mx-auto max-w-7xl space-y-5 px-4 py-6">
+    <div className="space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Chọn ghế xem phim</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <h1 className="text-2xl font-bold text-neutral-950 dark:text-white">Chọn ghế xem phim</h1>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
             {movie?.title || 'Phim'} · {roomName}
           </p>
           {error && <p className="mt-2 text-sm text-amber-700 dark:text-amber-300" role="status">Chưa cập nhật được trạng thái ghế mới nhất. Đang thử lại tự động.</p>}
@@ -125,8 +131,8 @@ export function SeatSelection() {
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900" aria-label="Sơ đồ phòng chiếu">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
+          <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card" aria-label="Sơ đồ phòng chiếu">
             <SeatMap
               rows={showtime.rows || room.rows || 8}
               seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
@@ -172,7 +178,7 @@ export function SeatSelection() {
         snacks={selectedSnacks}
         totalAmount={totalAmount}
       />
-    </main>
+    </div>
   );
 }
 
