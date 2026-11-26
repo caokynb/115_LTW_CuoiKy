@@ -19,6 +19,9 @@ const paymentRouter = require('./routes/payment.routes');
 
 const app = express();
 
+// tin cậy reverse proxy (Render/Railway) để rate-limiter nhận đúng IP thật của người dùng
+app.set('trust proxy', 1);
+
 // 1. Thêm các HTTP header bảo mật và ẩn X-Powered-By
 app.use(helmet());
 

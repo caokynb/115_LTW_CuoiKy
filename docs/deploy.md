@@ -45,6 +45,8 @@ Repository đã cung cấp sẵn file cấu hình `render.yaml` ở thư mục g
 | `VIETQR_ACCOUNT_NO` | Số tài khoản nhận thanh toán |
 | `VIETQR_ACCOUNT_NAME` | Tên chủ tài khoản |
 | `PAYMENT_WEBHOOK_SECRET` | Secret kiểm tra header `x-webhook-secret` cho `/api/payments/webhook` |
+| `TMDB_READ_TOKEN` | TMDB API Read Access Token lấy poster và backdrop tiếng Việt |
+| `TMDB_API_KEY` | TMDB API Key dự phòng nếu không dùng Read Access Token |
 
 ---
 

@@ -29,3 +29,7 @@ services:
         value: CINEHUB CINEMA
       - key: PAYMENT_WEBHOOK_SECRET
         sync: false
+      - key: TMDB_READ_TOKEN
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
