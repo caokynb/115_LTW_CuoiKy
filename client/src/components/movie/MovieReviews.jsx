@@ -68,10 +68,13 @@ export function MovieReviews({ movieId }) {
   };
 
   return (
-    <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900" aria-labelledby="movie-reviews-title">
+    <section
+      className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card"
+      aria-labelledby="movie-reviews-title"
+    >
       <header>
         <h2 id="movie-reviews-title" className="text-xl font-bold text-slate-900 dark:text-white">Đánh giá phim</h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300" aria-live="polite">
+        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300" aria-live="polite">
           ★ {averageRating.toFixed(1)} / 5 · {reviewCount} đánh giá
         </p>
       </header>
@@ -79,7 +82,7 @@ export function MovieReviews({ movieId }) {
       {isAuthenticated ? (
         <form onSubmit={submitReview} className="space-y-3">
           <fieldset>
-            <legend className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">Chọn số sao</legend>
+            <legend className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-200">Chọn số sao</legend>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -88,8 +91,12 @@ export function MovieReviews({ movieId }) {
                   onClick={() => setRating(star)}
                   aria-label={`${star} sao`}
                   aria-pressed={rating === star}
-                  className={`text-2xl ${star <= rating ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`}
-                >★</button>
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-xl text-2xl transition-transform hover:scale-110 ${
+                    star <= rating ? 'text-amber-500' : 'text-neutral-300 dark:text-neutral-600'
+                  }`}
+                >
+                  ★
+                </button>
               ))}
             </div>
           </fieldset>
@@ -107,8 +114,8 @@ export function MovieReviews({ movieId }) {
           <Button type="submit" loading={submitting}>Gửi đánh giá</Button>
         </form>
       ) : (
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link to="/login" state={{ from: { pathname: location.pathname } }} className="font-semibold text-brand-600 hover:underline dark:text-brand-400">Đăng nhập</Link> để gửi đánh giá.
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          <Link to="/login" state={{ from: { pathname: location.pathname } }} className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Đăng nhập</Link> để gửi đánh giá.
         </p>
       )}
 

@@ -40,18 +40,18 @@ export function TrailerModal({ isOpen, onClose, youtubeId, movieTitle }) {
     >
       {/* Khung chứa video, chặn nổi bọt sự kiện click để bấm vào video không bị tắt */}
       <div
-        className="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+        className="cinema-modal-enter relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cinema-border bg-cinema-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Thanh tiêu đề phía trên cùng nút đóng */}
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3.5 text-white">
-          <h3 className="truncate text-base font-semibold text-slate-100">
+        <div className="flex items-center justify-between border-b border-cinema-borderSubtle px-5 py-3 text-white">
+          <h3 className="truncate text-base font-semibold text-neutral-100">
             Trailer: {movieTitle || 'Xem Trailer'}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-neutral-300 transition-colors hover:bg-cinema-elevated hover:text-white"
             aria-label="Đóng trailer"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
