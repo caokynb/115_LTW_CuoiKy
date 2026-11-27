@@ -6,6 +6,7 @@ const mockDispatch = jest.fn();
 const mockNavigate = jest.fn();
 const mockToast = { success: jest.fn(), error: jest.fn(), warning: jest.fn() };
 const mockPost = jest.fn();
+const mockGet = jest.fn();
 
 jest.mock('react-redux', () => ({
   useDispatch: () => mockDispatch,
@@ -39,6 +40,7 @@ jest.mock('../../api/axios', () => ({
   __esModule: true,
   default: {
     post: (...args) => mockPost(...args),
+    get: (...args) => mockGet(...args),
   },
   getErrorMessage: (err, fallback) => err?.response?.data?.message || fallback,
 }));
@@ -61,6 +63,7 @@ describe('ConfirmDialog', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGet.mockResolvedValue({ data: { data: { points: 0 } } });
   });
 
   it('hiển thị đúng danh sách ghế, thông tin phim và tổng tiền', () => {
@@ -109,6 +112,39 @@ describe('ConfirmDialog', () => {
       );
       expect(mockDispatch).toHaveBeenCalled();
       expect(defaultProps.onConflict).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('cho phép tick dùng điểm tích lũy, giảm tổng tiền và gửi pointsToUse lên server', async () => {
+    mockGet.mockResolvedValueOnce({ data: { data: { points: 25000 } } });
+    mockPost.mockResolvedValueOnce({
+      data: { data: { booking: { _id: 'bk_pts' } } },
+    });
+
+    render(<ConfirmDialog {...defaultProps} />);
+
+    const checkbox = await screen.findByTestId('use-points-checkbox');
+    fireEvent.click(checkbox);
+
+    const input = screen.getByTestId('points-input');
+    expect(input.value).toBe('25000');
+    expect(screen.getByText(/155\.000 đ/)).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: '10000' } });
+    expect(screen.getByText(/170\.000 đ/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('confirm-submit'));
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith('/bookings', {
+        showtimeId: 'st_001',
+        seats: [
+          { row: 'A', number: 1 },
+          { row: 'A', number: 2 },
+        ],
+        pointsToUse: 10000,
+      });
+      expect(mockNavigate).toHaveBeenCalledWith('/bookings/bk_pts');
     });
   });
 });

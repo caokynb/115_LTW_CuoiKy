@@ -28,6 +28,7 @@ import Cinemas from './pages/admin/Cinemas';
 import AdminSnacks from './pages/admin/Snacks';
 import AdminBookings from './pages/admin/Bookings';
 import AdminCoupons from './pages/admin/Coupons';
+import TicketScanner from './pages/admin/TicketScanner';
 
 export function App() {
   return (
@@ -67,6 +68,7 @@ export function App() {
                   <Route path="snacks" element={<AdminSnacks />} />
                   <Route path="coupons" element={<AdminCoupons />} />
                   <Route path="bookings" element={<AdminBookings />} />
+                  <Route path="scanner" element={<TicketScanner />} />
                 </Route>
               </Route>
             </Routes>

@@ -40,6 +40,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    rewardPoints: {
+      type: Number,
+      default: 0,
+      min: [0, 'Điểm tích lũy không được âm'],
+    },
   },
   {
     timestamps: true,

@@ -9,8 +9,10 @@ export function Profile() {
   const { user, updateUser } = useAuth();
   const toast = useToast();
   const { data, loading, error: fetchError } = useFetch('/users/me');
+  const { data: loyaltyData } = useFetch('/loyalty/me');
 
   const profileUser = data?.data?.user || user;
+  const loyalty = loyaltyData?.data;
 
   const [profileValues, setProfileValues] = useState({
     fullName: profileUser?.fullName || '',
@@ -286,6 +288,131 @@ export function Profile() {
               Cập nhật mật khẩu
             </Button>
           </form>
+        </div>
+      </div>
+
+      {/* Khối Điểm thưởng & Hạng thành viên (T18) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Điểm thưởng & Hạng thành viên
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Tích lũy 5% giá trị mỗi đơn vé và dùng điểm để giảm trừ trực tiếp tiền vé
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+              ⭐ Hạng: {loyalty?.tier || 'Bạc (Silver)'}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <span className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
+              Điểm khả dụng
+            </span>
+            <div className="mt-1 flex items-baseline gap-1">
+              <span className="text-3xl font-extrabold text-rose-600 dark:text-rose-400">
+                {Number(loyalty?.points ?? profileUser?.rewardPoints ?? 0).toLocaleString('vi-VN')}
+              </span>
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">điểm</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Tương đương: {Number(loyalty?.points ?? profileUser?.rewardPoints ?? 0).toLocaleString('vi-VN')} đ
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <span className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
+              Tỷ lệ tích điểm
+            </span>
+            <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+              5% / đơn vé
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Tự động cộng vào tài khoản sau khi đặt vé thành công
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+            <span className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
+              Hạng kế tiếp
+            </span>
+            <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+              {loyalty?.tierInfo?.nextTier || 'Hạng cao nhất (Diamond)'}
+            </div>
+            {loyalty?.tierInfo?.pointsToNext > 0 ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Cần thêm {Number(loyalty.tierInfo.pointsToNext).toLocaleString('vi-VN')} điểm để thăng hạng
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                Bạn đang giữ quyền lợi thành viên cao nhất
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Lịch sử biến động điểm */}
+        <div className="mt-6">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            Lịch sử biến động điểm
+          </h3>
+          {loyalty?.history && loyalty.history.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-slate-100 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                  <tr>
+                    <th className="py-2.5 pr-4">Thời gian</th>
+                    <th className="py-2.5 pr-4">Loại giao dịch</th>
+                    <th className="py-2.5 pr-4">Nội dung</th>
+                    <th className="py-2.5 pr-4 text-right">Biến động</th>
+                    <th className="py-2.5 text-right">Số dư sau GD</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {loyalty.history.map((tx) => (
+                    <tr key={tx._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="py-2.5 pr-4 font-mono text-xs text-slate-500 dark:text-slate-400">
+                        {new Date(tx.createdAt).toLocaleString('vi-VN')}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            tx.type === 'earn'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                              : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
+                          }`}
+                        >
+                          {tx.type === 'earn' ? 'Cộng điểm (+)' : 'Trừ điểm (-)'}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-4 text-slate-800 dark:text-slate-200">{tx.description}</td>
+                      <td
+                        className={`py-2.5 pr-4 text-right font-mono font-bold ${
+                          tx.points > 0
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-rose-600 dark:text-rose-400'
+                        }`}
+                      >
+                        {tx.points > 0 ? `+${tx.points.toLocaleString('vi-VN')}` : tx.points.toLocaleString('vi-VN')}
+                      </td>
+                      <td className="py-2.5 text-right font-mono text-slate-600 dark:text-slate-300">
+                        {Number(tx.balanceAfter || 0).toLocaleString('vi-VN')} đ
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400 dark:border-slate-800">
+              Chưa có lịch sử biến động điểm. Đặt vé xem phim để bắt đầu tích lũy 5% điểm thưởng!
+            </p>
+          )}
         </div>
       </div>
     </section>

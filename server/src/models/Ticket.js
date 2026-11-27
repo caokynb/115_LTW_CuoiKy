@@ -44,8 +44,8 @@ const ticketSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['active', 'cancelled'],
-        message: 'Trạng thái vé chỉ chấp nhận active hoặc cancelled',
+        values: ['active', 'cancelled', 'checked-in'],
+        message: 'Trạng thái vé chỉ chấp nhận active, cancelled hoặc checked-in',
       },
       default: 'active',
     },

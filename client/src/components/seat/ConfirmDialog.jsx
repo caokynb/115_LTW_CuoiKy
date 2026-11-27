@@ -26,14 +26,36 @@ export function ConfirmDialog({
   const [error, setError] = useState('');
   const [conflictMessage, setConflictMessage] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [availablePoints, setAvailablePoints] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsInput, setPointsInput] = useState('');
 
   useEffect(() => {
+    let active = true;
     if (isOpen) {
       setError('');
       setConflictMessage('');
+      if (typeof api.get === 'function') {
+        api
+          .get('/loyalty/me')
+          .then((res) => {
+            if (!active) return;
+            const pts = Number(res.data?.data?.points) || 0;
+            setAvailablePoints(pts);
+          })
+          .catch(() => {
+            if (!active) return;
+            setAvailablePoints(0);
+          });
+      }
     } else {
       setAppliedCoupon(null);
+      setUsePoints(false);
+      setPointsInput('');
     }
+    return () => {
+      active = false;
+    };
   }, [isOpen]);
 
   // bỏ mã giảm giá nếu danh sách ghế đổi làm thay đổi tổng tiền gốc
@@ -42,7 +64,32 @@ export function ConfirmDialog({
   }, [totalAmount]);
 
   const discountAmount = Number(appliedCoupon?.discountAmount) || 0;
-  const finalAmount = Math.max(0, Number(totalAmount) - discountAmount);
+  const amountAfterCoupon = Math.max(0, Number(totalAmount) - discountAmount);
+  const maxUsablePoints = Math.min(availablePoints, amountAfterCoupon);
+  const parsedPoints = Math.floor(Number(pointsInput) || 0);
+  const pointsToUse = usePoints
+    ? Math.max(0, Math.min(parsedPoints, maxUsablePoints))
+    : 0;
+  const finalAmount = Math.max(0, amountAfterCoupon - pointsToUse);
+
+  const handleTogglePoints = (checked) => {
+    setUsePoints(checked);
+    if (checked) {
+      setPointsInput(String(maxUsablePoints));
+    } else {
+      setPointsInput('');
+    }
+  };
+
+  const handlePointsInputChange = (e) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (raw === '') {
+      setPointsInput('');
+      return;
+    }
+    const clamped = Math.min(Number(raw), maxUsablePoints);
+    setPointsInput(String(clamped));
+  };
 
   const handleConfirm = async () => {
     if (seats.length === 0 || submitting) return;
@@ -55,6 +102,7 @@ export function ConfirmDialog({
         showtimeId,
         seats: seats.map(({ row, number }) => ({ row, number })),
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
+        ...(pointsToUse > 0 ? { pointsToUse } : {}),
         ...(Array.isArray(snacks) && snacks.length > 0
           ? { snacks: snacks.map(({ snackId, quantity }) => ({ snackId, quantity })) }
           : {}),
@@ -202,18 +250,72 @@ export function ConfirmDialog({
               disabled={submitting}
             />
 
+            {availablePoints > 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-500/30 dark:bg-amber-950/20">
+                <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-medium text-slate-800 dark:text-slate-200">
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={usePoints}
+                      onChange={(e) => handleTogglePoints(e.target.checked)}
+                      disabled={submitting || maxUsablePoints <= 0}
+                      data-testid="use-points-checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>
+                      Dùng điểm tích lũy (Khả dụng:{' '}
+                      <strong className="text-amber-600 dark:text-amber-400">
+                        {availablePoints.toLocaleString('vi-VN')} điểm
+                      </strong>
+                      )
+                    </span>
+                  </span>
+                </label>
+                {usePoints && (
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={maxUsablePoints}
+                      value={pointsInput}
+                      onChange={handlePointsInputChange}
+                      disabled={submitting}
+                      data-testid="points-input"
+                      aria-label="Số điểm muốn dùng"
+                      placeholder="Nhập số điểm muốn dùng"
+                      className="min-h-[38px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono text-slate-900 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPointsInput(String(maxUsablePoints))}
+                      disabled={submitting}
+                      className="min-h-[38px] rounded-lg border border-amber-400/60 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+                    >
+                      Dùng tối đa
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-1.5 border-t border-slate-200 pt-3 dark:border-slate-800">
+              {(discountAmount > 0 || pointsToUse > 0) && (
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>Tạm tính:</span>
+                  <span>{Number(totalAmount).toLocaleString('vi-VN')} đ</span>
+                </div>
+              )}
               {discountAmount > 0 && (
-                <>
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>Tạm tính:</span>
-                    <span>{Number(totalAmount).toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    <span>Giảm giá ({appliedCoupon?.code}):</span>
-                    <span>-{discountAmount.toLocaleString('vi-VN')} đ</span>
-                  </div>
-                </>
+                <div className="flex items-center justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <span>Giảm giá ({appliedCoupon?.code}):</span>
+                  <span>-{discountAmount.toLocaleString('vi-VN')} đ</span>
+                </div>
+              )}
+              {pointsToUse > 0 && (
+                <div className="flex items-center justify-between text-xs font-medium text-amber-600 dark:text-amber-400">
+                  <span>Dùng điểm tích lũy:</span>
+                  <span>-{pointsToUse.toLocaleString('vi-VN')} đ</span>
+                </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="font-medium text-neutral-600 dark:text-neutral-400">Tổng tiền thanh toán:</span>
