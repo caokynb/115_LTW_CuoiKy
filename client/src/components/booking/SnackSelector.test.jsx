@@ -53,4 +53,29 @@ describe('SnackSelector Component (A16)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Giảm số lượng Combo Solo' }));
     expect(handleChange).toHaveBeenLastCalledWith([]);
   });
+
+  test('hiển thị và kích hoạt đúng các nút điều hướng bước quay lại, bỏ qua và tiếp tục', () => {
+    const onBack = jest.fn();
+    const onSkip = jest.fn();
+    const onContinue = jest.fn();
+
+    render(
+      <SnackSelector
+        snacks={sampleSnacks}
+        selectedSnacks={[]}
+        onChange={jest.fn()}
+        onBack={onBack}
+        onSkip={onSkip}
+        onContinue={onContinue}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('snack-step-back'));
+    fireEvent.click(screen.getByTestId('snack-step-skip'));
+    fireEvent.click(screen.getByTestId('snack-step-continue'));
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onSkip).toHaveBeenCalledTimes(1);
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
 });

@@ -7,6 +7,9 @@ export function SnackSelector({
   snacks: snacksProp = null, // cho phép truyền sẵn danh sách món (dùng khi test hoặc dữ liệu có sẵn)
   selectedSnacks = [], // mảng [{ snackId, name, price, quantity }]
   onChange, // gọi lại khi thay đổi số lượng món
+  onBack, // tùy chọn: quay lại bước chọn ghế
+  onSkip, // tùy chọn: bỏ qua bắp nước để đặt vé ngay
+  onContinue, // tùy chọn: tiếp tục xác nhận thanh toán
   disabled = false,
 }) {
   const [items, setItems] = useState(Array.isArray(snacksProp) ? snacksProp : []);
@@ -173,6 +176,49 @@ export function SnackSelector({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {(onBack || onSkip || onContinue) && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-4 dark:border-cinema-borderSubtle">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={disabled}
+              data-testid="snack-step-back"
+              className="inline-flex min-h-[44px] items-center rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700"
+            >
+              ← Quay lại chọn ghế
+            </button>
+          ) : (
+            <span />
+          )}
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {onSkip && (
+              <button
+                type="button"
+                onClick={onSkip}
+                disabled={disabled}
+                data-testid="snack-step-skip"
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700"
+              >
+                Bỏ qua bắp nước
+              </button>
+            )}
+            {onContinue && (
+              <button
+                type="button"
+                onClick={onContinue}
+                disabled={disabled}
+                data-testid="snack-step-continue"
+                className="inline-flex min-h-[44px] items-center rounded-xl bg-rose-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:opacity-50"
+              >
+                Tiếp tục thanh toán
+              </button>
+            )}
+          </div>
         </div>
       )}
     </section>

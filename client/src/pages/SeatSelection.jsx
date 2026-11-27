@@ -10,7 +10,11 @@ import CountdownTimer from '../components/seat/CountdownTimer';
 import {
   setBookingShowtime,
   toggleSeat,
+  setSelectedSnacks,
+  clearSnacks,
   selectSelectedSeats,
+  selectSelectedSnacks,
+  selectSnackTotal,
 } from '../store/slices/bookingSlice';
 
 export function SeatSelection() {
@@ -22,23 +26,24 @@ export function SeatSelection() {
   // kết nối Socket.io lấy danh sách ghế người khác đang giữ và hàm phát sự kiện giữ/nhả ghế
   const { heldByOthers, emitSeatHold } = useSocketSeats(id);
   const selectedSeats = useSelector(selectSelectedSeats);
-  const [selectedSnacks, setSelectedSnacks] = useState([]);
+  const selectedSnacks = useSelector(selectSelectedSnacks);
+  const snackTotal = useSelector(selectSnackTotal);
+  const [step, setStep] = useState('seats'); // 'seats' | 'snacks'
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (id) dispatch(setBookingShowtime(id));
   }, [id, dispatch]);
 
+  // tự quay lại bước chọn ghế nếu danh sách ghế bị rỗng khi đang ở bước chọn combo
+  useEffect(() => {
+    if (step === 'snacks' && selectedSeats.length === 0) {
+      setStep('seats');
+    }
+  }, [step, selectedSeats.length]);
+
   const standardPrice = Number(showtime?.standardPrice) || 0;
   const vipPrice = Number(showtime?.vipPrice) || standardPrice;
-  const snackTotal = useMemo(
-    () =>
-      selectedSnacks.reduce(
-        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
-        0
-      ),
-    [selectedSnacks]
-  );
   const { regularCount, vipCount, totalAmount } = useMemo(() => {
     const regular = selectedSeats.filter((seat) => seat.type !== 'vip' && seat.seatType !== 'vip').length;
     const vip = selectedSeats.length - regular;
@@ -114,6 +119,19 @@ export function SeatSelection() {
       toast.error('Vui lòng chọn ít nhất một ghế.');
       return;
     }
+    if (step === 'seats') {
+      setStep('snacks');
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleSnacksChange = (nextSnacks) => {
+    dispatch(setSelectedSnacks(nextSnacks));
+  };
+
+  const handleSkipSnacks = () => {
+    dispatch(clearSnacks());
     setConfirmOpen(true);
   };
 
@@ -121,7 +139,9 @@ export function SeatSelection() {
     <div className="space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-950 dark:text-white">Chọn ghế xem phim</h1>
+          <h1 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            {step === 'seats' ? 'Chọn ghế xem phim' : 'Chọn combo bắp nước'}
+          </h1>
           <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
             {movie?.title || 'Phim'} · {roomName}
           </p>
@@ -130,26 +150,66 @@ export function SeatSelection() {
         <CountdownTimer movieId={movieId} />
       </header>
 
+      {/* Thanh tiến trình 2 bước: Chọn ghế -> Chọn combo bắp nước */}
+      <nav aria-label="Các bước đặt vé" className="flex items-center gap-2 text-xs font-semibold sm:text-sm">
+        <button
+          type="button"
+          onClick={() => setStep('seats')}
+          data-testid="step-seats-tab"
+          className={`inline-flex min-h-[40px] items-center gap-2 rounded-xl px-3.5 py-2 transition-colors ${
+            step === 'seats'
+              ? 'bg-rose-600 text-white shadow-sm'
+              : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-cinema-borderSubtle dark:bg-cinema-card dark:text-neutral-200'
+          }`}
+        >
+          <span>1. Chọn ghế</span>
+        </button>
+        <span className="text-neutral-400" aria-hidden="true">→</span>
+        <button
+          type="button"
+          onClick={() => {
+            if (selectedSeats.length === 0) {
+              toast.error('Vui lòng chọn ít nhất một ghế trước khi chọn combo.');
+              return;
+            }
+            setStep('snacks');
+          }}
+          data-testid="step-snacks-tab"
+          className={`inline-flex min-h-[40px] items-center gap-2 rounded-xl px-3.5 py-2 transition-colors ${
+            step === 'snacks'
+              ? 'bg-rose-600 text-white shadow-sm'
+              : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-cinema-borderSubtle dark:bg-cinema-card dark:text-neutral-200'
+          }`}
+        >
+          <span>2. Chọn combo bắp nước</span>
+        </button>
+      </nav>
+
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card" aria-label="Sơ đồ phòng chiếu">
-            <SeatMap
-              rows={showtime.rows || room.rows || 8}
-              seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
-              vipRows={showtime.vipRows || room.vipRows || []}
-              soldSeats={showtime.soldSeats || []}
-              heldSeats={heldByOthers}
-              selectedSeats={selectedSeats}
-              onSeatClick={handleSeatToggle}
-              standardPrice={standardPrice}
-              vipPrice={vipPrice}
+          {step === 'seats' ? (
+            <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card" aria-label="Sơ đồ phòng chiếu">
+              <SeatMap
+                rows={showtime.rows || room.rows || 8}
+                seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
+                vipRows={showtime.vipRows || room.vipRows || []}
+                soldSeats={showtime.soldSeats || []}
+                heldSeats={heldByOthers}
+                selectedSeats={selectedSeats}
+                onSeatClick={handleSeatToggle}
+                standardPrice={standardPrice}
+                vipPrice={vipPrice}
+              />
+            </section>
+          ) : (
+            <SnackSelector
+              selectedSnacks={selectedSnacks}
+              onChange={handleSnacksChange}
+              onBack={() => setStep('seats')}
+              onSkip={handleSkipSnacks}
+              onContinue={() => setConfirmOpen(true)}
             />
-          </section>
-
-          <SnackSelector
-            selectedSnacks={selectedSnacks}
-            onChange={setSelectedSnacks}
-          />
+          )}
         </div>
         <BookingSummary
           movie={movie}

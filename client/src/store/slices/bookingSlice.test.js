@@ -2,6 +2,9 @@ import bookingReducer, {
   setShowtimeId,
   setBookingShowtime,
   toggleSeat,
+  setSelectedSnacks,
+  updateSnackQuantity,
+  clearSnacks,
   clearSeats,
   clearBookingError,
   clearError,
@@ -9,6 +12,8 @@ import bookingReducer, {
   selectBooking,
   selectShowtimeId,
   selectSelectedSeats,
+  selectSelectedSnacks,
+  selectSnackTotal,
   selectSelectedSeatCount,
   selectSelectedSeatsCount,
   selectBookingError,
@@ -21,6 +26,7 @@ describe('bookingSlice', () => {
   const initialBookingState = {
     showtimeId: null,
     selectedSeats: [],
+    selectedSnacks: [],
     error: null,
   };
 
@@ -244,6 +250,29 @@ describe('bookingSlice', () => {
       store.dispatch(clearSeats());
       expect(selectSelectedSeatCount(store.getState())).toBe(0);
       expect(selectTotalPrice(store.getState())).toBe(0);
+    });
+
+    test('should manage selectedSnacks in Redux and include snackTotal in selectTotalPrice', () => {
+      store.dispatch(clearSeats());
+      store.dispatch(setShowtimeId('test-snack-st'));
+      store.dispatch(toggleSeat({ row: 'A', number: 1, seatType: 'standard', price: 80000 }));
+      store.dispatch(
+        setSelectedSnacks([{ snackId: 's1', name: 'Combo Solo', price: 79000, quantity: 2 }])
+      );
+
+      expect(selectSelectedSnacks(store.getState())).toHaveLength(1);
+      expect(selectSnackTotal(store.getState())).toBe(158000);
+      expect(selectTotalPrice(store.getState())).toBe(238000);
+
+      store.dispatch(updateSnackQuantity({ snackId: 's1', name: 'Combo Solo', price: 79000, delta: -1 }));
+      expect(selectSnackTotal(store.getState())).toBe(79000);
+      expect(selectTotalPrice(store.getState())).toBe(159000);
+
+      store.dispatch(clearSnacks());
+      expect(selectSelectedSnacks(store.getState())).toEqual([]);
+      expect(selectTotalPrice(store.getState())).toBe(80000);
+
+      store.dispatch(clearSeats());
     });
   });
 });

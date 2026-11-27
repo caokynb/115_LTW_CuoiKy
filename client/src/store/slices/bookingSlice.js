@@ -3,6 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   showtimeId: null,
   selectedSeats: [],
+  selectedSnacks: [],
   error: null,
 };
 
@@ -15,6 +16,7 @@ export const bookingSlice = createSlice({
       if (state.showtimeId !== newShowtimeId) {
         state.showtimeId = newShowtimeId;
         state.selectedSeats = [];
+        state.selectedSnacks = [];
         state.error = null;
       }
     },
@@ -42,8 +44,45 @@ export const bookingSlice = createSlice({
         state.error = null;
       }
     },
+    setSelectedSnacks: (state, action) => {
+      const list = Array.isArray(action.payload) ? action.payload : [];
+      state.selectedSnacks = list
+        .filter((item) => item && item.snackId && Number(item.quantity) > 0)
+        .map((item) => ({
+          snackId: item.snackId,
+          name: item.name || '',
+          price: Number(item.price) || 0,
+          quantity: Math.max(1, Math.min(20, Math.floor(Number(item.quantity) || 0))),
+        }));
+    },
+    updateSnackQuantity: (state, action) => {
+      const { snackId, name, price, delta } = action.payload || {};
+      if (!snackId) return;
+      const existingIndex = state.selectedSnacks.findIndex((s) => s.snackId === snackId);
+      const currentQty = existingIndex >= 0 ? state.selectedSnacks[existingIndex].quantity : 0;
+      const nextQty = Math.max(0, Math.min(20, currentQty + (Number(delta) || 0)));
+
+      if (nextQty === 0) {
+        if (existingIndex >= 0) {
+          state.selectedSnacks.splice(existingIndex, 1);
+        }
+      } else if (existingIndex >= 0) {
+        state.selectedSnacks[existingIndex].quantity = nextQty;
+      } else {
+        state.selectedSnacks.push({
+          snackId,
+          name: name || '',
+          price: Number(price) || 0,
+          quantity: nextQty,
+        });
+      }
+    },
+    clearSnacks: (state) => {
+      state.selectedSnacks = [];
+    },
     clearSeats: (state) => {
       state.selectedSeats = [];
+      state.selectedSnacks = [];
       state.error = null;
     },
     clearBookingError: (state) => {
@@ -55,6 +94,9 @@ export const bookingSlice = createSlice({
 export const {
   setShowtimeId,
   toggleSeat,
+  setSelectedSnacks,
+  updateSnackQuantity,
+  clearSnacks,
   clearSeats,
   clearBookingError,
 } = bookingSlice.actions;
@@ -68,11 +110,23 @@ export const selectBookingState = (state) => state.booking;
 export const selectBooking = selectBookingState;
 export const selectShowtimeId = (state) => state.booking?.showtimeId ?? null;
 export const selectSelectedSeats = (state) => state.booking?.selectedSeats ?? [];
+export const selectSelectedSnacks = (state) => state.booking?.selectedSnacks ?? [];
+export const selectSnackTotal = (state) =>
+  (state.booking?.selectedSnacks || []).reduce(
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+    0
+  );
 export const selectSelectedSeatCount = (state) => state.booking?.selectedSeats?.length ?? 0;
 export const selectSelectedSeatsCount = selectSelectedSeatCount;
 export const selectBookingError = (state) => state.booking?.error ?? null;
-export const selectTotalPrice = (state) =>
-  (state.booking?.selectedSeats || []).reduce((sum, s) => sum + (s.price || 0), 0);
+export const selectTotalPrice = (state) => {
+  const seatTotal = (state.booking?.selectedSeats || []).reduce(
+    (sum, s) => sum + (Number(s.price) || 0),
+    0
+  );
+  const snackTotal = selectSnackTotal(state);
+  return seatTotal + snackTotal;
+};
 export const selectIsSeatSelected = (row, number) => (state) =>
   (state.booking?.selectedSeats || []).some((s) => s.row === row && s.number === number);
 
