@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 
 const SIZE_CLASSES = {
   sm: 'max-w-sm',
@@ -15,23 +15,12 @@ export function Modal({
   size = 'md',
   closeOnOverlayClick = true,
 }) {
-  const dialogRef = useRef(null);
   useEffect(() => {
     if (!isOpen) return undefined;
-
-    const previousFocus = document.activeElement;
-    const getFocusable = () => dialogRef.current?.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') || [];
-    getFocusable()[0]?.focus();
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape' && onClose) {
         onClose();
-      }
-      if (event.key === 'Tab') {
-        const items = getFocusable();
-        if (!items.length) { event.preventDefault(); dialogRef.current?.focus(); return; }
-        if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus(); }
-        else if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus(); }
       }
     };
 
@@ -42,7 +31,6 @@ export function Modal({
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
-      previousFocus?.focus?.();
     };
   }, [isOpen, onClose]);
 
@@ -54,8 +42,6 @@ export function Modal({
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
-      tabIndex={-1}
-      ref={dialogRef}
       onClick={() => {
         if (closeOnOverlayClick && onClose) onClose();
       }}
