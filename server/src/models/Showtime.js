@@ -32,6 +32,10 @@ const showtimeSchema = new mongoose.Schema(
       required: [true, 'Giá vé VIP là bắt buộc.'],
       min: [0, 'Giá vé VIP không được âm.'],
     },
+    disabledSeats: {
+      type: [{ row: { type: String, trim: true, uppercase: true, required: true }, number: { type: Number, min: 1, required: true } }],
+      default: [],
+    },
   },
   { timestamps: true }
 );

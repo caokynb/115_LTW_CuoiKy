@@ -9,6 +9,7 @@ const Snack = require('../models/Snack');
 const User = require('../models/User');
 const RewardPoint = require('../models/RewardPoint');
 const { evaluateCoupon } = require('./coupon.controller');
+const { calculateTier } = require('./loyalty.controller');
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 
 // lấy thời gian giữ chỗ mặc định (10 phút) từ model Payment
@@ -314,22 +315,25 @@ const createPaymentSession = async (req, res, next) => {
 
     // tính giá gốc và áp dụng mã giảm giá (nếu có) ngay trên server
     const originalPrice = seatTotal + snackTotal;
-    let totalPrice = originalPrice;
-    let discountAmount = 0;
+    const currentUserForTier = await User.findById(req.user._id).select('rewardPoints');
+    const loyaltyRate = Number.parseInt(calculateTier(currentUserForTier?.rewardPoints).discountRate, 10) / 100;
+    const loyaltyDiscount = Math.round(originalPrice * loyaltyRate);
+    let totalPrice = Math.max(0, originalPrice - loyaltyDiscount);
+    let discountAmount = loyaltyDiscount;
     let appliedCouponCode = null;
     let couponToReserve = null;
 
     if (couponCode !== undefined && couponCode !== null && String(couponCode).trim() !== '') {
-      const couponResult = await evaluateCoupon(couponCode, originalPrice);
+      const couponResult = await evaluateCoupon(couponCode, totalPrice, req.user._id);
       couponToReserve = couponResult.coupon;
-      discountAmount = couponResult.discountAmount;
+      discountAmount += couponResult.discountAmount;
       totalPrice = couponResult.finalAmount;
       appliedCouponCode = couponResult.coupon.code;
     }
 
     // kiểm tra dùng điểm tích lũy giảm trừ tiền vé khi tạo phiên VietQR
     let pointsToUse = Number(req.body.pointsToUse || req.body.usePoints || 0);
-    let currentUser = null;
+    let currentUser = currentUserForTier;
     if (pointsToUse > 0) {
       if (!Number.isInteger(pointsToUse) || pointsToUse < 0) {
         return res.status(400).json({
@@ -337,7 +341,6 @@ const createPaymentSession = async (req, res, next) => {
           message: 'Số điểm sử dụng phải là số nguyên dương.',
         });
       }
-      currentUser = await User.findById(req.user._id);
       if (!currentUser || (currentUser.rewardPoints || 0) < pointsToUse) {
         return res.status(400).json({
           success: false,

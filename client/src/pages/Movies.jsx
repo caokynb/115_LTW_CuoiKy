@@ -20,6 +20,9 @@ export function Movies() {
   const currentQ = searchParams.get('q') || '';
   const currentGenre = searchParams.get('genre') || '';
   const currentDate = searchParams.get('date') || '';
+  const currentFormat = searchParams.get('format') || '';
+  const currentAudio = searchParams.get('audio') || '';
+  const currentAge = searchParams.get('ageRating') || '';
 
   // lưu từ khóa gõ vào ô tìm kiếm và debounce 400ms để không spam API liên tục khi đang gõ
   const [searchInput, setSearchInput] = useState(currentQ);
@@ -55,8 +58,11 @@ export function Movies() {
     if (currentQ) params.q = currentQ;
     if (currentGenre) params.genre = currentGenre;
     if (currentDate) params.date = currentDate;
+    if (currentFormat) params.format = currentFormat;
+    if (currentAudio) params.audio = currentAudio;
+    if (currentAge) params.ageRating = currentAge;
     return params;
-  }, [currentTab, currentPage, currentQ, currentGenre, currentDate]);
+  }, [currentTab, currentPage, currentQ, currentGenre, currentDate, currentFormat, currentAudio, currentAge]);
 
   // gọi API /movies bằng hook useFetch dùng chung của dự án
   const { data, loading, error, refetch } = useFetch('/movies', {
@@ -78,7 +84,14 @@ export function Movies() {
   const pages = data?.pages || 1;
 
   // cờ kiểm tra xem người dùng có đang áp dụng bộ lọc nào không
-  const hasActiveFilters = Boolean(currentQ || currentGenre || currentDate);
+  const hasActiveFilters = Boolean(currentQ || currentGenre || currentDate || currentFormat || currentAudio || currentAge);
+
+  const setFilterParam = (name, value) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set(name, value); else nextParams.delete(name);
+    nextParams.set('page', '1');
+    setSearchParams(nextParams);
+  };
 
   // đổi tab Đang chiếu / Sắp chiếu thì reset về trang 1
   const handleTabChange = (tabName) => {
@@ -211,6 +224,17 @@ export function Movies() {
               Xóa bộ lọc
             </button>
           )}
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className="space-y-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Định dạng
+            <select className="min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" value={currentFormat} onChange={(event) => setFilterParam('format', event.target.value)}><option value="">Mọi định dạng</option><option>2D</option><option>3D</option><option>IMAX</option></select>
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Âm thanh
+            <select className="min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" value={currentAudio} onChange={(event) => setFilterParam('audio', event.target.value)}><option value="">Phụ đề / thuyết minh</option><option value="subtitled">Phụ đề</option><option value="dubbed">Thuyết minh</option></select>
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Độ tuổi
+            <select className="min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" value={currentAge} onChange={(event) => setFilterParam('ageRating', event.target.value)}><option value="">Mọi độ tuổi</option>{['P', 'K', 'T13', 'T16', 'T18', 'C'].map((age) => <option key={age}>{age}</option>)}</select>
+          </label>
         </div>
 
         {/* danh sách các bộ lọc đang áp dụng */}

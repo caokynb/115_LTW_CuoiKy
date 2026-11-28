@@ -139,19 +139,19 @@ describe('Loyalty & Reward Points API (T18: Loyalty Points & Membership Tier)', 
     });
     assert.equal(res.status, 201);
     const body = await res.json();
-    // Giá vé gốc 100.000 - 10.000 dùng điểm = 90.000
-    assert.equal(body.data.booking.totalPrice, 90000);
+    // Giá gốc 100.000 - 5% hạng Bạc - 10.000 dùng điểm = 85.000
+    assert.equal(body.data.booking.totalPrice, 85000);
     assert.equal(body.data.booking.pointsUsed, 10000);
 
     // Kiểm tra lịch sử điểm và số dư trong DB
     const userInDb = await User.findById(memberUser._id);
-    // Số dư cũ 20.000 - 10.000 (dùng điểm) + 5% của 90.000 (4.500) = 14.500
-    assert.equal(userInDb.rewardPoints, 14500);
+    // Số dư cũ 20.000 - 10.000 (dùng điểm) + 5% của 85.000 (4.250) = 14.250
+    assert.equal(userInDb.rewardPoints, 14250);
 
     // Kiểm tra RewardPoint log
     const logs = await RewardPoint.find({ userId: memberUser._id }).sort({ createdAt: -1 });
     assert.ok(logs.some((l) => l.type === 'redeem' && l.points === -10000));
-    assert.ok(logs.some((l) => l.type === 'earn' && l.points === 4500));
+    assert.ok(logs.some((l) => l.type === 'earn' && l.points === 4250));
   });
 
   it('đặt vé thành công được cộng 5% điểm tự động vào tài khoản', async () => {
@@ -168,12 +168,12 @@ describe('Loyalty & Reward Points API (T18: Loyalty Points & Membership Tier)', 
     });
     assert.equal(res.status, 201);
     const body = await res.json();
-    // Giá vé 100.000 -> Tích 5% = 5.000
-    assert.equal(body.data.booking.pointsEarned, 5000);
+    // Giá sau ưu đãi hạng Bạc 95.000 -> Tích 5% = 4.750
+    assert.equal(body.data.booking.pointsEarned, 4750);
 
     const userInDb = await User.findById(memberUser._id);
-    // 14.500 + 5.000 = 19.500
-    assert.equal(userInDb.rewardPoints, 19500);
+    // 14.250 + 4.750 = 19.000
+    assert.equal(userInDb.rewardPoints, 19000);
 
     const latestEarn = await RewardPoint.findOne({
       userId: memberUser._id,
@@ -181,6 +181,6 @@ describe('Loyalty & Reward Points API (T18: Loyalty Points & Membership Tier)', 
       type: 'earn',
     });
     assert.ok(latestEarn);
-    assert.equal(latestEarn.points, 5000);
+    assert.equal(latestEarn.points, 4750);
   });
 });

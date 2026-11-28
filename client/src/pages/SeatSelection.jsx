@@ -83,6 +83,13 @@ export function SeatSelection() {
     });
   }, [showtime?.soldSeats, selectedSeats, dispatch]);
 
+  useEffect(() => {
+    const disabled = new Set([...(showtime?.disabledSeats || []), ...(showtime?.roomId?.disabledSeats || [])].map((seat) => `${String(seat.row).toUpperCase()}-${Number(seat.number)}`));
+    selectedSeats.forEach((seat) => {
+      if (disabled.has(`${String(seat.row).toUpperCase()}-${Number(seat.number)}`)) dispatch(toggleSeat(seat));
+    });
+  }, [showtime?.disabledSeats, showtime?.roomId?.disabledSeats, selectedSeats, dispatch]);
+
   // nếu ghế đang chọn trên máy mình vừa bị người khác giữ trước thì tự động bỏ chọn
   useEffect(() => {
     if (!heldByOthers.length || selectedSeats.length === 0) return;
@@ -279,7 +286,7 @@ export function SeatSelection() {
                 rows={showtime.rows || room.rows || 8}
                 seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
                 vipRows={showtime.vipRows || room.vipRows || []}
-                soldSeats={latestSoldSeats || showtime.soldSeats || []}
+                soldSeats={[...(latestSoldSeats || showtime.soldSeats || []), ...(showtime.disabledSeats || room.disabledSeats || [])]}
                 heldSeats={heldByOthers}
                 selectedSeats={selectedSeats}
                 onSeatClick={handleSeatToggle}

@@ -27,6 +27,10 @@ const reviewSchema = new mongoose.Schema(
       minlength: [3, 'Nhận xét cần ít nhất 3 ký tự.'],
       maxlength: [1000, 'Nhận xét không được vượt quá 1000 ký tự.'],
     },
+    verifiedPurchase: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

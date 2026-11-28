@@ -36,6 +36,13 @@ export function MainLayout() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [cinemaId, setCinemaId] = useState(() => window.localStorage.getItem('cinemaId') || '');
+  const [movieSearch, setMovieSearch] = useState('');
+
+  const submitMovieSearch = (event) => {
+    event.preventDefault();
+    const query = movieSearch.trim();
+    navigate(query ? `/movies?q=${encodeURIComponent(query)}` : '/movies');
+  };
 
   // lưu cụm rạp đang chọn vào localStorage và phát sự kiện để các trang phim/suất chiếu tự cập nhật
   const handleCinemaChange = (nextCinemaId) => {
@@ -100,6 +107,10 @@ export function MainLayout() {
             <div className="hidden sm:block">
               <CinemaSelector value={cinemaId} onChange={handleCinemaChange} />
             </div>
+            <form className="hidden lg:block" role="search" onSubmit={submitMovieSearch}>
+              <label htmlFor="main-movie-search" className="sr-only">Tìm phim</label>
+              <input id="main-movie-search" value={movieSearch} onChange={(event) => setMovieSearch(event.target.value)} placeholder="Tìm phim" className="min-h-[44px] w-36 rounded-xl border border-neutral-300 bg-white px-3 text-sm text-neutral-900 placeholder-neutral-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white" />
+            </form>
             <button
               type="button"
               onClick={toggleTheme}
@@ -223,6 +234,11 @@ export function MainLayout() {
           </nav>
         )}
       </header>
+
+      <form className="border-b border-neutral-200 bg-white px-4 py-2 dark:border-cinema-borderSubtle dark:bg-cinema-card lg:hidden" role="search" onSubmit={submitMovieSearch}>
+        <label htmlFor="mobile-movie-search" className="sr-only">Tìm phim</label>
+        <input id="mobile-movie-search" value={movieSearch} onChange={(event) => setMovieSearch(event.target.value)} placeholder="Tìm phim theo tên" className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white" />
+      </form>
 
       {/* nội dung trang con, chừa khoảng trống dưới đáy cho thanh tab di động */}
       <main className="w-full flex-1 px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-8 xl:px-10 2xl:px-12">

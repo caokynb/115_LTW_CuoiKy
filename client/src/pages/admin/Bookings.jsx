@@ -161,6 +161,53 @@ export function Bookings() {
     setPage(1);
   };
 
+  const exportCsv = async () => {
+    try {
+      const params = { limit: 100, sort };
+      if (debouncedQuery.trim()) params.q = debouncedQuery.trim();
+      if (statuses.length) params.status = statuses.join(',');
+      if (showtimeId) params.showtimeId = showtimeId;
+      if (from) params.from = new Date(`${from}T00:00:00`).toISOString();
+      if (to) params.to = new Date(`${to}T23:59:59.999`).toISOString();
+      const firstPage = await api.get('/bookings', { params });
+      const allBookings = [...(firstPage.data?.data || [])];
+      const pagesToLoad = firstPage.data?.pages || 1;
+      for (let nextPage = 2; nextPage <= pagesToLoad; nextPage += 1) {
+        const response = await api.get('/bookings', { params: { ...params, page: nextPage } });
+        allBookings.push(...(response.data?.data || []));
+      }
+      const escapeCsv = (value) => {
+        let text = String(value ?? '');
+        if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+        return `"${text.replace(/"/g, '""')}"`;
+      };
+      const rows = [
+        ['Mã đơn', 'Khách hàng', 'Email', 'Phim', 'Suất chiếu', 'Ghế', 'Tổng tiền', 'Trạng thái', 'Ngày đặt'],
+        ...allBookings.map((booking) => [
+          booking._id,
+          booking.userId?.fullName,
+          booking.userId?.email,
+          booking.showtimeId?.movieId?.title,
+          formatDateTime(booking.showtimeId?.startTime),
+          formatSeats(booking.tickets),
+          booking.totalPrice,
+          STATUS_LABELS[booking.status] || booking.status,
+          formatDateTime(booking.createdAt),
+        ]),
+      ];
+      const csv = `\uFEFF${rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n')}`;
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `cinehub-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Đã xuất ${allBookings.length} đơn đặt vé.`);
+    } catch (requestError) {
+      toast.error(getErrorMessage(requestError, 'Không thể xuất báo cáo CSV.'));
+    }
+  };
+
   // gọi API hủy đơn đặt vé hỗ trợ khi admin xác nhận trên modal
   const handleConfirmCancel = async () => {
     if (!cancelTarget || cancelling) return;
@@ -181,12 +228,15 @@ export function Bookings() {
   return (
     <section className="space-y-5">
       {/* tiêu đề trang quản trị vé đã bán */}
-      <div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
         <p className="text-sm font-medium text-brand-600 dark:text-brand-300">Quản trị</p>
         <h2 className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">Vé đã bán</h2>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
           Tra cứu đơn đặt vé theo mã vé, khách hàng, suất chiếu, trạng thái và khoảng ngày đặt.
         </p>
+        </div>
+        <Button variant="secondary" onClick={exportCsv} disabled={loading}>Xuất CSV</Button>
       </div>
 
       {/* khu vực bộ lọc tìm kiếm, suất chiếu, trạng thái, ngày đặt và sắp xếp */}

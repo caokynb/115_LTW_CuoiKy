@@ -120,7 +120,7 @@ describe('VietQR Payment Gateway API (K16)', () => {
 
     assert.strictEqual(payment.status, 'pending');
     assert.strictEqual(booking.status, 'pending');
-    assert.strictEqual(payment.amount, 80000);
+    assert.strictEqual(payment.amount, 76000);
     assert.ok(payment.qrUrl.includes('img.vietqr.io'));
 
     const webhookRes = await fetch(`${baseUrl}/api/payments/webhook`, {

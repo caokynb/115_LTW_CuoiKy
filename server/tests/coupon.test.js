@@ -205,8 +205,8 @@ describe('Coupon API & Server Discount Calculation (A12)', () => {
 
     // 1 ghế thường 100.000đ giảm 10% -> còn 90.000đ do server tự tính
     assert.equal(booking.originalPrice, 100000);
-    assert.equal(booking.discountAmount, 10000);
-    assert.equal(booking.totalPrice, 90000);
+    assert.equal(booking.discountAmount, 14500);
+    assert.equal(booking.totalPrice, 85500);
     assert.equal(booking.couponCode, validCoupon.code);
 
     const updatedCoupon = await Coupon.findById(validCoupon._id);

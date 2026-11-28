@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import GenreTag from './GenreTag';
 import AgeRatingBadge from './AgeRatingBadge';
 import { getButtonClasses } from '../ui';
+import TrailerModal from './TrailerModal';
 
 const DEFAULT_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60';
@@ -36,6 +37,10 @@ export function MovieCard({ movie }) {
     status,
     ageRating = 'P',
     posterUrls = [],
+    trailerYoutubeId,
+    averageRating = 0,
+    reviewCount = 0,
+    formats = [],
   } = movie || {};
 
   // gom danh sách poster không trùng lặp để luân phiên trên thẻ phim
@@ -53,6 +58,7 @@ export function MovieCard({ movie }) {
 
   const [activePosterIndex, setActivePosterIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [trailerOpen, setTrailerOpen] = useState(false);
 
   useEffect(() => {
     setActivePosterIndex(0);
@@ -200,19 +206,26 @@ export function MovieCard({ movie }) {
           </p>
         )}
 
-        <div className="mt-auto pt-4">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-600 dark:text-neutral-300">
+          {Number(averageRating) > 0 && <span className="font-semibold text-amber-600 dark:text-amber-300" aria-label={`Đánh giá ${averageRating} trên 5`}>★ {Number(averageRating).toFixed(1)} <span className="font-normal text-neutral-500">({reviewCount})</span></span>}
+          {formats.length > 0 && <span>{formats.join(' · ')}</span>}
+        </div>
+
+        <div className="mt-auto flex flex-col gap-2 pt-4">
           <Link
             to={`/movies/${_id}`}
             className={getButtonClasses({
               variant: isNowShowing ? 'primary' : 'secondary',
               size: 'md',
-              fullWidth: true,
+              fullWidth: !trailerYoutubeId,
             })}
           >
             {isNowShowing ? 'Đặt vé ngay' : 'Xem thông tin'}
           </Link>
+          {trailerYoutubeId && <button type="button" onClick={() => setTrailerOpen(true)} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-neutral-300 px-3 text-sm font-semibold text-neutral-800 transition-colors hover:border-brand-500 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-cinema-border dark:text-neutral-100 dark:hover:text-brand-200"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg> Xem trailer</button>}
         </div>
       </div>
+      {trailerYoutubeId && <TrailerModal isOpen={trailerOpen} onClose={() => setTrailerOpen(false)} youtubeId={trailerYoutubeId} movieTitle={title} />}
     </article>
   );
 }

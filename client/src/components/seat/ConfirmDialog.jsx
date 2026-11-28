@@ -27,6 +27,7 @@ export function ConfirmDialog({
   const [conflictMessage, setConflictMessage] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [availablePoints, setAvailablePoints] = useState(0);
+  const [loyaltyRate, setLoyaltyRate] = useState(0);
   const [usePoints, setUsePoints] = useState(false);
   const [pointsInput, setPointsInput] = useState('');
 
@@ -42,10 +43,13 @@ export function ConfirmDialog({
             if (!active) return;
             const pts = Number(res.data?.data?.points) || 0;
             setAvailablePoints(pts);
+            const tierRate = Number.parseInt(res.data?.data?.tierInfo?.discountRate, 10);
+            setLoyaltyRate(Number.isFinite(tierRate) ? tierRate / 100 : 0);
           })
           .catch(() => {
             if (!active) return;
             setAvailablePoints(0);
+            setLoyaltyRate(0);
           });
       }
     } else {
@@ -64,7 +68,8 @@ export function ConfirmDialog({
   }, [totalAmount]);
 
   const discountAmount = Number(appliedCoupon?.discountAmount) || 0;
-  const amountAfterCoupon = Math.max(0, Number(totalAmount) - discountAmount);
+  const loyaltyDiscount = Math.round(Number(totalAmount) * loyaltyRate);
+  const amountAfterCoupon = Math.max(0, Number(totalAmount) - loyaltyDiscount - discountAmount);
   const maxUsablePoints = Math.min(availablePoints, amountAfterCoupon);
   const parsedPoints = Math.floor(Number(pointsInput) || 0);
   const pointsToUse = usePoints
@@ -244,12 +249,14 @@ export function ConfirmDialog({
             )}
 
             <CouponInput
-              orderAmount={totalAmount}
+              orderAmount={Math.max(0, Number(totalAmount) - loyaltyDiscount)}
               appliedCoupon={appliedCoupon}
               onApply={setAppliedCoupon}
               onRemove={() => setAppliedCoupon(null)}
               disabled={submitting}
             />
+
+            {loyaltyDiscount > 0 && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Ưu đãi thành viên ({Math.round(loyaltyRate * 100)}%): giảm {loyaltyDiscount.toLocaleString('vi-VN')} đ</p>}
 
             {availablePoints > 0 && (
               <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-500/30 dark:bg-amber-950/20">

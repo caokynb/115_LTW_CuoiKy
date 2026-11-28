@@ -54,6 +54,25 @@ const roomSchema = new mongoose.Schema(
         },
       ],
     },
+    disabledSeats: {
+      type: [{ row: { type: String, trim: true, uppercase: true, required: true }, number: { type: Number, min: 1, required: true } }],
+      default: [],
+      validate: [
+        {
+          validator: function (seats) {
+            return seats.every((seat) => {
+              const rowIndex = String(seat.row).charCodeAt(0) - 64;
+              return /^[A-Z]$/.test(seat.row) && rowIndex >= 1 && rowIndex <= this.rows && seat.number >= 1 && seat.number <= this.seatsPerRow;
+            });
+          },
+          message: 'Ghế khóa phải nằm trong phạm vi hàng và ghế của phòng.',
+        },
+        {
+          validator: (seats) => new Set(seats.map((seat) => `${seat.row}-${seat.number}`)).size === seats.length,
+          message: 'Danh sách ghế khóa không được trùng.',
+        },
+      ],
+    },
   },
   {
     timestamps: true,

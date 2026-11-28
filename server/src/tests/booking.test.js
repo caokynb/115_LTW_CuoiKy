@@ -168,7 +168,7 @@ describe('Booking API Endpoints (POST /api/bookings)', () => {
     assert.ok(data.data.tickets && data.data.tickets.length === 3);
 
     // Xác thực giá do Server tính authoritative
-    assert.strictEqual(data.data.booking.totalPrice, 230000, 'Server must calculate authoritative price (230,000 VND)');
+    assert.strictEqual(data.data.booking.totalPrice, 218500, 'Server applies the silver member discount to the authoritative price');
     assert.strictEqual(data.data.booking.status, 'confirmed');
 
     // Xác thực chi tiết từng vé

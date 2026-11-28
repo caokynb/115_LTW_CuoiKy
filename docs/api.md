@@ -31,6 +31,8 @@ Các response nghiệp vụ thường có `success` và `data`; lỗi có `succe
 | --- | --- | --- | --- |
 | POST | `/auth/register` | Công khai | 201; 400 nếu thông tin đăng ký không hợp lệ/trùng email |
 | POST | `/auth/login` | Công khai | 200; 401 nếu thông tin đăng nhập không đúng |
+| POST | `/auth/forgot-password` | Công khai | 200; gửi liên kết đặt lại mật khẩu có hiệu lực 15 phút |
+| POST | `/auth/reset-password` | Công khai | 200; 400 nếu token sai/hết hạn; vô hiệu hóa JWT cũ |
 | GET | `/auth/me` | Đã đăng nhập | 200; 401 |
 | GET | `/users/me` | Đã đăng nhập | 200; 401 |
 | PUT | `/users/me` | Đã đăng nhập | 200; 400, 401 |
@@ -39,14 +41,18 @@ Các response nghiệp vụ thường có `success` và `data`; lỗi có `succe
 
 | Method | URL | Quyền | Thành công / lỗi chính |
 | --- | --- | --- | --- |
-| GET | `/movies` | Công khai | 200; hỗ trợ tìm kiếm, lọc và phân trang |
+| GET | `/movies` | Công khai | 200; hỗ trợ `q`, `genre`, `date`, `format` (`2D`, `3D`, `IMAX`), `audio` (`subtitled`, `dubbed`), `ageRating` và phân trang |
 | GET | `/movies/genres` | Công khai | 200 |
 | GET | `/movies/:id` | Công khai | 200; 404 nếu không có phim |
 | POST | `/movies` | Admin | 201; 400, 401, 403 |
 | PUT | `/movies/:id` | Admin | 200; 400, 401, 403, 404 |
 | DELETE | `/movies/:id` | Admin | 200; 401, 403, 404, 409 nếu còn suất chiếu |
 | GET | `/movies/:id/reviews` | Công khai | 200; 404 nếu phim không tồn tại |
-| POST | `/movies/:id/reviews` | Đã đăng nhập | 201; 400, 401, 404, 409 nếu đã đánh giá phim này |
+| POST | `/movies/:id/reviews` | Đã đăng nhập và đã mua vé | 201; 400, 401, 403 nếu chưa mua, 404, 409 nếu đã đánh giá phim này |
+| PATCH | `/movies/:id/reviews` | Chủ đánh giá | 200; 400, 401, 404 |
+| DELETE | `/movies/:id/reviews` | Chủ đánh giá | 200; 401, 404 |
+
+Danh sách đánh giá có cờ `verifiedPurchase`. Điểm trung bình và số lượng đánh giá của phim được cập nhật khi tạo, sửa hoặc xóa đánh giá.
 
 ## Rạp và phòng chiếu
 
@@ -63,14 +69,16 @@ Các response nghiệp vụ thường có `success` và `data`; lỗi có `succe
 | PUT | `/rooms/:id` | Admin | 200; 400, 401, 403, 404 |
 | DELETE | `/rooms/:id` | Admin | 200; 401, 403, 404, 409 nếu phòng có suất chiếu |
 
+Phòng nhận `disabledSeats` dạng `[{ "row": "A", "number": 1 }]`; các ghế này bị khóa trên sơ đồ và API đặt vé từ chối đặt chúng.
+
 ## Suất chiếu
 
 | Method | URL | Quyền | Thành công / lỗi chính |
 | --- | --- | --- | --- |
 | GET | `/showtimes` | Công khai | 200; query hỗ trợ `movieId`, `date`, phân trang |
 | GET | `/showtimes/:id` | Công khai | 200; trả thông tin phòng và ghế đang bán; 404 |
-| POST | `/showtimes` | Admin | 201; 400, 401, 403, 409 nếu cùng phòng bị chồng giờ |
-| PUT | `/showtimes/:id` | Admin | 200; 400, 401, 403, 404, 409 nếu lịch bị chồng |
+| POST | `/showtimes` | Admin | 201; 400, 401, 403, 409 nếu cùng phòng bị chồng giờ hoặc cách nhau dưới 15 phút |
+| PUT | `/showtimes/:id` | Admin | 200; 400, 401, 403, 404, 409 nếu lịch bị chồng hoặc cách nhau dưới 15 phút |
 | DELETE | `/showtimes/:id` | Admin | 200; 401, 403, 404 |
 
 ## Đặt vé
@@ -99,11 +107,14 @@ Server tự tính giá từ dữ liệu suất chiếu/phòng và trạng thái 
 | Method | URL | Quyền | Thành công / lỗi chính |
 | --- | --- | --- | --- |
 | POST | `/coupons/validate` | Công khai | 200 nếu mã dùng được; 400 nếu mã hết hạn/không hợp lệ; 404 nếu không tồn tại |
+| GET | `/coupons/available` | Đã đăng nhập | 200; mã đang hiệu lực và còn lượt cho tài khoản |
 | GET | `/snacks` | Công khai | 200 |
 | GET | `/snacks/:id` | Công khai | 200; 404 |
 | POST | `/snacks` | Admin | 201; 400, 401, 403 |
 | PUT | `/snacks/:id` | Admin | 200; 400, 401, 403, 404 |
 | DELETE | `/snacks/:id` | Admin | 200; 401, 403, 404 |
+
+Mã giảm giá có giới hạn tổng lượt (`maxUses`) và số lượt trên một tài khoản (`maxUsesPerUser`). Ưu đãi thành viên 5%, 7% hoặc 10% được áp dụng trước voucher; server luôn tự tính lại các mức giảm.
 
 ## Ma trận phân quyền
 
