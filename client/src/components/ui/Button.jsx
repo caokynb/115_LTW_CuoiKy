@@ -3,7 +3,7 @@ import Spinner from './Spinner';
 
 // style nền, Focus ring và hiệu ứng nhấn dùng chung cho mọi biến thể nút
 const BASE_BUTTON_CLASSES =
-  'inline-flex items-center justify-center gap-2 rounded-xl border font-semibold transition-[transform,background-color,border-color,color,box-shadow] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-cinema-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:hover:translate-y-0';
+  'inline-flex items-center justify-center gap-2 rounded-xl border font-semibold transition-[transform,background-color,border-color,color,box-shadow] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-cinema-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:hover:translate-y-0';
 
 // bảng màu các biến thể nút theo hệ màu Cinema Dark (đỏ đô CTA, vàng VIP, trung tính tối)
 const VARIANT_CLASSES = {
@@ -16,9 +16,9 @@ const VARIANT_CLASSES = {
   ghost:
     'bg-transparent text-neutral-800 border-transparent hover:bg-neutral-200/80 hover:text-neutral-950 dark:text-neutral-100 dark:hover:bg-cinema-elevated dark:hover:text-white',
   danger:
-    'bg-red-600 text-white border-red-500/40 shadow-sm hover:bg-red-700 hover:-translate-y-[1px] active:bg-red-800',
+    'bg-rose-600 text-white border-rose-500/40 shadow-sm hover:bg-rose-700 hover:-translate-y-[1px] active:bg-rose-800',
   vip:
-    'bg-amber-500 text-neutral-950 border-amber-400/70 shadow-cinema-vip hover:bg-amber-400 hover:-translate-y-[1px] active:bg-amber-600',
+    'bg-amber-500 text-amber-950 border-amber-400/70 shadow-cinema-vip hover:bg-amber-400 hover:-translate-y-[1px] active:bg-amber-600',
 };
 
 // kích thước chuẩn đảm bảo vùng chạm tối thiểu trên mobile

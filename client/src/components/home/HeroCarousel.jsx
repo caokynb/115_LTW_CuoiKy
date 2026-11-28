@@ -16,6 +16,7 @@ export function HeroCarousel({
   const dragStartXRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isFocusWithin, setIsFocusWithin] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [failedBackdrops, setFailedBackdrops] = useState({});
@@ -31,14 +32,14 @@ export function HeroCarousel({
 
   // tự động chuyển slide khi không di chuột hoặc kéo
   useEffect(() => {
-    if (totalSlides <= 1 || isPaused || isDragging) return undefined;
+    if (totalSlides <= 1 || isPaused || isFocusWithin || isDragging) return undefined;
 
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % totalSlides);
     }, autoPlayInterval);
 
     return () => clearInterval(timer);
-  }, [totalSlides, isPaused, isDragging, autoPlayInterval]);
+  }, [totalSlides, isPaused, isFocusWithin, isDragging, autoPlayInterval]);
 
   // chuyển vòng tròn tới một slide chỉ định
   const goToSlide = (index) => {
@@ -142,6 +143,10 @@ export function HeroCarousel({
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
+      onFocusCapture={() => setIsFocusWithin(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsFocusWithin(false);
+      }}
       className="group/hero relative overflow-hidden rounded-2xl border border-cinema-borderSubtle bg-cinema-bg text-white shadow-cinema-card"
     >
       <div
@@ -175,6 +180,8 @@ export function HeroCarousel({
               <div
                 key={movie._id || idx}
                 aria-hidden={!isActive}
+                inert={!isActive}
+                tabIndex={isActive ? undefined : -1}
                 className="relative w-full shrink-0 overflow-hidden"
               >
                 {/* chỉ dùng ảnh nền ngang backdrop sắc nét (nếu lỗi hoặc chưa có thì chuyển nền gradient tối) */}
@@ -330,14 +337,14 @@ export function HeroCarousel({
                   onClick={() => goToSlide(idx)}
                   aria-label={`Chuyển tới slide ${idx + 1}`}
                   aria-current={isActive ? 'true' : undefined}
-                  className="group/dot inline-flex min-h-[36px] items-center justify-center px-0.5 focus:outline-none"
+                  className="group/dot inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cinema-bg"
                 >
                   {isActive ? (
                     <span className="relative block h-1.5 w-14 overflow-hidden rounded-full bg-white/25 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
                       <span
                         key={`progress-${activeIndex}-${totalSlides}`}
                         style={
-                          isPaused || isDragging
+                          isPaused || isFocusWithin || isDragging
                             ? undefined
                             : { animation: `heroSlideProgress ${autoPlayInterval}ms linear forwards` }
                         }

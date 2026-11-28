@@ -16,7 +16,7 @@ export function EmptyState({
         <div className="mb-3 text-neutral-600 dark:text-neutral-300">{icon}</div>
       ) : (
         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-100 text-neutral-600 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-300">
-          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
             <rect x="3" y="5" width="18" height="14" rx="2" />
             <path d="M8 12h8" />
           </svg>

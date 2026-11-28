@@ -303,7 +303,7 @@ export function Profile() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-800 dark:text-amber-400">
               ⭐ Hạng: {loyalty?.tier || 'Bạc (Silver)'}
             </span>
           </div>
@@ -315,13 +315,13 @@ export function Profile() {
               Điểm khả dụng
             </span>
             <div className="mt-1 flex items-baseline gap-1">
-              <span className="text-3xl font-extrabold text-rose-600 dark:text-rose-400">
+              <span className="text-3xl font-extrabold text-rose-700 dark:text-rose-400">
                 {Number(loyalty?.points ?? profileUser?.rewardPoints ?? 0).toLocaleString('vi-VN')}
               </span>
               <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">điểm</span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
-              Tương đương: {Number(loyalty?.points ?? profileUser?.rewardPoints ?? 0).toLocaleString('vi-VN')} đ
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+              Tương đương: {Number(loyalty?.points ?? profileUser?.rewardPoints ?? 0).toLocaleString('vi-VN')} ₫
             </p>
           </div>
 
@@ -332,7 +332,7 @@ export function Profile() {
             <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
               5% / đơn vé
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
               Tự động cộng vào tài khoản sau khi đặt vé thành công
             </p>
           </div>
@@ -345,11 +345,11 @@ export function Profile() {
               {loyalty?.tierInfo?.nextTier || 'Hạng cao nhất (Diamond)'}
             </div>
             {loyalty?.tierInfo?.pointsToNext > 0 ? (
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                 Cần thêm {Number(loyalty.tierInfo.pointsToNext).toLocaleString('vi-VN')} điểm để thăng hạng
               </p>
             ) : (
-              <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+              <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
                 Bạn đang giữ quyền lợi thành viên cao nhất
               </p>
             )}
@@ -363,14 +363,14 @@ export function Profile() {
           </h3>
           {loyalty?.history && loyalty.history.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-slate-100 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
                   <tr>
-                    <th className="py-2.5 pr-4">Thời gian</th>
-                    <th className="py-2.5 pr-4">Loại giao dịch</th>
-                    <th className="py-2.5 pr-4">Nội dung</th>
-                    <th className="py-2.5 pr-4 text-right">Biến động</th>
-                    <th className="py-2.5 text-right">Số dư sau GD</th>
+                    <th scope="col" className="py-2.5 pr-4">Thời gian</th>
+                    <th scope="col" className="py-2.5 pr-4">Loại giao dịch</th>
+                    <th scope="col" className="py-2.5 pr-4">Nội dung</th>
+                    <th scope="col" className="py-2.5 pr-4 text-right">Biến động</th>
+                    <th scope="col" className="py-2.5 text-right">Số dư sau GD</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -394,14 +394,14 @@ export function Profile() {
                       <td
                         className={`py-2.5 pr-4 text-right font-mono font-bold ${
                           tx.points > 0
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-rose-600 dark:text-rose-400'
+                            ? 'text-emerald-700 dark:text-emerald-400'
+                            : 'text-rose-700 dark:text-rose-400'
                         }`}
                       >
                         {tx.points > 0 ? `+${tx.points.toLocaleString('vi-VN')}` : tx.points.toLocaleString('vi-VN')}
                       </td>
                       <td className="py-2.5 text-right font-mono text-slate-600 dark:text-slate-300">
-                        {Number(tx.balanceAfter || 0).toLocaleString('vi-VN')} đ
+                        {Number(tx.balanceAfter || 0).toLocaleString('vi-VN')} ₫
                       </td>
                     </tr>
                   ))}
@@ -409,7 +409,7 @@ export function Profile() {
               </table>
             </div>
           ) : (
-            <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400 dark:border-slate-800">
+            <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
               Chưa có lịch sử biến động điểm. Đặt vé xem phim để bắt đầu tích lũy 5% điểm thưởng!
             </p>
           )}

@@ -163,6 +163,52 @@ describe('Shared UI Kit Components', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Đóng hộp thoại' }));
       expect(handleClose).toHaveBeenCalledTimes(2);
     });
+
+    test('keeps keyboard focus in the dialog and restores it after closing', () => {
+      const onClose = jest.fn();
+      const { rerender } = render(
+        <>
+          <button type="button">Mở hộp thoại</button>
+          <Modal isOpen={false} title="Chọn vé" onClose={onClose}>
+            <button type="button">Hủy</button>
+            <button type="button">Xác nhận</button>
+          </Modal>
+        </>
+      );
+
+      const opener = screen.getByRole('button', { name: 'Mở hộp thoại' });
+      opener.focus();
+      rerender(
+        <>
+          <button type="button">Mở hộp thoại</button>
+          <Modal isOpen title="Chọn vé" onClose={onClose}>
+            <button type="button">Hủy</button>
+            <button type="button">Xác nhận</button>
+          </Modal>
+        </>
+      );
+
+      const closeButton = screen.getByRole('button', { name: 'Đóng hộp thoại' });
+      const confirmButton = screen.getByRole('button', { name: 'Xác nhận' });
+      expect(closeButton).toHaveFocus();
+
+      fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+      expect(confirmButton).toHaveFocus();
+
+      fireEvent.keyDown(window, { key: 'Tab' });
+      expect(closeButton).toHaveFocus();
+
+      rerender(
+        <>
+          <button type="button">Mở hộp thoại</button>
+          <Modal isOpen={false} title="Chọn vé" onClose={onClose}>
+            <button type="button">Hủy</button>
+            <button type="button">Xác nhận</button>
+          </Modal>
+        </>
+      );
+      expect(opener).toHaveFocus();
+    });
   });
 
   describe('Pagination', () => {

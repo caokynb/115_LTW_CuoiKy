@@ -92,7 +92,7 @@ export function MovieReviews({ movieId }) {
                   aria-label={`${star} sao`}
                   aria-pressed={rating === star}
                   className={`inline-flex h-11 w-11 items-center justify-center rounded-xl text-2xl transition-transform hover:scale-110 ${
-                    star <= rating ? 'text-amber-500' : 'text-neutral-300 dark:text-neutral-600'
+                    star <= rating ? 'text-amber-700 dark:text-amber-300' : 'text-neutral-500 dark:text-neutral-400'
                   }`}
                 >
                   ★

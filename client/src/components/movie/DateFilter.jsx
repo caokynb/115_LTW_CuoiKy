@@ -23,7 +23,7 @@ export function DateFilter({
         value={selectedDate}
         onChange={(e) => onSelectDate && onSelectDate(e.target.value)}
         aria-label="Lọc theo ngày chiếu"
-        className="min-h-[44px] w-full cursor-pointer rounded-xl border border-neutral-300 bg-white py-2.5 pl-3.5 pr-9 text-sm text-neutral-900 transition-colors hover:border-neutral-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100 dark:hover:border-neutral-500 dark:focus:border-brand-400 dark:focus:ring-brand-500/30"
+        className="min-h-[44px] w-full cursor-pointer rounded-xl border border-neutral-300 bg-white py-2.5 pl-3.5 pr-9 text-sm text-neutral-900 transition-colors hover:border-neutral-400 focus:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100 dark:hover:border-neutral-500 dark:focus:border-brand-400 dark:focus-visible:ring-offset-cinema-bg"
       />
 
       {selectedDate && (
@@ -31,7 +31,7 @@ export function DateFilter({
           type="button"
           onClick={handleClear}
           aria-label="Xóa bộ lọc ngày"
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-500 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100"
+          className="absolute inset-y-0 right-0 flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-500 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100"
         >
           <svg
             className="h-4 w-4"
@@ -39,6 +39,7 @@ export function DateFilter({
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
