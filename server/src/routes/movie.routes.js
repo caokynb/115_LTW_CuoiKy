@@ -8,7 +8,7 @@ const {
     deleteMovie,
     getTmdbPosters,
 } = require('../controllers/movie.controller');
-const { getMovieReviews, createMovieReview } = require('../controllers/review.controller');
+const { getMovieReviews, createMovieReview, updateMovieReview, deleteMovieReview } = require('../controllers/review.controller');
 const { verifyToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -27,6 +27,8 @@ router.get('/tmdb/posters', verifyToken, requireRole('admin'), getTmdbPosters);
 // Đánh giá phim: xem công khai, gửi đánh giá cần đăng nhập.
 router.get('/:id/reviews', getMovieReviews);
 router.post('/:id/reviews', verifyToken, createMovieReview);
+router.patch('/:id/reviews', verifyToken, updateMovieReview);
+router.delete('/:id/reviews', verifyToken, deleteMovieReview);
 
 /**
  * @route   GET /api/movies/:id

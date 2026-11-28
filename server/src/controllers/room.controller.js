@@ -2,7 +2,7 @@ const Room = require('../models/Room');
 const AppError = require('../utils/AppError');
 
 const getRoomFields = (body) => {
-  const allowedFields = ['name', 'rows', 'seatsPerRow', 'vipRows'];
+  const allowedFields = ['name', 'rows', 'seatsPerRow', 'vipRows', 'disabledSeats'];
   return Object.fromEntries(
     allowedFields
       .filter((field) => Object.prototype.hasOwnProperty.call(body, field))

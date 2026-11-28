@@ -208,7 +208,7 @@ describe('Snack & F&B Combo API (A16)', () => {
     createdBookingIds.push(booking._id);
 
     assert.equal(booking.snackTotal, 120000);
-    assert.equal(booking.totalPrice, 200000);
+    assert.equal(booking.totalPrice, 190000);
     assert.equal(booking.snacks.length, 1);
     assert.equal(booking.snacks[0].quantity, 2);
   });

@@ -117,8 +117,13 @@ describe('Showtime API overlap and access', () => {
     assert.equal(response.status, 409);
   });
 
-  it('cho phép suất bắt đầu đúng lúc suất trước kết thúc', async () => {
+  it('từ chối suất chiếu nếu cách suất trước dưới 15 phút', async () => {
     const response = await create(room.id, baseStart + 90 * 60 * 1000);
+    assert.equal(response.status, 409);
+  });
+
+  it('cho phép suất chiếu cách suất trước đúng 15 phút', async () => {
+    const response = await create(room.id, baseStart + 105 * 60 * 1000);
     assert.equal(response.status, 201);
   });
 

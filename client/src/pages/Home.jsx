@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
 import HeroCarousel from '../components/home/HeroCarousel';
 import { MovieGrid } from '../components/movie';
@@ -31,6 +31,14 @@ const QUICK_MODULES = [
 
 // trang chủ hiển thị banner phim nổi bật, các phân khu chức năng nhanh và danh sách phim
 export function Home() {
+  const navigate = useNavigate();
+  const [quickCinemaId, setQuickCinemaId] = useState('');
+  const [quickMovieId, setQuickMovieId] = useState('');
+  const { data: cinemaRes } = useFetch('/cinemas');
+  const { data: showtimeRes, loading: showtimeLoading } = useFetch('/showtimes', {
+    params: { cinemaId: quickCinemaId, movieId: quickMovieId, page: 1, limit: 20 },
+    immediate: Boolean(quickCinemaId && quickMovieId),
+  });
   const { data: nowRes, loading: nowLoading } = useFetch('/movies', {
     params: { status: 'now_showing', page: 1, limit: 8 },
   });
@@ -47,6 +55,15 @@ export function Home() {
     <div className="space-y-12">
       {/* Vùng 1: Banner phim nổi bật */}
       <HeroCarousel movies={featuredMovies} loading={nowLoading} />
+
+      <section aria-labelledby="quick-book-title" className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card sm:p-6">
+        <div className="mb-4"><h2 id="quick-book-title" className="text-xl font-bold text-neutral-950 dark:text-white">Đặt vé nhanh</h2><p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">Chọn rạp, chọn phim, rồi chọn suất chiếu.</p></div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <label className="space-y-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200"><span>1. Chọn rạp</span><select value={quickCinemaId} onChange={(event) => { setQuickCinemaId(event.target.value); setQuickMovieId(''); }} className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm dark:border-cinema-border dark:bg-cinema-elevated dark:text-white"><option value="">Chọn cụm rạp</option>{(cinemaRes?.data || []).map((cinema) => <option key={cinema._id} value={cinema._id}>{cinema.name}</option>)}</select></label>
+          <label className="space-y-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200"><span>2. Chọn phim</span><select value={quickMovieId} onChange={(event) => setQuickMovieId(event.target.value)} disabled={!quickCinemaId} className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm disabled:opacity-60 dark:border-cinema-border dark:bg-cinema-elevated dark:text-white"><option value="">Chọn phim đang chiếu</option>{nowShowingMovies.map((movie) => <option key={movie._id} value={movie._id}>{movie.title}</option>)}</select></label>
+          <div className="space-y-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200"><span>3. Chọn suất chiếu</span><div className="flex min-h-[44px] flex-wrap gap-2">{!quickMovieId ? <span className="py-3 text-xs font-normal text-neutral-500">Chọn rạp và phim trước.</span> : showtimeLoading ? <span className="py-3 text-xs font-normal text-neutral-500">Đang tải suất chiếu…</span> : (showtimeRes?.data || []).length ? (showtimeRes.data || []).map((showtime) => <button key={showtime._id} type="button" onClick={() => navigate(`/showtimes/${showtime._id}/seats`)} className="min-h-[44px] rounded-xl bg-rose-600 px-3 text-xs font-bold text-white hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">{new Date(showtime.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} · {showtime.roomId?.name || 'Phòng chiếu'}</button>) : <span className="py-3 text-xs font-normal text-neutral-500">Chưa có suất phù hợp tại rạp này.</span>}</div></div>
+        </div>
+      </section>
 
       {/* Vùng 2: Phân khu truy cập chức năng nhanh */}
       <section aria-label="Truy cập nhanh chức năng" className="grid gap-4 sm:grid-cols-3">

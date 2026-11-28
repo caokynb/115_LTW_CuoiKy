@@ -10,6 +10,7 @@ const Snack = require('../models/Snack');
 const RewardPoint = require('../models/RewardPoint');
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 const AppError = require('../utils/AppError');
+const { calculateTier } = require('./loyalty.controller');
 
 /**
  * Tạo đơn đặt vé mới
@@ -131,6 +132,15 @@ const createBooking = async (req, res, next) => {
       });
     }
 
+    const disabledSeatKeys = new Set([
+      ...(room.disabledSeats || []),
+      ...(showtime.disabledSeats || []),
+    ].map((seat) => `${String(seat.row).toUpperCase()}-${Number(seat.number)}`));
+    const disabledSelection = resolvedSeats.find((seat) => disabledSeatKeys.has(`${seat.row}-${seat.number}`));
+    if (disabledSelection) {
+      return res.status(400).json({ success: false, message: `Ghế ${disabledSelection.row}${disabledSelection.number} không phục vụ.` });
+    }
+
     // 5. Kiểm tra thời gian bắt đầu suất chiếu (không được đặt suất chiếu trong quá khứ)
     if (new Date(showtime.startTime) <= new Date()) {
       return res.status(400).json({
@@ -233,23 +243,26 @@ const createBooking = async (req, res, next) => {
     }
 
     const originalPrice = seatTotal + snackTotal;
-    let totalPrice = originalPrice;
-    let discountAmount = 0;
+    const currentUserForTier = await User.findById(req.user._id).select('rewardPoints');
+    const loyaltyRate = Number.parseInt(calculateTier(currentUserForTier?.rewardPoints).discountRate, 10) / 100;
+    const loyaltyDiscount = Math.round(originalPrice * loyaltyRate);
+    let totalPrice = Math.max(0, originalPrice - loyaltyDiscount);
+    let discountAmount = loyaltyDiscount;
     let appliedCouponCode = null;
     let couponToReserve = null;
 
     // nếu có mã giảm giá thì kiểm tra và tính lại tổng tiền trên server
     if (couponCode !== undefined && couponCode !== null && String(couponCode).trim() !== '') {
-      const couponResult = await evaluateCoupon(couponCode, originalPrice);
+      const couponResult = await evaluateCoupon(couponCode, totalPrice, req.user._id);
       couponToReserve = couponResult.coupon;
-      discountAmount = couponResult.discountAmount;
+      discountAmount += couponResult.discountAmount;
       totalPrice = couponResult.finalAmount;
       appliedCouponCode = couponResult.coupon.code;
     }
 
     // kiểm tra dùng điểm tích lũy thanh toán (T18)
     let pointsToUse = Number(req.body.pointsToUse || req.body.usePoints || 0);
-    let currentUser = null;
+    let currentUser = currentUserForTier;
     if (pointsToUse > 0) {
       if (!Number.isInteger(pointsToUse) || pointsToUse < 0) {
         return res.status(400).json({
@@ -257,7 +270,6 @@ const createBooking = async (req, res, next) => {
           message: 'Số điểm sử dụng phải là số nguyên dương.',
         });
       }
-      currentUser = await User.findById(req.user._id);
       if (!currentUser || (currentUser.rewardPoints || 0) < pointsToUse) {
         return res.status(400).json({
           success: false,

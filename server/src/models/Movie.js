@@ -74,6 +74,10 @@ const movieSchema = new mongoose.Schema(
             required: [true, 'YouTube ID của trailer là bắt buộc'],
             trim: true,
         },
+        formats: { type: [String], enum: ['2D', '3D', 'IMAX'], default: ['2D'], validate: (values) => values.length > 0 },
+        audioOptions: { type: [String], enum: ['subtitled', 'dubbed'], default: ['subtitled'], validate: (values) => values.length > 0 },
+        averageRating: { type: Number, default: 0, min: 0, max: 5 },
+        reviewCount: { type: Number, default: 0, min: 0 },
     },
     {
         timestamps: true,

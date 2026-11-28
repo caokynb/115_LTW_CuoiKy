@@ -38,6 +38,9 @@ const getMovies = async (req, res, next) => {
             releaseDate,
             fromDate,
             toDate,
+            format,
+            audio,
+            ageRating,
             page = 1,
             limit = 8,
         } = req.query;
@@ -59,6 +62,9 @@ const getMovies = async (req, res, next) => {
         if (status && status.trim() !== '') {
             query.status = status.trim();
         }
+        if (format && ['2D', '3D', 'IMAX'].includes(format)) query.formats = format;
+        if (audio && ['subtitled', 'dubbed'].includes(audio)) query.audioOptions = audio;
+        if (ageRating && ['P', 'K', 'T13', 'T16', 'T18', 'C'].includes(ageRating)) query.ageRating = ageRating;
 
         // Bộ lọc date dùng ngày chiếu tại TP.HCM, không dùng ngày khởi chiếu.
         if (date) {

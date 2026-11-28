@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
 import { Button } from '../ui';
 
@@ -13,6 +13,16 @@ export function CouponInput({
   const [code, setCode] = useState('');
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState('');
+  const [coupons, setCoupons] = useState([]);
+
+  useEffect(() => {
+    if (typeof api.get !== 'function') return undefined;
+    let active = true;
+    api.get('/coupons/available').then((response) => {
+      if (active) setCoupons(Array.isArray(response.data?.data) ? response.data.data : []);
+    }).catch(() => { if (active) setCoupons([]); });
+    return () => { active = false; };
+  }, []);
 
   // gửi mã lên API POST /api/coupons/validate để kiểm tra và tính tiền giảm
   const handleApply = async () => {
@@ -55,6 +65,10 @@ export function CouponInput({
       >
         Mã giảm giá (Coupon)
       </label>
+
+      {coupons.length > 0 && !appliedCoupon && <label className="block space-y-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Chọn mã khả dụng
+        <select aria-label="Chọn mã giảm giá khả dụng" value="" onChange={(event) => { setCode(event.target.value); setError(''); }} className="min-h-[44px] w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm dark:border-cinema-border dark:bg-cinema-elevated dark:text-white"><option value="">Chọn mã giảm giá</option>{coupons.map((coupon) => <option key={coupon._id} value={coupon.code}>{coupon.code} · {coupon.description || `${coupon.discountValue}${coupon.discountType === 'percent' ? '%' : 'đ'}`}</option>)}</select>
+      </label>}
 
       {appliedCoupon ? (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs dark:border-emerald-800 dark:bg-emerald-950/30">

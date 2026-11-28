@@ -22,6 +22,7 @@ const INITIAL_FORM = {
   maxDiscount: '',
   minOrderAmount: '0',
   maxUses: '50',
+  maxUsesPerUser: '1',
   expiresAt: '',
   isActive: true,
 };
@@ -104,6 +105,7 @@ export function AdminCoupons() {
         coupon.maxDiscount !== null && coupon.maxDiscount !== undefined ? String(coupon.maxDiscount) : '',
       minOrderAmount: coupon.minOrderAmount !== undefined ? String(coupon.minOrderAmount) : '0',
       maxUses: coupon.maxUses !== undefined ? String(coupon.maxUses) : '1',
+      maxUsesPerUser: coupon.maxUsesPerUser !== undefined && coupon.maxUsesPerUser !== null ? String(coupon.maxUsesPerUser) : '1',
       expiresAt: formatDateInput(coupon.expiresAt),
       isActive: coupon.isActive !== false,
     });
@@ -136,6 +138,11 @@ export function AdminCoupons() {
       setFormError('Số lượt dùng tối đa phải là số nguyên lớn hơn 0.');
       return;
     }
+    const maxUsesPerUser = Number(formValues.maxUsesPerUser);
+    if (!Number.isInteger(maxUsesPerUser) || maxUsesPerUser < 1 || maxUsesPerUser > maxUses) {
+      setFormError('Giới hạn mỗi tài khoản phải từ 1 đến tổng lượt dùng.');
+      return;
+    }
 
     if (!formValues.expiresAt) {
       setFormError('Vui lòng chọn ngày hết hạn.');
@@ -159,6 +166,7 @@ export function AdminCoupons() {
           : null,
       minOrderAmount: formValues.minOrderAmount !== '' ? Number(formValues.minOrderAmount) : 0,
       maxUses,
+      maxUsesPerUser,
       expiresAt: expiresDate.toISOString(),
       isActive: Boolean(formValues.isActive),
     };
@@ -481,6 +489,7 @@ export function AdminCoupons() {
               value={formValues.maxUses}
               onChange={(e) => setFormValues((prev) => ({ ...prev, maxUses: e.target.value }))}
             />
+            <FormField label="Lượt dùng tối đa mỗi tài khoản" type="number" required min="1" max={formValues.maxUses} value={formValues.maxUsesPerUser} onChange={(e) => setFormValues((prev) => ({ ...prev, maxUsesPerUser: e.target.value }))} />
             <FormField
               label="Ngày hết hạn"
               type="date"

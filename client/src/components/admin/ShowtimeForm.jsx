@@ -132,7 +132,7 @@ export function ShowtimeForm({
       />
       {estimatedEnd && (
         <p className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
-          Thời gian kết thúc dự kiến: {estimatedEnd} ({selectedMovie.duration} phút)
+          Thời gian kết thúc dự kiến: {estimatedEnd} ({selectedMovie.duration} phút). Cùng phòng cần cách suất kế tiếp ít nhất 15 phút.
         </p>
       )}
 

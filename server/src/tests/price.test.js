@@ -120,7 +120,7 @@ describe('Seat Price Calculation (Standard vs VIP)', () => {
 
     const data = await res.json();
     assert.strictEqual(res.status, 201);
-    assert.strictEqual(data.data.booking.totalPrice, standardPrice * 2);
+    assert.strictEqual(data.data.booking.totalPrice, Math.round(standardPrice * 2 * 0.95));
     for (const ticket of data.data.tickets) {
       assert.strictEqual(ticket.seatType, 'standard');
       assert.strictEqual(ticket.price, standardPrice);
@@ -145,7 +145,7 @@ describe('Seat Price Calculation (Standard vs VIP)', () => {
 
     const data = await res.json();
     assert.strictEqual(res.status, 201);
-    assert.strictEqual(data.data.booking.totalPrice, vipPrice * 2);
+    assert.strictEqual(data.data.booking.totalPrice, Math.round(vipPrice * 2 * 0.95));
     for (const ticket of data.data.tickets) {
       assert.strictEqual(ticket.seatType, 'vip');
       assert.strictEqual(ticket.price, vipPrice);
@@ -170,7 +170,7 @@ describe('Seat Price Calculation (Standard vs VIP)', () => {
 
     const data = await res.json();
     assert.strictEqual(res.status, 201);
-    assert.strictEqual(data.data.booking.totalPrice, standardPrice + vipPrice);
+    assert.strictEqual(data.data.booking.totalPrice, Math.round((standardPrice + vipPrice) * 0.95));
 
     const standardTicket = data.data.tickets.find((t) => t.row === 'C' && t.number === 1);
     const vipTicket = data.data.tickets.find((t) => t.row === 'E' && t.number === 3);

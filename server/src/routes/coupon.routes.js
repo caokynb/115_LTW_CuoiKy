@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   validateCoupon,
+  getAvailableCoupons,
   getAllCoupons,
   createCoupon,
   updateCoupon,
@@ -13,6 +14,7 @@ const router = express.Router();
 
 // kiểm tra và tính tiền giảm theo mã coupon
 router.post('/validate', validateCoupon);
+router.get('/available', verifyToken, getAvailableCoupons);
 
 // các API quản trị voucher yêu cầu đăng nhập và quyền admin
 router.get('/', verifyToken, requireRole('admin'), getAllCoupons);

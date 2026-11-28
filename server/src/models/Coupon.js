@@ -47,6 +47,11 @@ const couponSchema = new mongoose.Schema(
       required: [true, 'Số lượt dùng tối đa không được để trống'],
       min: [1, 'Số lượt dùng tối đa phải lớn hơn 0'],
     },
+    maxUsesPerUser: {
+      type: Number,
+      default: null,
+      min: [1, 'Số lượt dùng trên mỗi tài khoản phải lớn hơn 0'],
+    },
     usedCount: {
       type: Number,
       default: 0,

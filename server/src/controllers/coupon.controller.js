@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Coupon = require('../models/Coupon');
 const AppError = require('../utils/AppError');
+const Booking = require('../models/Booking');
 
 // chuẩn hóa và kiểm tra dữ liệu đầu vào khi tạo hoặc cập nhật voucher
 const parseCouponPayload = (body = {}, { isUpdate = false } = {}) => {
@@ -43,6 +44,12 @@ const parseCouponPayload = (body = {}, { isUpdate = false } = {}) => {
   if (!Number.isInteger(maxUses) || maxUses < 1) {
     throw new AppError('Số lượt dùng tối đa phải là số nguyên lớn hơn 0.', 400);
   }
+  const maxUsesPerUser = body.maxUsesPerUser === '' || body.maxUsesPerUser === undefined || body.maxUsesPerUser === null
+    ? maxUses
+    : Number(body.maxUsesPerUser);
+  if (!Number.isInteger(maxUsesPerUser) || maxUsesPerUser < 1 || maxUsesPerUser > maxUses) {
+    throw new AppError('Giới hạn sử dụng trên mỗi tài khoản phải từ 1 đến tổng lượt dùng.', 400);
+  }
 
   if (!body.expiresAt) {
     throw new AppError('Ngày hết hạn không được để trống.', 400);
@@ -64,12 +71,13 @@ const parseCouponPayload = (body = {}, { isUpdate = false } = {}) => {
     minOrderAmount,
     expiresAt,
     maxUses,
+    maxUsesPerUser,
     isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
   };
 };
 
 // kiểm tra điều kiện mã giảm giá và tính số tiền được giảm
-const evaluateCoupon = async (rawCode, orderAmount) => {
+const evaluateCoupon = async (rawCode, orderAmount, userId = null) => {
   const code = typeof rawCode === 'string' ? rawCode.trim().toUpperCase() : '';
   if (!code) {
     throw new AppError('Vui lòng nhập mã giảm giá.', 400);
@@ -95,6 +103,10 @@ const evaluateCoupon = async (rawCode, orderAmount) => {
 
   if (coupon.usedCount >= coupon.maxUses) {
     throw new AppError('Mã giảm giá đã hết lượt sử dụng.', 400);
+  }
+  if (userId && coupon.maxUsesPerUser) {
+    const userUses = await Booking.countDocuments({ userId, couponCode: coupon.code, status: { $ne: 'cancelled' } });
+    if (userUses >= coupon.maxUsesPerUser) throw new AppError('Bạn đã sử dụng mã này đủ số lần cho phép.', 400);
   }
 
   if (amount < (coupon.minOrderAmount || 0)) {
@@ -126,7 +138,7 @@ const evaluateCoupon = async (rawCode, orderAmount) => {
 const validateCoupon = async (req, res, next) => {
   try {
     const { code, orderAmount } = req.body || {};
-    const { coupon, discountAmount, finalAmount } = await evaluateCoupon(code, orderAmount);
+    const { coupon, discountAmount, finalAmount } = await evaluateCoupon(code, orderAmount, req.user?._id);
 
     return res.status(200).json({
       success: true,
@@ -139,11 +151,28 @@ const validateCoupon = async (req, res, next) => {
         discountAmount,
         originalAmount: Number(orderAmount),
         finalAmount,
+        maxUsesPerUser: coupon.maxUsesPerUser,
       },
     });
   } catch (error) {
     return next(error);
   }
+};
+
+const getAvailableCoupons = async (req, res, next) => {
+  try {
+    const coupons = await Coupon.find({ isActive: true, expiresAt: { $gt: new Date() }, $expr: { $lt: ['$usedCount', '$maxUses'] } })
+      .sort({ code: 1 }).select('code description discountType discountValue maxDiscount minOrderAmount maxUsesPerUser');
+    const eligible = [];
+    for (const coupon of coupons) {
+      if (coupon.maxUsesPerUser) {
+        const count = await Booking.countDocuments({ userId: req.user._id, couponCode: coupon.code, status: { $ne: 'cancelled' } });
+        if (count >= coupon.maxUsesPerUser) continue;
+      }
+      eligible.push(coupon);
+    }
+    res.json({ success: true, data: eligible });
+  } catch (error) { next(error); }
 };
 
 // Lấy danh sách mã giảm giá cho Admin: GET /api/coupons
@@ -281,6 +310,7 @@ const deleteCoupon = async (req, res, next) => {
 
 module.exports = {
   validateCoupon,
+  getAvailableCoupons,
   evaluateCoupon,
   getAllCoupons,
   createCoupon,

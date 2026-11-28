@@ -5,6 +5,7 @@ const Room = require('../models/Room');
 const Cinema = require('../models/Cinema');
 const Ticket = require('../models/Ticket');
 const AppError = require('../utils/AppError');
+const CLEARANCE_BUFFER_MS = 15 * 60 * 1000;
 
 const invalidId = (id) => !mongoose.isObjectIdOrHexString(id);
 
@@ -37,8 +38,8 @@ const validatePrices = (body) => {
 const findOverlap = (roomId, startTime, endTime, excludeId) => {
   const query = {
     roomId,
-    startTime: { $lt: endTime },
-    endTime: { $gt: startTime },
+    startTime: { $lt: new Date(endTime.getTime() + CLEARANCE_BUFFER_MS) },
+    endTime: { $gt: new Date(startTime.getTime() - CLEARANCE_BUFFER_MS) },
   };
   if (excludeId) query._id = { $ne: excludeId };
   return Showtime.findOne(query).populate('movieId', 'title duration');
@@ -100,7 +101,7 @@ const getShowtimes = async (req, res, next) => {
     const [data, total] = await Promise.all([
       Showtime.find(filter)
         .populate('movieId', 'title duration posterUrl')
-        .populate({ path: 'roomId', select: 'name rows seatsPerRow vipRows cinemaId', populate: { path: 'cinemaId', select: 'name address' } })
+        .populate({ path: 'roomId', select: 'name rows seatsPerRow vipRows disabledSeats cinemaId', populate: { path: 'cinemaId', select: 'name address' } })
         .sort({ startTime: 1, _id: 1 })
         .skip((page - 1) * limit)
         .limit(limit),
@@ -127,7 +128,7 @@ const getShowtimeById = async (req, res, next) => {
 
     const showtime = await Showtime.findById(req.params.id)
       .populate('movieId', 'title duration posterUrl')
-      .populate({ path: 'roomId', select: 'name rows seatsPerRow vipRows cinemaId', populate: { path: 'cinemaId', select: 'name address' } });
+      .populate({ path: 'roomId', select: 'name rows seatsPerRow vipRows disabledSeats cinemaId', populate: { path: 'cinemaId', select: 'name address' } });
     if (!showtime) return next(new AppError('Không tìm thấy suất chiếu.', 404));
 
     const soldTickets = await Ticket.find({
@@ -142,6 +143,7 @@ const getShowtimeById = async (req, res, next) => {
     data.seatsPerRow = room?.seatsPerRow;
     data.vipRows = room?.vipRows || [];
     data.soldSeats = soldTickets.map(({ row, number }) => ({ row, number }));
+    data.disabledSeats = [...(data.disabledSeats || []), ...(room?.disabledSeats || [])];
 
     return res.status(200).json({ success: true, data });
   } catch (error) {
@@ -179,6 +181,7 @@ const createShowtime = async (req, res, next) => {
       endTime,
       standardPrice: body.standardPrice,
       vipPrice: body.vipPrice,
+      disabledSeats: Array.isArray(body.disabledSeats) ? body.disabledSeats : [],
     });
 
     return res.status(201).json({
@@ -228,7 +231,7 @@ const updateShowtime = async (req, res, next) => {
     const overlap = await findOverlap(roomId, startTime, endTime, showtime._id);
     if (overlap) return next(showOverlapError(overlap));
 
-    showtime.set({ movieId, roomId, startTime, endTime, standardPrice, vipPrice });
+    showtime.set({ movieId, roomId, startTime, endTime, standardPrice, vipPrice, disabledSeats: Array.isArray(body.disabledSeats) ? body.disabledSeats : showtime.disabledSeats });
     await showtime.save();
 
     return res.status(200).json({

@@ -6,6 +6,7 @@ const makeInitialValues = (room) => ({
   rows: room?.rows || 8,
   seatsPerRow: room?.seatsPerRow || 10,
   vipRows: room?.vipRows || [],
+  disabledSeatText: (room?.disabledSeats || []).map((seat) => `${seat.row}${seat.number}`).join(', '),
 });
 
 export function RoomForm({ room, onSubmit, onCancel, submitting = false, serverError = '' }) {
@@ -49,6 +50,13 @@ export function RoomForm({ room, onSubmit, onCancel, submitting = false, serverE
     if (values.vipRows.some((row) => row < 1 || row > rows)) {
       nextErrors.vipRows = 'Hàng VIP phải nằm trong phạm vi hàng của phòng.';
     }
+    const disabledSeats = values.disabledSeatText.split(/[\s,;]+/).filter(Boolean).map((seat) => {
+      const match = seat.match(/^([A-Z]+)(\d+)$/i);
+      return match ? { row: match[1].toUpperCase(), number: Number(match[2]) } : null;
+    });
+    if (disabledSeats.some((seat) => !seat || seat.number < 1 || seat.number > seatsPerRow || seat.row.charCodeAt(0) - 64 > rows)) {
+      nextErrors.disabledSeatText = 'Nhập ghế theo dạng A1, B3; ghế phải nằm trong phòng.';
+    }
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -58,6 +66,7 @@ export function RoomForm({ room, onSubmit, onCancel, submitting = false, serverE
       rows,
       seatsPerRow,
       vipRows: [...values.vipRows].sort((a, b) => a - b),
+      disabledSeats,
     });
   };
 
@@ -139,6 +148,8 @@ export function RoomForm({ room, onSubmit, onCancel, submitting = false, serverE
         </div>
         {errors.vipRows && <p role="alert" className="mt-1 text-xs text-red-600">{errors.vipRows}</p>}
       </fieldset>
+
+      <FormField label="Ghế không sử dụng" name="room-disabled-seats" value={values.disabledSeatText} onChange={(event) => setValues((current) => ({ ...current, disabledSeatText: event.target.value }))} error={errors.disabledSeatText} placeholder="Ví dụ: A1, A2, H10" helperText="Các ghế này luôn bị khóa trong sơ đồ đặt vé." />
 
       <section aria-label="Xem trước sơ đồ phòng" className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-cinema-border dark:bg-cinema-elevated/60">
         <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Xem trước sơ đồ</h3>

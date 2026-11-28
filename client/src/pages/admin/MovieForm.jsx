@@ -13,6 +13,8 @@ const INITIAL_VALUES = {
   releaseDate: '',
   status: 'now_showing',
   ageRating: 'P',
+  formats: ['2D'],
+  audioOptions: ['subtitled'],
   posterUrl: '',
   posterUrls: [],
   backdropUrl: '',
@@ -34,6 +36,8 @@ function validateMovieForm(values) {
   if (!values.title.trim()) {
     errors.title = 'Tên phim không được để trống';
   }
+  if (!values.formats.length) errors.formats = 'Chọn ít nhất một định dạng chiếu.';
+  if (!values.audioOptions.length) errors.audioOptions = 'Chọn ít nhất một tùy chọn âm thanh.';
   if (!values.description.trim()) {
     errors.description = 'Mô tả phim không được để trống';
   }
@@ -130,6 +134,8 @@ export function MovieForm() {
           releaseDate: dateStr,
           status: movie.status === 'coming_soon' ? 'coming_soon' : 'now_showing',
           ageRating: AGE_RATINGS.includes(movie.ageRating) ? movie.ageRating : 'P',
+          formats: Array.isArray(movie.formats) && movie.formats.length ? movie.formats : ['2D'],
+          audioOptions: Array.isArray(movie.audioOptions) && movie.audioOptions.length ? movie.audioOptions : ['subtitled'],
           posterUrl: movie.posterUrl || '',
           posterUrls: Array.isArray(movie.posterUrls) ? movie.posterUrls : [],
           backdropUrl: movie.backdropUrl || '',
@@ -280,6 +286,8 @@ export function MovieForm() {
       releaseDate: values.releaseDate,
       status: values.status,
       ageRating: values.ageRating,
+      formats: values.formats,
+      audioOptions: values.audioOptions,
       posterUrl: values.posterUrl.trim(),
       ...(values.posterUrls.length > 0 ? { posterUrls: values.posterUrls } : {}),
       backdropUrl: values.backdropUrl.trim(),
@@ -404,6 +412,11 @@ export function MovieForm() {
                 );
               })}
             </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <fieldset><legend className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-200">Định dạng chiếu</legend><div className="flex flex-wrap gap-3">{['2D', '3D', 'IMAX'].map((format) => <label key={format} className="inline-flex min-h-[44px] items-center gap-2 text-sm"><input type="checkbox" checked={values.formats.includes(format)} onChange={(event) => setValues((current) => ({ ...current, formats: event.target.checked ? [...current.formats, format] : current.formats.filter((item) => item !== format) }))} className="accent-rose-600" />{format}</label>)}</div>{errors.formats && <p role="alert" className="mt-1 text-xs text-red-600">{errors.formats}</p>}</fieldset>
+            <fieldset><legend className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-200">Âm thanh</legend><div className="flex flex-wrap gap-3">{[{value:'subtitled', label:'Phụ đề'}, {value:'dubbed', label:'Thuyết minh'}].map((option) => <label key={option.value} className="inline-flex min-h-[44px] items-center gap-2 text-sm"><input type="checkbox" checked={values.audioOptions.includes(option.value)} onChange={(event) => setValues((current) => ({ ...current, audioOptions: event.target.checked ? [...current.audioOptions, option.value] : current.audioOptions.filter((item) => item !== option.value) }))} className="accent-rose-600" />{option.label}</label>)}</div>{errors.audioOptions && <p role="alert" className="mt-1 text-xs text-red-600">{errors.audioOptions}</p>}</fieldset>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
