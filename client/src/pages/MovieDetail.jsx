@@ -4,41 +4,21 @@ import api, { getErrorMessage } from '../api/axios';
 import { GenreTag, TrailerModal, AgeRatingBadge, AGE_RATING_META } from '../components/movie';
 import MovieReviews from '../components/movie/MovieReviews';
 import { Button, EmptyState, Modal } from '../components/ui';
+import ShowtimeList from '../components/showtime/ShowtimeList';
 
 // Ảnh mặc định khi poster bị lỗi hoặc chưa có ảnh
 const DEFAULT_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60';
 
-// Format ngày tháng hiển thị dạng ngày/tháng/năm
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  try {
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return '';
-  }
-};
-
-// Format giờ hiển thị từ ISO string sang giờ:phút (ví dụ 19:30)
-const formatTime = (dateString) => {
-  if (!dateString) return '';
-  try {
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-  } catch {
-    return '';
-  }
+const formatDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(date);
 };
 
 // khung skeleton hiển thị khi trang chi tiết phim đang tải dữ liệu
@@ -103,9 +83,6 @@ export function MovieDetail() {
   const [notFound, setNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // state lưu danh sách suất chiếu của phim này
-  const [showtimes, setShowtimes] = useState([]);
-  const [loadingShowtimes, setLoadingShowtimes] = useState(false);
   const [cinemaId, setCinemaId] = useState(() => window.localStorage.getItem('cinemaId') || '');
 
   // state đóng/mở popup xem trailer YouTube và modal cảnh báo độ tuổi
@@ -151,30 +128,6 @@ export function MovieDetail() {
 
     return () => controller.abort();
   }, [id]);
-
-  // Sau khi có phim, gọi tiếp API lấy danh sách suất chiếu của phim này
-  useEffect(() => {
-    if (!id || notFound) return;
-
-    const controller = new AbortController();
-    setLoadingShowtimes(true);
-    setShowtimes([]);
-
-    api
-      .get('/showtimes', { params: { movieId: id, ...(cinemaId ? { cinemaId } : {}) }, signal: controller.signal })
-      .then((res) => {
-        setShowtimes(res.data?.data || []);
-      })
-      .catch(() => {
-        // nếu lỗi lịch chiếu thì coi như danh sách rỗng, không làm vỡ trang chi tiết phim
-        if (!controller.signal.aborted) setShowtimes([]);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoadingShowtimes(false);
-      });
-
-    return () => controller.abort();
-  }, [id, notFound, cinemaId]);
 
   useEffect(() => {
     const handleCinemaChange = (event) => setCinemaId(event.detail?.cinemaId || '');
@@ -444,70 +397,15 @@ export function MovieDetail() {
             </span>
           </div>
 
-          {loadingShowtimes ? (
-            <div
-              role="status"
-              aria-label="Đang tải lịch chiếu"
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            >
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <div
-                  key={`st-skeleton-${idx}`}
-                  className="h-36 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100 dark:border-cinema-borderSubtle dark:bg-cinema-card"
-                />
-              ))}
-            </div>
-          ) : showtimes.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {showtimes.map((st) => (
-                <div
-                  key={st._id}
-                  className="flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition-colors hover:border-brand-500 hover:shadow-md dark:border-cinema-borderSubtle dark:bg-cinema-card"
-                >
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400">
-                      <span>Phòng: {st.roomId?.name || 'Phòng chiếu'}</span>
-                      <span>{formatDate(st.startTime)}</span>
-                    </div>
-                    <div className="mt-2 text-2xl font-black tabular-nums text-brand-600 dark:text-brand-300">
-                      {formatTime(st.startTime)}
-                    </div>
-                    <div className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
-                      Giá từ: {st.standardPrice?.toLocaleString('vi-VN')} ₫
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <Button
-                      variant="primary"
-                      size="md"
-                      fullWidth
-                      onClick={() => handleSelectShowtime(st._id)}
-                    >
-                      Chọn ghế
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title={
-                isNowShowing
-                  ? 'Chưa có suất chiếu cho phim này'
-                  : 'Phim sắp chiếu - Chưa mở bán vé'
-              }
-              description={
-                isNowShowing
-                  ? 'Hiện tại hệ thống chưa xếp lịch chiếu mới cho phim này. Vui lòng quay lại sau!'
-                  : 'Lịch chiếu sẽ được mở trước ngày khởi chiếu vài ngày. Hãy theo dõi thường xuyên nhé!'
-              }
-              action={{
-                label: 'Xem các phim khác',
-                onClick: () => navigate('/movies'),
-              }}
-            />
-          )}
+          <ShowtimeList
+            movieId={id}
+            cinemaId={cinemaId}
+            onSelectShowtime={(showtime) => handleSelectShowtime(showtime._id)}
+            emptyTitle={isNowShowing ? 'Chưa có suất chiếu cho phim này' : 'Phim sắp chiếu - Chưa mở bán vé'}
+            emptyDescription={isNowShowing
+              ? 'Hiện tại hệ thống chưa xếp lịch chiếu mới cho phim này. Vui lòng quay lại sau!'
+              : 'Lịch chiếu sẽ được mở trước ngày khởi chiếu vài ngày. Hãy theo dõi thường xuyên nhé!'}
+          />
         </section>
 
         <div className="mt-10">

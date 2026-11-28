@@ -31,7 +31,7 @@ const formatDayLabel = (dateKey) => {
   return dateKey === today ? `Hôm nay · ${label}` : label;
 };
 
-export function ShowtimeList({ movieId }) {
+export function ShowtimeList({ movieId, cinemaId = '', onSelectShowtime, emptyTitle = 'Chưa có suất chiếu', emptyDescription = 'Phim hiện chưa có lịch chiếu. Vui lòng quay lại sau.' }) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [showtimes, setShowtimes] = useState([]);
@@ -56,7 +56,7 @@ export function ShowtimeList({ movieId }) {
     const loadShowtimes = async () => {
       try {
         const firstPage = await api.get('/showtimes', {
-          params: { movieId, page: 1, limit: 100 },
+          params: { movieId, ...(cinemaId ? { cinemaId } : {}), page: 1, limit: 100 },
           signal: controller.signal,
         });
         const firstData = firstPage.data;
@@ -65,7 +65,7 @@ export function ShowtimeList({ movieId }) {
 
         for (let page = 2; page <= pages; page += 1) {
           const response = await api.get('/showtimes', {
-            params: { movieId, page, limit: 100 },
+            params: { movieId, ...(cinemaId ? { cinemaId } : {}), page, limit: 100 },
             signal: controller.signal,
           });
           if (Array.isArray(response.data.data)) items.push(...response.data.data);
@@ -84,7 +84,7 @@ export function ShowtimeList({ movieId }) {
     loadShowtimes();
 
     return () => controller.abort();
-  }, [movieId, retryKey]);
+  }, [movieId, cinemaId, retryKey]);
 
   const groupedShowtimes = useMemo(() => {
     const groups = showtimes.reduce((byDate, showtime) => {
@@ -105,6 +105,10 @@ export function ShowtimeList({ movieId }) {
   const selectedDate = dates.includes(activeDate) ? activeDate : dates[0] || '';
 
   const selectShowtime = (showtime) => {
+    if (onSelectShowtime) {
+      onSelectShowtime(showtime);
+      return;
+    }
     const nextPath = `/showtimes/${showtime._id}/seats`;
     if (!isAuthenticated) {
       navigate('/login', {
@@ -141,8 +145,8 @@ export function ShowtimeList({ movieId }) {
   if (dates.length === 0) {
     return (
       <EmptyState
-        title="Chưa có suất chiếu"
-        description="Phim hiện chưa có lịch chiếu. Vui lòng quay lại sau."
+        title={emptyTitle}
+        description={emptyDescription}
         className="dark:border-slate-800"
       />
     );

@@ -22,7 +22,7 @@ export const AGE_RATING_META = {
     label: 'T13',
     title: 'Khán giả từ đủ 13 tuổi trở lên',
     description: 'Phim phổ biến đến người xem từ đủ 13 tuổi trở lên (13+).',
-    badgeClass: 'bg-amber-500 text-slate-950',
+    badgeClass: 'bg-amber-500 text-amber-950',
     requiresWarning: false,
   },
   T16: {
@@ -69,7 +69,7 @@ export function AgeRatingBadge({
         {meta.label}
       </span>
       {showDescription && (
-        <span className="text-xs font-medium text-slate-300">{meta.title}</span>
+        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{meta.title}</span>
       )}
     </span>
   );

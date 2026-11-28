@@ -28,7 +28,7 @@ export function Pagination({ page = 1, pages = 1, onPageChange, className = '' }
   };
 
   const buttonBase =
-    'inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border px-3.5 py-2 text-sm font-semibold transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500';
+    'inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border px-3.5 py-2 text-sm font-semibold transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-cinema-bg';
   const inactiveButton =
     'border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100 hover:border-neutral-400 dark:border-cinema-border dark:bg-cinema-card dark:text-neutral-100 dark:hover:bg-cinema-elevated';
 

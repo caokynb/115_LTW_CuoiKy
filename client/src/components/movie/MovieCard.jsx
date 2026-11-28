@@ -129,7 +129,7 @@ export function MovieCard({ movie }) {
               Đang chiếu
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-md bg-amber-500 px-2.5 py-1 text-xs font-bold text-neutral-950 shadow-sm">
+            <span className="inline-flex items-center rounded-md bg-amber-500 px-2.5 py-1 text-xs font-bold text-amber-950 shadow-sm">
               Sắp chiếu
             </span>
           )}

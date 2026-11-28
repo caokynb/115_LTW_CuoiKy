@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSeatPolling } from '../hooks/useSeatPolling';
 import { useSocketSeats } from '../hooks/useSocketSeats';
+import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import { Button, SeatMapSkeleton, useToast } from '../components/ui';
 import { SeatMap, BookingSummary, SnackSelector } from '../components/booking';
 import ConfirmDialog from '../components/seat/ConfirmDialog';
@@ -22,6 +24,7 @@ export function SeatSelection() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const { showtime, loading, error } = useSeatPolling(id);
   // kết nối Socket.io lấy danh sách ghế người khác đang giữ và hàm phát sự kiện giữ/nhả ghế
   const { heldByOthers, emitSeatHold } = useSocketSeats(id);
@@ -30,9 +33,14 @@ export function SeatSelection() {
   const snackTotal = useSelector(selectSnackTotal);
   const [step, setStep] = useState('seats'); // 'seats' | 'snacks'
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [latestSoldSeats, setLatestSoldSeats] = useState(null);
+  const refreshTimer = useRef(null);
 
   useEffect(() => {
+    setLatestSoldSeats(null);
+    clearTimeout(refreshTimer.current);
     if (id) dispatch(setBookingShowtime(id));
+    return () => clearTimeout(refreshTimer.current);
   }, [id, dispatch]);
 
   // tự quay lại bước chọn ghế nếu danh sách ghế bị rỗng khi đang ở bước chọn combo
@@ -81,6 +89,8 @@ export function SeatSelection() {
     );
   }
 
+  if (isAdmin) return <Navigate to="/forbidden" replace />;
+
   if (!showtime) {
     return (
       <section className="mx-auto max-w-xl rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
@@ -108,10 +118,22 @@ export function SeatSelection() {
     // nếu đã đủ 8 ghế thì chỉ dispatch để Redux báo lỗi giới hạn, không gửi lệnh hold lên socket
     if (!alreadySelected && selectedSeats.length >= 8) {
       dispatch(toggleSeat(seat));
+      toast.error('Bạn chỉ có thể chọn tối đa 8 ghế.');
       return;
     }
     dispatch(toggleSeat(seat));
     emitSeatHold(seat, alreadySelected ? 'release' : 'hold');
+  };
+
+  const refreshAfterConflict = async () => {
+    try {
+      const response = await api.get(`/showtimes/${id}`);
+      setLatestSoldSeats(response.data?.data?.soldSeats || []);
+      clearTimeout(refreshTimer.current);
+      refreshTimer.current = setTimeout(() => setLatestSoldSeats(null), 6000);
+    } catch {
+      toast.error('Không thể làm mới sơ đồ ghế. Hệ thống sẽ tự cập nhật sau ít giây.');
+    }
   };
 
   const handleCheckout = () => {
@@ -193,7 +215,7 @@ export function SeatSelection() {
                 rows={showtime.rows || room.rows || 8}
                 seatsPerRow={showtime.seatsPerRow || room.seatsPerRow || 10}
                 vipRows={showtime.vipRows || room.vipRows || []}
-                soldSeats={showtime.soldSeats || []}
+                soldSeats={latestSoldSeats || showtime.soldSeats || []}
                 heldSeats={heldByOthers}
                 selectedSeats={selectedSeats}
                 onSeatClick={handleSeatToggle}
@@ -237,6 +259,7 @@ export function SeatSelection() {
         seats={selectedSeats}
         snacks={selectedSnacks}
         totalAmount={totalAmount}
+        onConflict={refreshAfterConflict}
       />
     </div>
   );

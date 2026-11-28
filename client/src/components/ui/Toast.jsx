@@ -56,9 +56,9 @@ export function Toast({ message, type = 'info', onClose, className = '' }) {
           type="button"
           onClick={onClose}
           aria-label="Đóng thông báo"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg opacity-80 transition-opacity hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg opacity-80 transition-opacity hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>

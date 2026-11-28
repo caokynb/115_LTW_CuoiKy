@@ -21,10 +21,10 @@ export function FormField({
   const generatedId = useId();
   const fieldId = name ? `field-${name}-${generatedId}` : generatedId;
 
-  const baseInputStyle = `w-full min-h-[44px] rounded-xl border px-3.5 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-600 dark:disabled:bg-neutral-900 dark:disabled:text-neutral-400 ${
+  const baseInputStyle = `w-full min-h-[44px] rounded-xl border px-3.5 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-cinema-bg disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-600 dark:disabled:bg-neutral-900 dark:disabled:text-neutral-400 ${
     error
-      ? 'border-red-500 bg-red-50/60 text-neutral-900 placeholder:text-neutral-500 focus:border-red-500 focus:ring-red-200 dark:border-red-500 dark:bg-red-950/30 dark:text-neutral-100 dark:placeholder:text-neutral-400 dark:focus:ring-red-900/40'
-      : 'border-neutral-300 bg-white text-neutral-900 placeholder:text-neutral-500 focus:border-brand-600 focus:ring-brand-500/20 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100 dark:placeholder:text-neutral-400 dark:focus:border-brand-400 dark:focus:ring-brand-500/30'
+      ? 'border-red-500 bg-red-50/60 text-neutral-900 placeholder:text-neutral-500 focus:border-red-500 dark:border-red-500 dark:bg-red-950/30 dark:text-neutral-100 dark:placeholder:text-neutral-400'
+      : 'border-neutral-300 bg-white text-neutral-900 placeholder:text-neutral-500 focus:border-brand-600 dark:border-cinema-border dark:bg-cinema-elevated dark:text-neutral-100 dark:placeholder:text-neutral-400 dark:focus:border-brand-400'
   } ${inputClassName}`;
 
   return (

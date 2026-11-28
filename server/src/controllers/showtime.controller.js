@@ -24,6 +24,13 @@ const validatePrices = (body) => {
       errors[field] = 'Giá phải là số hợp lệ và không âm.';
     }
   }
+  if (
+    typeof body.standardPrice === 'number' &&
+    typeof body.vipPrice === 'number' &&
+    body.vipPrice < body.standardPrice
+  ) {
+    errors.vipPrice = 'Giá vé VIP không được thấp hơn giá vé thường.';
+  }
   return errors;
 };
 
@@ -93,7 +100,7 @@ const getShowtimes = async (req, res, next) => {
     const [data, total] = await Promise.all([
       Showtime.find(filter)
         .populate('movieId', 'title duration posterUrl')
-        .populate('roomId', 'name rows seatsPerRow vipRows')
+        .populate({ path: 'roomId', select: 'name rows seatsPerRow vipRows cinemaId', populate: { path: 'cinemaId', select: 'name address' } })
         .sort({ startTime: 1, _id: 1 })
         .skip((page - 1) * limit)
         .limit(limit),
@@ -120,7 +127,7 @@ const getShowtimeById = async (req, res, next) => {
 
     const showtime = await Showtime.findById(req.params.id)
       .populate('movieId', 'title duration posterUrl')
-      .populate('roomId', 'name rows seatsPerRow vipRows');
+      .populate({ path: 'roomId', select: 'name rows seatsPerRow vipRows cinemaId', populate: { path: 'cinemaId', select: 'name address' } });
     if (!showtime) return next(new AppError('Không tìm thấy suất chiếu.', 404));
 
     const soldTickets = await Ticket.find({
@@ -179,7 +186,7 @@ const createShowtime = async (req, res, next) => {
       message: 'Tạo suất chiếu thành công.',
       data: await showtime.populate([
         { path: 'movieId', select: 'title duration posterUrl' },
-        { path: 'roomId', select: 'name rows seatsPerRow vipRows' },
+        { path: 'roomId', select: 'name rows seatsPerRow vipRows cinemaId', populate: { path: 'cinemaId', select: 'name address' } },
       ]),
     });
   } catch (error) {
@@ -229,7 +236,7 @@ const updateShowtime = async (req, res, next) => {
       message: 'Cập nhật suất chiếu thành công.',
       data: await showtime.populate([
         { path: 'movieId', select: 'title duration posterUrl' },
-        { path: 'roomId', select: 'name rows seatsPerRow vipRows' },
+        { path: 'roomId', select: 'name rows seatsPerRow vipRows cinemaId', populate: { path: 'cinemaId', select: 'name address' } },
       ]),
     });
   } catch (error) {

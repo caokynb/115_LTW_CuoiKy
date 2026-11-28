@@ -146,6 +146,7 @@ export function ConfirmDialog({
         showtimeId,
         seats: seats.map(({ row, number }) => ({ row, number })),
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
+        ...(pointsToUse > 0 ? { pointsToUse } : {}),
         ...(Array.isArray(snacks) && snacks.length > 0
           ? { snacks: snacks.map(({ snackId, quantity }) => ({ snackId, quantity })) }
           : {}),
@@ -347,14 +348,16 @@ export function ConfirmDialog({
             >
               Thanh toán VietQR
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleConfirm}
-              loading={submitting}
-              data-testid="confirm-submit"
-            >
-              Xác nhận thanh toán
-            </Button>
+            {process.env.NODE_ENV !== 'production' && (
+              <Button
+                variant="primary"
+                onClick={handleConfirm}
+                loading={submitting}
+                data-testid="confirm-submit"
+              >
+                Xác nhận đặt vé thử
+              </Button>
+            )}
           </div>
         </>
       )}

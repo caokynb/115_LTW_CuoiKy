@@ -131,7 +131,7 @@ export function SeatMap({
         data-testid="screen-indicator"
       >
         <div className="w-4/5 h-2.5 bg-gradient-to-r from-transparent via-brand-500 to-transparent rounded-full shadow-lg shadow-brand-500/30" />
-        <p className="mt-2 text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500 font-bold">
+        <p className="mt-2 text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300 font-bold">
           Màn hình
         </p>
       </div>

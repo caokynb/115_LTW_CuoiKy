@@ -42,6 +42,23 @@ describe('HeroCarousel Component (A09)', () => {
     jest.useRealTimers();
   });
 
+  test('removes inactive slides from keyboard focus and assistive technology', () => {
+    render(
+      <MemoryRouter>
+        <HeroCarousel movies={sampleMovies} />
+      </MemoryRouter>
+    );
+
+    const activeSlide = screen.getByText('Phim Nổi Bật 1').closest('[aria-hidden]');
+    const inactiveSlide = screen.getByText('Phim Nổi Bật 2').closest('[aria-hidden]');
+
+    expect(activeSlide).toHaveAttribute('aria-hidden', 'false');
+    expect(activeSlide).not.toHaveAttribute('tabindex');
+    expect(inactiveSlide).toHaveAttribute('aria-hidden', 'true');
+    expect(inactiveSlide).toHaveAttribute('tabindex', '-1');
+    expect(inactiveSlide).toHaveAttribute('inert');
+  });
+
   test('tự động chuyển slide mỗi 5 giây và dọn dẹp interval khi unmount', () => {
     const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
 

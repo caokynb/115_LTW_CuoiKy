@@ -1,15 +1,49 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 
 // Component Modal xem trailer nhúng từ YouTube
 export function TrailerModal({ isOpen, onClose, youtubeId, movieTitle }) {
+  const dialogRef = useRef(null);
+  const titleId = useId();
+
   // Lắng nghe phím Escape và khóa cuộn trang khi mở modal
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return undefined;
+
+    const previousFocus = document.activeElement;
+    const dialog = dialogRef.current;
+    const getFocusableElements = () =>
+      Array.from(
+        dialog?.querySelectorAll(
+          'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), iframe, [tabindex]:not([tabindex="-1"])'
+        ) || []
+      ).filter((element) => !element.closest('[hidden], [aria-hidden="true"], [inert]'));
+
+    (getFocusableElements()[0] || dialog)?.focus();
 
     // bấm nút Esc trên bàn phím thì tắt modal
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && onClose) {
         onClose();
+      }
+
+      if (e.key !== 'Tab' || !dialog) return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        e.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && (document.activeElement === firstElement || document.activeElement === dialog)) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && (document.activeElement === lastElement || !dialog.contains(document.activeElement))) {
+        e.preventDefault();
+        firstElement.focus();
       }
     };
 
@@ -22,6 +56,9 @@ export function TrailerModal({ isOpen, onClose, youtubeId, movieTitle }) {
     return () => {
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);//dừng bắt hành động ấn phímm
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus();
+      }
     };
   }, [isOpen, onClose]);
 
@@ -33,6 +70,9 @@ export function TrailerModal({ isOpen, onClose, youtubeId, movieTitle }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
+      tabIndex={-1}
+      ref={dialogRef}
       onClick={() => {
         // bấm vào khoảng tối bên ngoài thì đóng modal
         if (onClose) onClose();
@@ -45,7 +85,7 @@ export function TrailerModal({ isOpen, onClose, youtubeId, movieTitle }) {
       >
         {/* Thanh tiêu đề phía trên cùng nút đóng */}
         <div className="flex items-center justify-between border-b border-cinema-borderSubtle px-5 py-3 text-white">
-          <h3 className="truncate text-base font-semibold text-neutral-100">
+          <h3 id={titleId} className="truncate text-base font-semibold text-neutral-100">
             Trailer: {movieTitle || 'Xem Trailer'}
           </h3>
           <button
@@ -54,7 +94,7 @@ export function TrailerModal({ isOpen, onClose, youtubeId, movieTitle }) {
             className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-neutral-300 transition-colors hover:bg-cinema-elevated hover:text-white"
             aria-label="Đóng trailer"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
