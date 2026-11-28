@@ -34,6 +34,7 @@ describe('Socket.io Real-time Seat Lock (K17)', () => {
     ioServer = initSeatSocket(httpServer, {
       allowedOrigins: ['http://localhost:3000'],
       holdTtlMs: 300,
+      allowUnauthenticatedHolds: true,
     });
     await new Promise((resolve) => {
       httpServer.listen(0, () => {
@@ -129,6 +130,23 @@ describe('Socket.io Real-time Seat Lock (K17)', () => {
       assert.strictEqual(expiredPayload.holds.length, 0);
     } finally {
       clientA.close();
+    }
+  });
+
+  it('từ chối khách chưa đăng nhập khi yêu cầu giữ ghế', async () => {
+    const secureServer = http.createServer(express());
+    const secureIo = initSeatSocket(secureServer, { allowedOrigins: ['http://localhost:3000'] });
+    await new Promise((resolve) => secureServer.listen(0, resolve));
+    const guest = ioClient(`http://localhost:${secureServer.address().port}`, { transports: ['websocket'] });
+    try {
+      await waitForEvent(guest, 'connect');
+      guest.emit('seat:holding', { showtimeId: 'guest_showtime', row: 'A', number: 1, action: 'hold' });
+      const rejected = await waitForEvent(guest, 'seat:hold-rejected');
+      assert.equal(rejected.code, 'AUTH_REQUIRED');
+    } finally {
+      guest.close();
+      await new Promise((resolve) => secureIo.close(resolve));
+      if (secureServer.listening) await new Promise((resolve) => secureServer.close(resolve));
     }
   });
 });

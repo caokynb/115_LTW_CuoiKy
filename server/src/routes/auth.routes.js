@@ -64,6 +64,12 @@ const loginValidation = [
 // Định nghĩa các route xác thực
 router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
+router.post('/forgot-password', [body('email').trim().isEmail().withMessage('Email không đúng định dạng'), validate], authController.forgotPassword);
+router.post('/reset-password', [
+  body('token').notEmpty().withMessage('Mã đặt lại mật khẩu không hợp lệ'),
+  body('password').isLength({ min: 6 }).withMessage('Mật khẩu phải có ít nhất 6 ký tự'),
+  validate,
+], authController.resetPassword);
 router.get('/me', verifyToken, authController.getMe);
 
 module.exports = router;

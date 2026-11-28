@@ -12,10 +12,13 @@ const resolveSocketUrl = () => {
 
 // hook kết nối Socket.io theo dõi và phát trạng thái giữ ghế thời gian thực cho một suất chiếu
 export function useSocketSeats(showtimeId) {
+  const token = typeof window !== 'undefined' ? window.localStorage.getItem('cinema_token') : null;
   const socketRef = useRef(null);
   const [socketId, setSocketId] = useState(null);
   const [connected, setConnected] = useState(false);
   const [holds, setHolds] = useState([]);
+  const [rejectedSeat, setRejectedSeat] = useState(null);
+  const clearRejectedSeat = useCallback(() => setRejectedSeat(null), []);
 
   // mở kết nối socket khi vào trang suất chiếu và dọn sạch khi rời trang
   useEffect(() => {
@@ -24,6 +27,7 @@ export function useSocketSeats(showtimeId) {
     const socket = io(resolveSocketUrl(), {
       transports: ['websocket', 'polling'],
       withCredentials: true,
+      auth: token ? { token } : {},
     });
     socketRef.current = socket;
 
@@ -44,10 +48,15 @@ export function useSocketSeats(showtimeId) {
       if (!payload || String(payload.showtimeId) !== String(showtimeId)) return;
       setHolds(Array.isArray(payload.holds) ? payload.holds : []);
     };
+    const handleHoldRejected = (payload) => {
+      if (!payload || String(payload.showtimeId) !== String(showtimeId)) return;
+      setRejectedSeat(payload);
+    };
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('seat:holds', handleSeatHolds);
+    socket.on('seat:hold-rejected', handleHoldRejected);
 
     // trường hợp socket đã sẵn sàng ngay khi mount thì chủ động join phòng luôn
     if (socket.connected) {
@@ -60,13 +69,14 @@ export function useSocketSeats(showtimeId) {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('seat:holds', handleSeatHolds);
+      socket.off('seat:hold-rejected', handleHoldRejected);
       socket.disconnect();
       socketRef.current = null;
       setConnected(false);
       setSocketId(null);
       setHolds([]);
     };
-  }, [showtimeId]);
+  }, [showtimeId, token]);
 
   // phát sự kiện giữ hoặc bỏ giữ một ghế lên server
   const emitSeatHold = useCallback(
@@ -92,6 +102,8 @@ export function useSocketSeats(showtimeId) {
     heldByOthers,
     emitSeatHold,
     connected,
+    rejectedSeat,
+    clearRejectedSeat,
   };
 }
 

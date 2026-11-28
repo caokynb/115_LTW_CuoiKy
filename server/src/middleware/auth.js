@@ -44,6 +44,10 @@ const verifyToken = async (req, res, next) => {
       );
     }
 
+    if (!currentUser.isActive || (Number(decoded.tokenVersion) || 0) !== (Number(currentUser.tokenVersion) || 0)) {
+      return next(new AppError('Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại!', 401));
+    }
+
     req.user = currentUser;
     next();
   } catch (error) {

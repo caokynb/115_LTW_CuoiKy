@@ -12,6 +12,7 @@ const signToken = (user) => {
     {
       id: userId,
       role: user.role,
+      tokenVersion: Number(user.tokenVersion) || 0,
     },
     process.env.JWT_SECRET,
     {

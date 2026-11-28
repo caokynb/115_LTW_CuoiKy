@@ -1,6 +1,24 @@
 const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const { signToken } = require('../utils/token');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
+let resetMailer;
+
+const getResetMailer = () => {
+  if (resetMailer) return resetMailer;
+  resetMailer = process.env.SMTP_HOST && process.env.SMTP_USER
+    ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    })
+    : nodemailer.createTransport({ jsonTransport: true });
+  return resetMailer;
+};
 
 /**
  * Xử lý làm sạch đối tượng User trước khi trả về Client
@@ -87,6 +105,8 @@ const login = async (req, res, next) => {
       );
     }
 
+    if (!user.isActive) return next(new AppError('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.', 403));
+
     // So sánh mật khẩu bằng bcrypt (DoD: sai mật khẩu trả 401)
     const isPasswordCorrect = await user.comparePassword(password);
     if (!isPasswordCorrect) {
@@ -106,6 +126,53 @@ const login = async (req, res, next) => {
         user: sanitizeUser(user),
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const user = await User.findOne({ email });
+    if (user && user.isActive) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      user.passwordResetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      user.passwordResetExpiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+      await user.save();
+
+      const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').split(',')[0].trim();
+      const resetUrl = `${clientUrl.replace(/\/$/, '')}/reset-password/${resetToken}`;
+      await getResetMailer().sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@cinehub.local',
+        to: user.email,
+        subject: 'Đặt lại mật khẩu CineHub',
+        text: `Mở liên kết sau để đặt lại mật khẩu (có hiệu lực trong 15 phút): ${resetUrl}`,
+      });
+    }
+    res.status(200).json({ success: true, message: 'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    const tokenHash = crypto.createHash('sha256').update(String(token || '')).digest('hex');
+    const user = await User.findOne({
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpiresAt: { $gt: new Date() },
+      isActive: true,
+    }).select('+passwordResetTokenHash +passwordResetExpiresAt');
+    if (!user) return next(new AppError('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.', 400));
+
+    user.passwordHash = await User.hashPassword(password);
+    user.passwordResetTokenHash = undefined;
+    user.passwordResetExpiresAt = undefined;
+    user.tokenVersion = (Number(user.tokenVersion) || 0) + 1;
+    await user.save();
+    res.status(200).json({ success: true, message: 'Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.' });
   } catch (error) {
     next(error);
   }
@@ -132,4 +199,6 @@ module.exports = {
   register,
   login,
   getMe,
+  forgotPassword,
+  resetPassword,
 };
