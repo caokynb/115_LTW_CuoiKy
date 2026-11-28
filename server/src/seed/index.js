@@ -7,6 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const User = require('../models/User');
 const Movie = require('../models/Movie');
 const Room = require('../models/Room');
+const Cinema = require('../models/Cinema');
 const Showtime = require('../models/Showtime');
 const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
@@ -16,6 +17,7 @@ const Snack = require('../models/Snack');
 const demoUsers = require('./data/users');
 const movieSeeds = require('./data/movies');
 const roomSeeds = require('./data/rooms');
+const cinemaSeeds = require('./data/cinemas');
 const showtimeConfig = require('./data/showtimes');
 const couponSeeds = require('./data/coupons');
 const snackSeeds = require('./data/snacks');
@@ -96,7 +98,18 @@ const seedMovies = async (reference) => {
   return created;
 };
 
-const seedRooms = async () => {
+const seedCinemas = async () => {
+  for (const cinemaData of cinemaSeeds) {
+    await Cinema.updateOne(
+      { name: cinemaData.name },
+      { $setOnInsert: cinemaData },
+      { upsert: true }
+    );
+  }
+  return Cinema.findOne({ name: cinemaSeeds[0].name });
+};
+
+const seedRooms = async (cinema) => {
   let created = 0;
 
   for (const roomData of roomSeeds) {
@@ -106,6 +119,20 @@ const seedRooms = async () => {
       { upsert: true }
     );
     created += result.upsertedCount || 0;
+  }
+
+  if (cinema) {
+    const rooms = await Room.find({ name: { $in: roomSeeds.map(({ name }) => name) } }).select('_id');
+    const roomIds = rooms.map((room) => room._id);
+    if (roomIds.length) {
+      // Chỉ chuẩn hóa phòng mẫu được quản lý bởi seed, không xóa dữ liệu rạp khác.
+      await Cinema.updateMany(
+        { _id: { $ne: cinema._id }, rooms: { $in: roomIds } },
+        { $pull: { rooms: { $in: roomIds } } }
+      );
+      await Room.updateMany({ _id: { $in: roomIds } }, { $set: { cinemaId: cinema._id } });
+      await Cinema.updateOne({ _id: cinema._id }, { $addToSet: { rooms: { $each: roomIds } } });
+    }
   }
 
   return created;
@@ -296,10 +323,11 @@ const seed = async () => {
 
   await mongoose.connect(process.env.MONGODB_URI);
   const reference = new Date();
+  const cinema = await seedCinemas();
   const [usersCreated, moviesCreated, roomsCreated, couponsCreated, snacksCreated] = await Promise.all([
     seedUsers(),
     seedMovies(reference),
-    seedRooms(),
+    seedRooms(cinema),
     seedCoupons(reference),
     seedSnacks(),
   ]);

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Movie = require('../models/Movie');
 const Showtime = require('../models/Showtime');
 const { validateMovieInput } = require('../validators/movie.validator');
@@ -59,8 +60,25 @@ const getMovies = async (req, res, next) => {
             query.status = status.trim();
         }
 
-        // 4. Lọc theo ngày chiếu (releaseDate)
-        const targetDate = date || releaseDate;
+        // Bộ lọc date dùng ngày chiếu tại TP.HCM, không dùng ngày khởi chiếu.
+        if (date) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return next(new AppError('date phải có định dạng YYYY-MM-DD.', 400));
+            }
+            const dayStart = new Date(`${date}T00:00:00.000Z`);
+            if (Number.isNaN(dayStart.getTime()) || dayStart.toISOString().slice(0, 10) !== date) {
+                return next(new AppError('Ngày lọc không hợp lệ.', 400));
+            }
+            const from = new Date(dayStart.getTime() - 7 * 60 * 60 * 1000);
+            const until = new Date(from.getTime() + 24 * 60 * 60 * 1000);
+            const movieIds = await Showtime.distinct('movieId', {
+                startTime: { $gte: from, $lt: until },
+            });
+            query._id = { $in: movieIds };
+        }
+
+        // Giữ releaseDate/fromDate/toDate để tương thích các màn hình cũ.
+        const targetDate = releaseDate;
         if (targetDate && !isNaN(Date.parse(targetDate))) {
             const startOfDay = new Date(targetDate);
             startOfDay.setHours(0, 0, 0, 0);
@@ -148,6 +166,9 @@ const getMovieGenres = async (req, res, next) => {
 const getMovieById = async (req, res, next) => {
     try {
         const { id } = req.params;
+        if (!mongoose.isObjectIdOrHexString(id)) {
+            return next(new AppError('Không tìm thấy phim với ID này!', 404));
+        }
         const movie = await Movie.findById(id);
 
         if (!movie) {

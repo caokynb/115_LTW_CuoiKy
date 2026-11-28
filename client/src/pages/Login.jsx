@@ -139,6 +139,7 @@ export function Login() {
         Chưa có tài khoản?{' '}
         <Link
           to="/register"
+          state={fromLocation ? { from: fromLocation } : undefined}
           className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200"
         >
           Đăng ký ngay

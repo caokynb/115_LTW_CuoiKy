@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 
 const roomSchema = new mongoose.Schema(
   {
+    cinemaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Cinema',
+      default: null,
+      index: true,
+    },
     name: {
       type: String,
       required: [true, 'Tên phòng không được để trống'],
