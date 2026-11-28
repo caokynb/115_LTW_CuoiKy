@@ -87,7 +87,7 @@ Bài toán kinh điển trong hệ thống đặt vé trực tuyến là **Race 
 ```mermaid
 flowchart LR
     T0["Tầng 0: Client & Socket.IO<br/>- Redux giới hạn 8 ghế<br/>- Socket.IO giữ tạm 5 phút<br/>- Polling 5s đồng bộ ghế bán"] --> T1["Tầng 1: Pre-check Query<br/>Ticket.find(showtimeId, status:'active')<br/>Trùng -> trả ngay HTTP 409"]
-    T1 --> T2["Tầng 2: MongoDB Partial Unique Index<br/>unique: { showtimeId, row, number }<br/>partialFilter: { status: 'active' }"]
+    T1 --> T2["Tầng 2: MongoDB Partial Unique Index<br/>unique: { showtimeId, row, number }<br/>partialFilter: { status: { $in: ['active', 'checked-in'] } }"]
     T2 -->|"Insert thành công"| OK["HTTP 201 Created<br/>Tích điểm & Gửi Email QR"]
     T2 -->|"Lỗi E11000 (Race Condition)"| RB["Atomic Rollback<br/>Xóa Booking & Ticket dở dang<br/>Hoàn lượt Coupon -> HTTP 409"]
 ```
@@ -107,10 +107,10 @@ flowchart LR
      ```javascript
      ticketSchema.index(
        { showtimeId: 1, row: 1, number: 1 },
-       { unique: true, partialFilterExpression: { status: 'active' } }
+       { unique: true, partialFilterExpression: { status: { $in: ['active', 'checked-in'] } } }
      );
      ```
-   - Việc dùng `partialFilterExpression: { status: 'active' }` đạt đồng thời 2 mục tiêu: (a) Đảm bảo ở mức nhân CSDL không bao giờ tồn tại 2 vé `active` trùng `(showtimeId, row, number)` dù hàng chục request đến cùng lúc; (b) Khi khách hàng hủy vé hợp lệ (`PATCH /api/bookings/:id/cancel`), vé chuyển sang `status: 'cancelled'` nên tự động rời khỏi vùng khóa index, cho phép người khác đặt lại ghế đó ngay lập tức.
+   - Việc dùng `partialFilterExpression: { status: { $in: ['active', 'checked-in'] } }` đạt đồng thời 2 mục tiêu: (a) Đảm bảo ở mức nhân CSDL không bao giờ tồn tại 2 vé `active` hoặc `checked-in` trùng `(showtimeId, row, number)` dù hàng chục request đến cùng lúc hay vé đã được soát tại rạp; (b) Khi khách hàng hủy vé hợp lệ (`PATCH /api/bookings/:id/cancel`), vé chuyển sang `status: 'cancelled'` nên tự động rời khỏi vùng khóa index, cho phép người khác đặt lại ghế đó ngay lập tức.
    - Khi `Ticket.insertMany(ticketDocs, { ordered: true })` vấp lỗi trùng khóa MongoDB `E11000` (trường hợp đặt nhiều ghế và ghế thứ 2 bị tranh chấp), khối `catch` lập tức thực hiện **Rollback**: xóa toàn bộ `Ticket` vừa chèn dở dang theo `bookingId`, xóa bản ghi `Booking` mồ côi, hoàn lại `usedCount` của `Coupon` (nếu có), truy vấn lại đúng danh sách ghế đang chiếm chỗ và trả về HTTP `409 Conflict` kèm `conflictingSeats`. Phía Client (`ConfirmDialog.jsx`) nhận mã `409` sẽ hiển thị cảnh báo rõ tên từng ghế đã mất, tự động `dispatch(toggleSeat)` bỏ chọn các ghế đó và gọi `onConflict()` làm mới sơ đồ.
 
 ### 2.2. Bằng chứng kiểm thử chịu tải đồng thời
@@ -143,19 +143,19 @@ Trong đó, bộ 3 hook thời gian thực **`useCountdown`**, **`useSeatPolling
 
 ## 4. Bảng phân công nhiệm vụ và tỷ lệ đóng góp
 
-Dự án được tổ chức theo quy trình Git Branch Isolation (mỗi tính năng phát triển trên một nhánh riêng `feat/*`, `fix/*`, `chore/*`, `docs/*`, vượt qua kiểm định tự động trước khi merge vào `main`). Thống kê trực tiếp từ lịch sử commit trên nhánh `main` (`git shortlog -sn --no-merges main`, tổng **107 commit** tính năng/sửa lỗi không tính merge commit) cho thấy khối lượng công việc được phân bổ rất đồng đều giữa 4 thành viên:
+Dự án được tổ chức theo quy trình Git Branch Isolation (mỗi tính năng phát triển trên một nhánh riêng `feat/*`, `fix/*`, `chore/*`, `docs/*`, vượt qua kiểm định tự động trước khi merge vào `main`). Thống kê trực tiếp từ lịch sử commit trên nhánh `main` (`git shortlog -sn --no-merges main`, tổng **111 commit** tính năng/sửa lỗi không tính merge commit) cho thấy khối lượng công việc được phân bổ rất đồng đều giữa 4 thành viên:
 
 | STT | Thành viên | Tài khoản Git | Số commit trên `main` (không tính merge) | Tỷ lệ commit thực tế | Tỷ lệ đóng góp thống nhất | Phạm vi nhiệm vụ & Sản phẩm chính đã hoàn thành |
 | :-: | :--- | :--- | :-: | :-: | :-: | :--- |
-| 1 | **Dương Tuấn Tú** | `tusena207` | **28** | 26,2% | **25%** | **Luồng đặt vé & Hậu đặt vé:** Redux `bookingSlice` (giới hạn 8 ghế + `selectedSnacks`), bước chọn combo bắp nước sau chọn ghế (`SeatSelection.jsx`, `SnackSelector.jsx`), `useCountdown` & `CountdownTimer`, `ConfirmDialog` (áp mã giảm giá + trừ điểm tích lũy), `BookingDetail` & `TicketQR` (tải/in mã QR), `AdminBookings` (lọc & phân trang server), responsive ma trận ghế, **T16** Email xác nhận vé kèm QR (`email.service.js`, `ticketEmail.html`), **T17** Soát vé QR tại quầy (`/admin/scanner`, `TicketScanner.jsx`), **T18** Tích điểm 5% & Hạng thành viên (`RewardPoint.js`, `loyalty.controller.js`, `Profile.jsx`), kiểm thử cạnh tranh & tính giá, `README.md` và Báo cáo phần Đặt vé. |
-| 2 | **Phạm Tuấn Anh** | `Phạm Tuấn Anh` | **28** | 26,2% | **25%** | **Quản lý nội dung phim, F&B & Khuyến mãi:** Model & API `Movie` (CRUD, lọc thể loại, tìm kiếm, phân trang, xếp hạng độ tuổi, đánh giá phim), tích hợp poster & backdrop tiếng Việt từ TMDB, API & giao diện quản trị `Movies` / `MovieForm`, `HeroCarousel`, hệ thống `Snack` (combo bắp nước API + Admin CRUD), hệ thống `Coupon` / Voucher (validate server-side + Admin CRUD) và các bộ test tương ứng. |
-| 3 | **Cao Kỳ** | `caokynb` | **26** | 24,3% | **25%** | **Kiến trúc lõi, Bảo mật & Thanh toán:** Khởi tạo cấu trúc MERN, hệ thống xác thực JWT & phân quyền RBAC (`auth.controller.js`, `verifyToken`, `requireRole`), Security Hardening (`helmet`, CORS whitelist, giới hạn body 100KB, `authLimiter` chống brute-force), Booking API lõi & hủy vé hoàn ghế (**K11**), khóa ghế thời gian thực Socket.IO (**K17** `seatSocket.js`, `useSocketSeats`), cổng thanh toán VietQR giữ chỗ 10 phút (`payment.controller.js`, `Checkout.jsx`), cấu hình deploy Vercel/Netlify/Render (**K13**) và Báo cáo Kiến trúc hệ thống. |
-| 4 | **Mai Hoàng Phúc** | `Mai Hoàng Phúc` / `mits1612` | **25** | 23,4% | **25%** | **Hệ thống rạp, Lịch chiếu, UI Kit & Thống kê:** Bộ component UI Kit dùng chung (`Button`, `Modal`, `Toast`, `Spinner`, `Skeleton`, `FormField`), `MainLayout` & `AdminLayout`, Cinema Dark/Light Mode (`ThemeContext`), quản lý Đa cụm rạp (`Cinema`), Phòng chiếu (`Room`), Suất chiếu (`Showtime` kèm thuật toán chống trùng khung giờ cùng phòng), Dashboard thống kê doanh thu & tỷ lệ lấp đầy (`stats.controller.js`, `Dashboard.jsx`), script `seed` dữ liệu demo idempotent, đặc tả `docs/api.md` và Báo cáo Thiết kế CSDL. |
-| | **Tổng cộng** | | **107** | **100%** | **100%** | **Đạt 100% tiêu chí N1–N9, vượt qua toàn bộ 191 bài test tự động.** |
+| 1 | **Dương Tuấn Tú** | `tusena207` | **32** | 28,8% | **25%** | **Luồng đặt vé & Hậu đặt vé:** Redux `bookingSlice` (giới hạn 8 ghế + `selectedSnacks`), bước chọn combo bắp nước sau chọn ghế (`SeatSelection.jsx`, `SnackSelector.jsx`), `useCountdown` & `CountdownTimer`, `ConfirmDialog` (áp mã giảm giá + trừ điểm tích lũy), `BookingDetail` & `TicketQR` (tải/in mã QR), `AdminBookings` (lọc & phân trang server), responsive ma trận ghế, **T16** Email xác nhận vé kèm QR (`email.service.js`, `ticketEmail.html`), **T17** Soát vé QR tại quầy (`/admin/scanner`, `TicketScanner.jsx` hỗ trợ `jsQR` đa trình duyệt), **T18** Tích điểm 5% & Hạng thành viên (`RewardPoint.js`, `loyalty.controller.js`, `Profile.jsx`), sửa vòng đời vé `checked-in` / hoàn điểm & coupon / bảo mật Auth 429 & VietQR webhook, `README.md` và Báo cáo phần Đặt vé. |
+| 2 | **Phạm Tuấn Anh** | `Phạm Tuấn Anh` | **28** | 25,2% | **25%** | **Quản lý nội dung phim, F&B & Khuyến mãi:** Model & API `Movie` (CRUD, lọc thể loại, tìm kiếm, phân trang, xếp hạng độ tuổi, đánh giá phim), tích hợp poster & backdrop tiếng Việt từ TMDB, API & giao diện quản trị `Movies` / `MovieForm`, `HeroCarousel`, hệ thống `Snack` (combo bắp nước API + Admin CRUD), hệ thống `Coupon` / Voucher (validate server-side + Admin CRUD) và các bộ test tương ứng. |
+| 3 | **Cao Kỳ** | `caokynb` | **26** | 23,4% | **25%** | **Kiến trúc lõi, Bảo mật & Thanh toán:** Khởi tạo cấu trúc MERN, hệ thống xác thực JWT & phân quyền RBAC (`auth.controller.js`, `verifyToken`, `requireRole`), Security Hardening (`helmet`, CORS whitelist, giới hạn body 100KB, `authLimiter` chống brute-force), Booking API lõi & hủy vé hoàn ghế (**K11**), khóa ghế thời gian thực Socket.IO (**K17** `seatSocket.js`, `useSocketSeats`), cổng thanh toán VietQR giữ chỗ 10 phút (`payment.controller.js`, `Checkout.jsx`), cấu hình deploy Vercel/Netlify/Render (**K13**) và Báo cáo Kiến trúc hệ thống. |
+| 4 | **Mai Hoàng Phúc** | `Mai Hoàng Phúc` / `mits1612` | **25** | 22,5% | **25%** | **Hệ thống rạp, Lịch chiếu, UI Kit & Thống kê:** Bộ component UI Kit dùng chung (`Button`, `Modal`, `Toast`, `Spinner`, `Skeleton`, `FormField`), `MainLayout` & `AdminLayout`, Cinema Dark/Light Mode (`ThemeContext`), quản lý Đa cụm rạp (`Cinema`), Phòng chiếu (`Room`), Suất chiếu (`Showtime` kèm thuật toán chống trùng khung giờ cùng phòng), Dashboard thống kê doanh thu & tỷ lệ lấp đầy (`stats.controller.js`, `Dashboard.jsx`), script `seed` dữ liệu demo idempotent, đặc tả `docs/api.md` và Báo cáo Thiết kế CSDL. |
+| | **Tổng cộng** | | **111** | **100%** | **100%** | **Đạt 100% tiêu chí N1–N9, vượt qua toàn bộ 199 bài test tự động.** |
 
 *Bảng 3: Bảng phân công nhiệm vụ và tỷ lệ đóng góp đối chiếu trực tiếp từ lịch sử commit trên nhánh `main`.*
 
-*(Ghi chú đối chiếu Git: Hai định danh `Mai Hoàng Phúc` — 23 commits và `mits1612` — 2 commits cùng sử dụng chung địa chỉ email `samsung1091110@gmail.com` của thành viên Mai Hoàng Phúc, tổng cộng 25 commits. Mức chênh lệch giữa thành viên có nhiều commit nhất và ít nhất chỉ là 3 commits, phản ánh sự phối hợp cân bằng và kỷ luật của cả 4 thành viên trong suốt đồ án.)*
+*(Ghi chú đối chiếu Git: Hai định danh `Mai Hoàng Phúc` — 23 commits và `mits1612` — 2 commits cùng sử dụng chung địa chỉ email `samsung1091110@gmail.com` của thành viên Mai Hoàng Phúc, tổng cộng 25 commits. Khối lượng công việc được phân bổ cân bằng và kỷ luật giữa cả 4 thành viên trong suốt đồ án.)*
 
 ---
 
@@ -167,7 +167,7 @@ Sau quá trình phân tích, thiết kế, cài đặt và kiểm thử nghiêm 
 
 - **Hoàn thiện nghiệp vụ đầu-cuối:** Bao phủ đầy đủ trải nghiệm khách hàng (khám phá phim, xem trailer, chọn ghế thời gian thực, chọn combo bắp nước, áp dụng voucher & điểm thưởng, thanh toán VietQR, nhận vé QR qua email, xem/hủy vé) lẫn quản trị rạp (quản lý danh mục, thống kê doanh thu/lấp đầy và soát vé QR trực tiếp tại quầy).
 - **An toàn dữ liệu và tính nhất quán cao:** Áp dụng triệt để Authoritative Server Pricing, phân quyền RBAC trên cả Client và Server, phòng thủ bảo mật (`Helmet`, CORS whitelist, `rate-limit`, giới hạn payload) và cơ chế chống đặt trùng ghế 3 tầng kèm rollback nguyên tử.
-- **Chất lượng kiểm chứng bằng tự động hóa:** Toàn bộ mã nguồn trên nhánh `main` đều đạt chuẩn Verification Gate với **29/29 bộ test Client (125/125 tests pass)**, **Production Build React thành công không lỗi**, và **16/16 bộ test tích hợp Server (66/66 tests pass, 0 failed)**.
+- **Chất lượng kiểm chứng bằng tự động hóa:** Toàn bộ mã nguồn trên nhánh `main` đều đạt chuẩn Verification Gate với **29/29 bộ test Client (125/125 tests pass)**, **Production Build React thành công không lỗi**, và **18/18 bộ test tích hợp Server (74/74 tests pass, 0 failed)** — tổng cộng **199 bài kiểm thử tự động pass 100%**.
 
 ### 5.2. Hạn chế và Hướng phát triển
 
