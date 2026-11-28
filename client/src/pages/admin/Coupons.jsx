@@ -233,29 +233,44 @@ export function AdminCoupons() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select
-          label="Trạng thái"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          options={STATUS_FILTER_OPTIONS}
-        />
+        <div className="space-y-1.5">
+          <label
+            htmlFor="coupon-status-filter"
+            className="block text-sm font-medium text-neutral-700 dark:text-neutral-200"
+          >
+            Trạng thái
+          </label>
+          <Select
+            id="coupon-status-filter"
+            ariaLabel="Trạng thái"
+            value={statusFilter}
+            onChange={(nextVal) =>
+              setStatusFilter(typeof nextVal === 'string' ? nextVal : nextVal?.target?.value || 'all')
+            }
+            options={STATUS_FILTER_OPTIONS}
+          />
+        </div>
       </div>
 
       {loading ? (
-        <TableSkeleton rows={5} cols={6} />
+        <TableSkeleton rows={5} columns={6} />
       ) : loadError ? (
         <EmptyState
           title="Không tải được danh sách voucher"
           description={loadError}
-          actionLabel="Thử lại"
-          onAction={() => setRefreshKey((k) => k + 1)}
+          action={{
+            label: 'Thử lại',
+            onClick: () => setRefreshKey((k) => k + 1),
+          }}
         />
       ) : coupons.length === 0 ? (
         <EmptyState
           title="Chưa có mã giảm giá nào"
           description="Nhấn Thêm voucher để tạo mã khuyến mãi đầu tiên cho khách hàng."
-          actionLabel="Thêm voucher"
-          onAction={openCreate}
+          action={{
+            label: 'Thêm voucher',
+            onClick: openCreate,
+          }}
         />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-cinema-borderSubtle dark:bg-cinema-card">
@@ -385,12 +400,27 @@ export function AdminCoupons() {
                 setFormValues((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))
               }
             />
-            <Select
-              label="Loại giảm giá"
-              value={formValues.discountType}
-              onChange={(e) => setFormValues((prev) => ({ ...prev, discountType: e.target.value }))}
-              options={DISCOUNT_TYPE_OPTIONS}
-            />
+            <div className="space-y-1.5">
+              <label
+                htmlFor="coupon-discount-type"
+                className="block text-sm font-medium text-neutral-700 dark:text-neutral-200"
+              >
+                Loại giảm giá
+              </label>
+              <Select
+                id="coupon-discount-type"
+                ariaLabel="Loại giảm giá"
+                value={formValues.discountType}
+                onChange={(nextVal) =>
+                  setFormValues((prev) => ({
+                    ...prev,
+                    discountType:
+                      typeof nextVal === 'string' ? nextVal : nextVal?.target?.value || 'percent',
+                  }))
+                }
+                options={DISCOUNT_TYPE_OPTIONS}
+              />
+            </div>
           </div>
 
           <FormField

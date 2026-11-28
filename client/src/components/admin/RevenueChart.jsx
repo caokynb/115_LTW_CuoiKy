@@ -396,7 +396,7 @@ export function RevenueChart({
                   left: `${Math.min(82, Math.max(18, (activePoint.x / chartWidth) * 100))}%`,
                   top: `${Math.max(8, ((activePoint.y - 12) / chartHeight) * 100)}%`,
                 }}
-                className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-xl border border-neutral-200 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur-sm dark:border-cinema-border dark:bg-cinema-surfaceElevated/95"
+                className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-xl border border-neutral-200 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur-sm dark:border-cinema-border dark:bg-cinema-elevated/95"
               >
                 <p className="font-semibold text-neutral-900 dark:text-white">{activePoint.label}</p>
                 <p className="mt-0.5 font-bold tabular-nums text-rose-600 dark:text-rose-400">

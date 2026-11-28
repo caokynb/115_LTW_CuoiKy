@@ -71,6 +71,12 @@ const errorHandler = (err, req, res, next) => {
   let error = err;
 
   // Chuyển đổi các lỗi ngoại lệ phổ biến thành AppError chuẩn
+  if (
+    err.type === 'entity.parse.failed' ||
+    (err instanceof SyntaxError && err.status === 400 && 'body' in err)
+  ) {
+    error = new AppError('Dữ liệu JSON gửi lên không đúng định dạng.', 400);
+  }
   if (err.name === 'CastError') error = handleCastErrorDB(err);
   if (err.code === 11000) error = handleDuplicateFieldsDB(err);
   if (err.name === 'ValidationError') error = handleValidationErrorDB(err);

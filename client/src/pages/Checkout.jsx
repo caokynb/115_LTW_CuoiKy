@@ -28,6 +28,14 @@ export function Checkout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [qrLoadError, setQrLoadError] = useState(false);
+
+  const paymentStatus = payment?.status;
+
+  // reset lỗi tải ảnh QR mỗi khi đổi mã thanh toán
+  useEffect(() => {
+    setQrLoadError(false);
+  }, [payment?.qrUrl]);
 
   // gọi API lấy trạng thái mới nhất của phiên thanh toán
   const fetchPaymentStatus = useCallback(async () => {
@@ -60,17 +68,17 @@ export function Checkout() {
 
   // tự động polling trạng thái mỗi 3 giây khi đơn vẫn đang chờ thanh toán
   useEffect(() => {
-    if (!payment || payment.status !== 'pending') return undefined;
+    if (paymentStatus !== 'pending') return undefined;
     const pollId = setInterval(() => {
       fetchPaymentStatus();
     }, 3000);
     // dọn interval khi rời trang hoặc trạng thái không còn pending
     return () => clearInterval(pollId);
-  }, [payment, fetchPaymentStatus]);
+  }, [paymentStatus, fetchPaymentStatus]);
 
   // đếm ngược từng giây trên giao diện và đồng bộ lại server khi hết giờ
   useEffect(() => {
-    if (!payment || payment.status !== 'pending') return undefined;
+    if (paymentStatus !== 'pending') return undefined;
     const timerId = setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
@@ -81,7 +89,7 @@ export function Checkout() {
       });
     }, 1000);
     return () => clearInterval(timerId);
-  }, [payment, fetchPaymentStatus]);
+  }, [paymentStatus, fetchPaymentStatus]);
 
   // gửi tín hiệu webhook demo để xác nhận thanh toán thành công ngay trên giao diện kiểm thử
   const handleSimulateWebhook = async () => {
@@ -156,7 +164,7 @@ export function Checkout() {
   const seatsLabel = tickets.map((t) => `${t.row}${t.number}`).join(', ') || '—';
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8">
       {/* phần đầu hiển thị mã đơn và đồng hồ đếm ngược giữ chỗ 10 phút */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -206,11 +214,31 @@ export function Checkout() {
               Quét mã VietQR bằng ứng dụng ngân hàng
             </p>
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-              <img
-                src={payment.qrUrl}
-                alt={`Mã VietQR đơn ${payment.orderCode}`}
-                className="h-64 w-64 object-contain"
-              />
+              {qrLoadError || !payment.qrUrl ? (
+                <div
+                  role="alert"
+                  className="flex h-64 w-64 flex-col items-center justify-center gap-2 rounded-lg bg-slate-50 p-4 text-center text-xs text-slate-600"
+                >
+                  <p className="font-semibold text-slate-800">Không tải được ảnh mã VietQR</p>
+                  <p>Vui lòng chuyển khoản thủ công theo thông tin ngân hàng bên dưới hoặc tải lại ảnh.</p>
+                  {payment.qrUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setQrLoadError(false)}
+                      className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Tải lại mã QR
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <img
+                  src={payment.qrUrl}
+                  alt={`Mã VietQR đơn ${payment.orderCode}`}
+                  onError={() => setQrLoadError(true)}
+                  className="h-64 w-64 object-contain"
+                />
+              )}
             </div>
             <div className="mt-4 w-full space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
               <div className="flex justify-between">
@@ -285,7 +313,7 @@ export function Checkout() {
           </section>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

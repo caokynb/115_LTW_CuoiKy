@@ -47,7 +47,9 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const requestUrl = error.config?.url || '';
     const isAuthEndpoint =
-      requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/register') ||
+      requestUrl.includes('/payments/webhook');
 
     if (status === 401 && !isAuthEndpoint && typeof window !== 'undefined') {
       window.localStorage.removeItem(TOKEN_STORAGE_KEY);

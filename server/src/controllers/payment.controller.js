@@ -6,7 +6,10 @@ const Ticket = require('../models/Ticket');
 const Showtime = require('../models/Showtime');
 const Coupon = require('../models/Coupon');
 const Snack = require('../models/Snack');
+const User = require('../models/User');
+const RewardPoint = require('../models/RewardPoint');
 const { evaluateCoupon } = require('./coupon.controller');
+const { sendBookingConfirmationEmail } = require('../services/email.service');
 
 // lấy thời gian giữ chỗ mặc định (10 phút) từ model Payment
 const { PAYMENT_TTL_MS } = Payment;
@@ -70,9 +73,44 @@ const expireStalePayments = async () => {
           { $inc: { usedCount: -1 } }
         );
       }
+
+      // hoàn lại điểm tích lũy đã giữ nếu đơn pending trước đó có dùng điểm
+      if (booking.pointsUsed > 0) {
+        const refundedUser = await User.findByIdAndUpdate(
+          booking.userId,
+          { $inc: { rewardPoints: booking.pointsUsed } },
+          { returnDocument: 'after' }
+        );
+        if (refundedUser) {
+          await RewardPoint.create({
+            userId: booking.userId,
+            bookingId: booking._id,
+            points: booking.pointsUsed,
+            type: 'refund',
+            description: `Hoàn điểm do phiên thanh toán đơn #${booking._id} hết hạn`,
+            balanceAfter: refundedUser.rewardPoints || 0,
+          });
+        }
+      }
     }
   }
 };
+
+// tự động dọn phiên thanh toán pending quá hạn mỗi 60 giây (dùng .unref() để không treo tiến trình test)
+const startPendingPaymentCleanupCron = () => {
+  const timer = setInterval(() => {
+    if (mongoose.connection.readyState === 1) {
+      expireStalePayments().catch((err) => {
+        console.error('[Payment Cron] Lỗi dọn phiên thanh toán hết hạn:', err.message);
+      });
+    }
+  }, 60 * 1000);
+  if (typeof timer.unref === 'function') {
+    timer.unref();
+  }
+  return timer;
+};
+startPendingPaymentCleanupCron();
 
 // khởi tạo phiên thanh toán VietQR kèm đơn pending 10 phút: POST /api/payments/create
 const createPaymentSession = async (req, res, next) => {
@@ -289,6 +327,29 @@ const createPaymentSession = async (req, res, next) => {
       appliedCouponCode = couponResult.coupon.code;
     }
 
+    // kiểm tra dùng điểm tích lũy giảm trừ tiền vé khi tạo phiên VietQR
+    let pointsToUse = Number(req.body.pointsToUse || req.body.usePoints || 0);
+    let currentUser = null;
+    if (pointsToUse > 0) {
+      if (!Number.isInteger(pointsToUse) || pointsToUse < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số điểm sử dụng phải là số nguyên dương.',
+        });
+      }
+      currentUser = await User.findById(req.user._id);
+      if (!currentUser || (currentUser.rewardPoints || 0) < pointsToUse) {
+        return res.status(400).json({
+          success: false,
+          message: 'Số điểm tích lũy không đủ để thực hiện thanh toán.',
+        });
+      }
+      if (pointsToUse > totalPrice) {
+        pointsToUse = totalPrice;
+      }
+      totalPrice = Math.max(0, totalPrice - pointsToUse);
+    }
+
     // kiểm tra lớp 1 xem có ghế nào đang bị giữ hoặc đã bán chưa
     const seatConditions = resolvedSeats.map((s) => ({ row: s.row, number: s.number }));
     const existingTickets = await Ticket.find({
@@ -329,6 +390,7 @@ const createPaymentSession = async (req, res, next) => {
     // tạo đơn booking pending, chèn ticket active (bắt E11000 lớp 2) và tạo bản ghi Payment
     let booking;
     let payment;
+    let pointsDeducted = false;
     try {
       booking = await Booking.create({
         userId: req.user._id,
@@ -337,6 +399,7 @@ const createPaymentSession = async (req, res, next) => {
         snackTotal,
         originalPrice,
         discountAmount,
+        pointsUsed: pointsToUse,
         couponCode: appliedCouponCode,
         totalPrice,
         status: 'pending',
@@ -354,6 +417,23 @@ const createPaymentSession = async (req, res, next) => {
 
       // chèn vé theo thứ tự; nếu trùng ghế do tranh chấp đồng thời MongoDB sẽ ném lỗi E11000
       const tickets = await Ticket.insertMany(ticketDocs, { ordered: true });
+
+      // trừ tạm điểm tích lũy trên server nếu người dùng chọn dùng điểm cho phiên VietQR
+      if (pointsToUse > 0) {
+        if (!currentUser) currentUser = await User.findById(req.user._id);
+        currentUser.rewardPoints = Math.max(0, (currentUser.rewardPoints || 0) - pointsToUse);
+        await currentUser.save();
+        pointsDeducted = true;
+
+        await RewardPoint.create({
+          userId: req.user._id,
+          bookingId: booking._id,
+          points: -pointsToUse,
+          type: 'redeem',
+          description: `Dùng điểm thanh toán đơn VietQR #${booking._id}`,
+          balanceAfter: currentUser.rewardPoints,
+        });
+      }
 
       // tạo mã đơn thanh toán và URL VietQR tương ứng
       const orderCode = generateOrderCode();
@@ -390,6 +470,17 @@ const createPaymentSession = async (req, res, next) => {
         },
       });
     } catch (err) {
+      // rollback điểm đã trừ tạm nếu bước tạo payment gặp lỗi
+      if (pointsDeducted && pointsToUse > 0) {
+        try {
+          await User.findByIdAndUpdate(req.user._id, { $inc: { rewardPoints: pointsToUse } });
+          if (booking && booking._id) {
+            await RewardPoint.deleteMany({ bookingId: booking._id, type: 'redeem' });
+          }
+        } catch (ptsErr) {
+          console.error('[Payment Controller] Lỗi hoàn điểm rollback:', ptsErr);
+        }
+      }
       // rollback lượt coupon nếu bước tạo đơn/vé/payment gặp lỗi
       if (reservedCoupon && reservedCoupon._id) {
         try {
@@ -511,8 +602,17 @@ const handlePaymentWebhook = async (req, res, next) => {
     // kiểm tra và giải phóng các giao dịch đã quá 10 phút trước khi xử lý webhook
     await expireStalePayments();
 
-    // đối chiếu header bí mật nếu server có cấu hình PAYMENT_WEBHOOK_SECRET
+    // đối chiếu header bí mật; ở production bắt buộc fail-closed nếu chưa cấu hình secret thật
     const configuredSecret = process.env.PAYMENT_WEBHOOK_SECRET;
+    if (
+      process.env.NODE_ENV === 'production' &&
+      (!configuredSecret || configuredSecret === 'replace_with_webhook_secret_in_production')
+    ) {
+      return res.status(503).json({
+        success: false,
+        message: 'Cấu hình bảo mật webhook thanh toán chưa sẵn sàng.',
+      });
+    }
     if (configuredSecret) {
       const providedSecret = req.headers['x-webhook-secret'];
       if (providedSecret !== configuredSecret) {
@@ -578,11 +678,37 @@ const handlePaymentWebhook = async (req, res, next) => {
           { bookingId: booking._id, status: 'active' },
           { $set: { status: 'cancelled' } }
         );
+        if (booking.pointsUsed > 0) {
+          const refundedUser = await User.findByIdAndUpdate(
+            booking.userId,
+            { $inc: { rewardPoints: booking.pointsUsed } },
+            { returnDocument: 'after' }
+          );
+          if (refundedUser) {
+            await RewardPoint.create({
+              userId: booking.userId,
+              bookingId: booking._id,
+              points: booking.pointsUsed,
+              type: 'refund',
+              description: `Hoàn điểm do giao dịch VietQR đơn #${booking._id} bị hủy/thất bại`,
+              balanceAfter: refundedUser.rewardPoints || 0,
+            });
+          }
+        }
       }
       return res.status(200).json({
         success: true,
         message: 'Đã cập nhật trạng thái hủy thanh toán và giải phóng ghế.',
         data: { payment, booking },
+      });
+    }
+
+    // chặn webhook xác nhận đơn đặt vé đã bị hủy trước đó
+    const existingBooking = await Booking.findById(payment.bookingId);
+    if (!existingBooking || existingBooking.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Đơn đặt vé đã bị hủy, không thể xác nhận thanh toán.',
       });
     }
 
@@ -592,11 +718,53 @@ const handlePaymentWebhook = async (req, res, next) => {
     payment.transactionRef = transactionRef || `TX-${payment.orderCode}`;
     await payment.save();
 
+    const pointsEarned = Math.floor((existingBooking.totalPrice || 0) * 0.05);
     const booking = await Booking.findByIdAndUpdate(
       payment.bookingId,
-      { $set: { status: 'confirmed' } },
+      { $set: { status: 'confirmed', pointsEarned } },
       { returnDocument: 'after' }
     );
+
+    // tích 5% điểm thưởng sau khi thanh toán thành công
+    let paidUser = null;
+    if (pointsEarned > 0) {
+      paidUser = await User.findByIdAndUpdate(
+        booking.userId,
+        { $inc: { rewardPoints: pointsEarned } },
+        { returnDocument: 'after' }
+      );
+      if (paidUser) {
+        await RewardPoint.create({
+          userId: booking.userId,
+          bookingId: booking._id,
+          points: pointsEarned,
+          type: 'earn',
+          description: `Tích 5% điểm từ đơn vé VietQR #${booking._id}`,
+          balanceAfter: paidUser.rewardPoints || 0,
+        });
+      }
+    }
+
+    // gửi email xác nhận vé điện tử kèm mã QR bất đồng bộ
+    try {
+      if (!paidUser) paidUser = await User.findById(booking.userId);
+      const populatedBooking = await Booking.findById(booking._id)
+        .populate({
+          path: 'showtimeId',
+          populate: [
+            { path: 'movieId', select: 'title' },
+            { path: 'roomId', select: 'name' },
+          ],
+        })
+        .populate('tickets');
+      if (paidUser && populatedBooking) {
+        sendBookingConfirmationEmail(populatedBooking, paidUser).catch((e) => {
+          console.error('[Payment Webhook] Lỗi gửi email vé:', e.message);
+        });
+      }
+    } catch (emailErr) {
+      console.error('[Payment Webhook] Lỗi chuẩn bị email vé:', emailErr.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -664,6 +832,23 @@ const cancelPayment = async (req, res, next) => {
           { code: booking.couponCode, usedCount: { $gt: 0 } },
           { $inc: { usedCount: -1 } }
         );
+      }
+      if (booking.pointsUsed > 0) {
+        const refundedUser = await User.findByIdAndUpdate(
+          booking.userId,
+          { $inc: { rewardPoints: booking.pointsUsed } },
+          { returnDocument: 'after' }
+        );
+        if (refundedUser) {
+          await RewardPoint.create({
+            userId: booking.userId,
+            bookingId: booking._id,
+            points: booking.pointsUsed,
+            type: 'refund',
+            description: `Hoàn điểm do hủy phiên thanh toán đơn #${booking._id}`,
+            balanceAfter: refundedUser.rewardPoints || 0,
+          });
+        }
       }
     }
 

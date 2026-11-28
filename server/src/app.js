@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const mongoose = require('mongoose');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { authLimiter } = require('./middleware/rateLimit');
 const AppError = require('./utils/AppError');
@@ -51,7 +52,7 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
-// Bắt lỗi payload quá kích thước (HTTP 413 Payload Too Large)
+// Bắt lỗi payload quá kích thước (HTTP 413) và lỗi JSON sai cú pháp (HTTP 400)
 app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large' || err.status === 413) {
     return res.status(413).json({
@@ -59,23 +60,38 @@ app.use((err, req, res, next) => {
       message: 'Dữ liệu gửi lên vượt quá kích thước cho phép! Giới hạn tối đa là 100KB.',
     });
   }
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400 && 'body' in err)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dữ liệu JSON gửi lên không đúng định dạng.',
+    });
+  }
   return next(err);
 });
 
-// Route kiểm tra trạng thái hoạt động của Server
+// Route kiểm tra trạng thái hoạt động của Server và kết nối MongoDB
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Hệ thống Cinema API đang hoạt động bình thường',
+  const dbState = mongoose.connection.readyState;
+  const dbConnected = dbState === 1;
+  const statusCode = dbConnected ? 200 : 503;
+
+  res.status(statusCode).json({
+    success: dbConnected,
+    message: dbConnected
+      ? 'Hệ thống Cinema API đang hoạt động bình thường'
+      : 'Hệ thống Cinema API mất kết nối cơ sở dữ liệu',
+    database: dbConnected ? 'connected' : 'disconnected',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
   });
 });
 
-// Route kiểm tra middleware lỗi tập trung (dành cho kiểm thử)
-app.get('/api/test-error', (req, res, next) => {
-  next(new AppError('Đây là lỗi thử nghiệm của hệ thống xử lý lỗi tập trung', 400));
-});
+// Route kiểm tra middleware lỗi tập trung (chỉ bật ngoài môi trường production)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/test-error', (req, res, next) => {
+    next(new AppError('Đây là lỗi thử nghiệm của hệ thống xử lý lỗi tập trung', 400));
+  });
+}
 
 // 4. Các Routes nghiệp vụ (Áp dụng rate limiter cho các route xác thực auth)
 app.use('/api/auth', authLimiter, authRouter);

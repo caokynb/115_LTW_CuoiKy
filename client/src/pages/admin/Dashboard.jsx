@@ -104,11 +104,11 @@ export function Dashboard() {
         </div>
       )}
 
-      {loading ? (
+      {loading && movieData.length === 0 && dayData.length === 0 ? (
         <div className="flex justify-center rounded-2xl border border-neutral-200 bg-white p-10 dark:border-cinema-borderSubtle dark:bg-cinema-card">
           <Spinner label="Đang tải thống kê..." />
         </div>
-      ) : !error && (
+      ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Tóm tắt thống kê">
             <StatCard title="Tổng doanh thu" value={formatCurrency(summary.revenue)} note="Từ các đơn đặt vé đã xác nhận" />

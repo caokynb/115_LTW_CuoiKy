@@ -25,16 +25,26 @@ const validate = (req, res, next) => {
 const updateMeValidation = [
   body('fullName')
     .optional()
+    .isString()
+    .withMessage('Họ và tên phải là chuỗi ký tự')
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Họ và tên phải có độ dài từ 2 đến 100 ký tự'),
   body('phone')
     .optional({ checkFalsy: true })
+    .isString()
+    .withMessage('Số điện thoại phải là chuỗi ký tự')
     .trim()
     .matches(/^[0-9+() -]{8,15}$/)
     .withMessage('Số điện thoại không hợp lệ'),
+  body('currentPassword')
+    .optional({ checkFalsy: true })
+    .isString()
+    .withMessage('Mật khẩu hiện tại không hợp lệ'),
   body('newPassword')
-    .optional()
+    .optional({ checkFalsy: true })
+    .isString()
+    .withMessage('Mật khẩu mới không hợp lệ')
     .isLength({ min: 6 })
     .withMessage('Mật khẩu mới phải có ít nhất 6 ký tự'),
   validate,

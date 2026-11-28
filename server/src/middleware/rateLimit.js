@@ -10,6 +10,10 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
   skipSuccessfulRequests: true,
+  // bỏ qua GET /api/auth/me để reload trang liên tục không bị cộng dồn khóa 429
+  skip: (req) =>
+    req.method === 'GET' &&
+    (req.path === '/me' || String(req.originalUrl || '').split('?')[0] === '/api/auth/me'),
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res, next) => {
