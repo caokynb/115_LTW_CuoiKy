@@ -12,6 +12,8 @@ import NotFound from './pages/NotFound';
 import Forbidden from './pages/Forbidden';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
 import Movies from './pages/Movies';
 import Home from './pages/Home';
@@ -30,6 +32,7 @@ import AdminSnacks from './pages/admin/Snacks';
 import AdminBookings from './pages/admin/Bookings';
 import AdminCoupons from './pages/admin/Coupons';
 import TicketScanner from './pages/admin/TicketScanner';
+import AdminUsers from './pages/admin/Users';
 
 export function App() {
   return (
@@ -45,10 +48,12 @@ export function App() {
                   <Route path="/movies/:id" element={<MovieDetail />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password/:token" element={<ResetPassword />} />
+                  <Route path="/showtimes/:id/seats" element={<SeatSelection />} />
                   <Route path="/forbidden" element={<Forbidden />} />
 
                   <Route element={<ProtectedRoute />}>
-                    <Route path="/showtimes/:id/seats" element={<SeatSelection />} />
                     <Route path="/checkout/:paymentId" element={<Checkout />} />
                     <Route path="/bookings/:id" element={<BookingDetail />} />
                     <Route path="/my-bookings" element={<MyBookings />} />
@@ -70,6 +75,7 @@ export function App() {
                     <Route path="snacks" element={<AdminSnacks />} />
                     <Route path="coupons" element={<AdminCoupons />} />
                     <Route path="bookings" element={<AdminBookings />} />
+                    <Route path="users" element={<AdminUsers />} />
                     <Route path="scanner" element={<TicketScanner />} />
                     <Route path="*" element={<NotFound />} />
                   </Route>

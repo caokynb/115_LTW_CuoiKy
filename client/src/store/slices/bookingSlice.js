@@ -20,6 +20,13 @@ export const bookingSlice = createSlice({
         state.error = null;
       }
     },
+    restoreBooking: (state, action) => {
+      const value = action.payload || {};
+      state.showtimeId = value.showtimeId || state.showtimeId;
+      state.selectedSeats = Array.isArray(value.selectedSeats) ? value.selectedSeats.slice(0, 8) : [];
+      state.selectedSnacks = Array.isArray(value.selectedSnacks) ? value.selectedSnacks : [];
+      state.error = null;
+    },
     toggleSeat: (state, action) => {
       const seat = action.payload;
       if (!seat || seat.row === undefined || seat.number === undefined) {
@@ -93,6 +100,7 @@ export const bookingSlice = createSlice({
 
 export const {
   setShowtimeId,
+  restoreBooking,
   toggleSeat,
   setSelectedSnacks,
   updateSnackQuantity,

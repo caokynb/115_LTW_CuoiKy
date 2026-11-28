@@ -45,6 +45,23 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'Điểm tích lũy không được âm'],
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    passwordResetTokenHash: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpiresAt: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,

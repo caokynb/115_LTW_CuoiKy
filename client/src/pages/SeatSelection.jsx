@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSeatPolling } from '../hooks/useSeatPolling';
 import { useSocketSeats } from '../hooks/useSocketSeats';
@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/seat/ConfirmDialog';
 import CountdownTimer from '../components/seat/CountdownTimer';
 import {
   setBookingShowtime,
+  restoreBooking,
   toggleSeat,
   setSelectedSnacks,
   clearSnacks,
@@ -21,13 +22,14 @@ import {
 
 export function SeatSelection() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const toast = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAuthenticated } = useAuth();
   const { showtime, loading, error } = useSeatPolling(id);
   // kết nối Socket.io lấy danh sách ghế người khác đang giữ và hàm phát sự kiện giữ/nhả ghế
-  const { heldByOthers, emitSeatHold } = useSocketSeats(id);
+  const { heldByOthers, emitSeatHold, connected, rejectedSeat, clearRejectedSeat } = useSocketSeats(id);
   const selectedSeats = useSelector(selectSelectedSeats);
   const selectedSnacks = useSelector(selectSelectedSnacks);
   const snackTotal = useSelector(selectSnackTotal);
@@ -39,7 +41,18 @@ export function SeatSelection() {
   useEffect(() => {
     setLatestSoldSeats(null);
     clearTimeout(refreshTimer.current);
-    if (id) dispatch(setBookingShowtime(id));
+    if (id) {
+      dispatch(setBookingShowtime(id));
+      try {
+        const saved = JSON.parse(window.sessionStorage.getItem('cinehub_pending_booking') || 'null');
+        if (saved && String(saved.showtimeId) === String(id)) {
+          dispatch(restoreBooking(saved));
+          window.sessionStorage.removeItem('cinehub_pending_booking');
+        }
+      } catch {
+        window.sessionStorage.removeItem('cinehub_pending_booking');
+      }
+    }
     return () => clearTimeout(refreshTimer.current);
   }, [id, dispatch]);
 
@@ -81,6 +94,20 @@ export function SeatSelection() {
     });
   }, [heldByOthers, selectedSeats, dispatch]);
 
+  useEffect(() => {
+    if (!rejectedSeat) return;
+    if (rejectedSeat.code !== 'AUTH_REQUIRED') {
+      const rejected = selectedSeats.find((seat) => seat.row === rejectedSeat.row && Number(seat.number) === Number(rejectedSeat.number));
+      if (rejected) dispatch(toggleSeat(rejected));
+    }
+    toast.error(rejectedSeat.message || 'Không thể giữ ghế đã chọn.');
+    clearRejectedSeat();
+  }, [rejectedSeat, selectedSeats, dispatch, toast, clearRejectedSeat]);
+
+  useEffect(() => {
+    if (connected && isAuthenticated) selectedSeats.forEach((seat) => emitSeatHold(seat, 'hold'));
+  }, [connected, isAuthenticated, id, selectedSeats, emitSeatHold]);
+
   if (loading && !showtime) {
     return (
       <div className="space-y-5">
@@ -121,8 +148,32 @@ export function SeatSelection() {
       toast.error('Bạn chỉ có thể chọn tối đa 8 ghế.');
       return;
     }
+    if (!alreadySelected && !isAuthenticated) {
+      const rowSeats = Number(showtime.seatsPerRow || room.seatsPerRow || 10);
+      const selectedInRow = selectedSeats.filter((item) => String(item.row).toUpperCase() === String(seat.row).toUpperCase());
+      const soldInRow = (latestSoldSeats || showtime.soldSeats || []).filter((item) => String(item.row).toUpperCase() === String(seat.row).toUpperCase());
+      const heldInRow = heldByOthers.filter((item) => String(item.row).toUpperCase() === String(seat.row).toUpperCase());
+      const blocked = new Set([...selectedInRow, ...soldInRow, ...heldInRow].map((item) => Number(item.number)));
+      const countSingles = (blockedSeats) => {
+        let singles = 0;
+        let run = 0;
+        for (let number = 1; number <= rowSeats + 1; number += 1) {
+          if (number <= rowSeats && !blockedSeats.has(number)) run += 1;
+          else { if (run === 1) singles += 1; run = 0; }
+        }
+        return singles;
+      };
+      blocked.add(Number(seat.number));
+      const singlesAfter = countSingles(blocked);
+      const before = new Set(blocked);
+      before.delete(Number(seat.number));
+      if (singlesAfter > countSingles(before)) {
+        toast.error('Vui lòng chọn ghế khác để không bỏ lẻ một ghế trong hàng.');
+        return;
+      }
+    }
     dispatch(toggleSeat(seat));
-    emitSeatHold(seat, alreadySelected ? 'release' : 'hold');
+    if (isAuthenticated) emitSeatHold(seat, alreadySelected ? 'release' : 'hold');
   };
 
   const refreshAfterConflict = async () => {
@@ -136,6 +187,19 @@ export function SeatSelection() {
     }
   };
 
+  const requestPayment = () => {
+    if (!isAuthenticated) {
+      window.sessionStorage.setItem('cinehub_pending_booking', JSON.stringify({
+        showtimeId: id,
+        selectedSeats,
+        selectedSnacks,
+      }));
+      navigate('/login', { state: { from: { pathname: location.pathname, search: location.search } } });
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
   const handleCheckout = () => {
     if (selectedSeats.length === 0) {
       toast.error('Vui lòng chọn ít nhất một ghế.');
@@ -145,7 +209,7 @@ export function SeatSelection() {
       setStep('snacks');
       return;
     }
-    setConfirmOpen(true);
+    requestPayment();
   };
 
   const handleSnacksChange = (nextSnacks) => {
@@ -154,7 +218,7 @@ export function SeatSelection() {
 
   const handleSkipSnacks = () => {
     dispatch(clearSnacks());
-    setConfirmOpen(true);
+    requestPayment();
   };
 
   return (
@@ -229,7 +293,7 @@ export function SeatSelection() {
               onChange={handleSnacksChange}
               onBack={() => setStep('seats')}
               onSkip={handleSkipSnacks}
-              onContinue={() => setConfirmOpen(true)}
+              onContinue={requestPayment}
             />
           )}
         </div>

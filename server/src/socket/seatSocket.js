@@ -1,4 +1,6 @@
 const { Server } = require('socket.io');
+const User = require('../models/User');
+const { verifyToken } = require('../utils/token');
 
 // thời gian khóa giữ ghế mặc định qua Socket.io: 5 phút
 const HOLD_TTL_MS = 5 * 60 * 1000;
@@ -10,6 +12,7 @@ const getRoomName = (showtimeId) => `showtime:${showtimeId}`;
 const initSeatSocket = (httpServer, options = {}) => {
   const allowedOrigins = options.allowedOrigins || ['http://localhost:3000'];
   const holdTtlMs = Number(options.holdTtlMs) > 0 ? Number(options.holdTtlMs) : HOLD_TTL_MS;
+  const allowUnauthenticatedHolds = options.allowUnauthenticatedHolds === true;
 
   // cấu hình CORS cho kết nối WebSocket / polling khớp với danh sách origin cho phép
   const io = new Server(httpServer, {
@@ -23,6 +26,22 @@ const initSeatSocket = (httpServer, options = {}) => {
       methods: ['GET', 'POST'],
       credentials: true,
     },
+  });
+
+  io.use(async (socket, next) => {
+    const rawToken = socket.handshake.auth && socket.handshake.auth.token;
+    if (!rawToken) return next();
+    try {
+      const decoded = verifyToken(rawToken);
+      const user = await User.findById(decoded.id).select('isActive tokenVersion');
+      if (!user || !user.isActive || (Number(decoded.tokenVersion) || 0) !== (Number(user.tokenVersion) || 0)) {
+        return next(new Error('Phiên đăng nhập không còn hiệu lực.'));
+      }
+      socket.data.userId = String(user._id);
+      next();
+    } catch (error) {
+      next(new Error('Mã xác thực không hợp lệ.'));
+    }
   });
 
   // lưu danh sách ghế đang giữ theo từng suất chiếu: Map<showtimeId, Map<seatKey, entry>>
@@ -128,6 +147,11 @@ const initSeatSocket = (httpServer, options = {}) => {
         return;
       }
 
+      if (action === 'hold' && !socket.data.userId && !allowUnauthenticatedHolds) {
+        socket.emit('seat:hold-rejected', { showtimeId, row, number, code: 'AUTH_REQUIRED', message: 'Vui lòng đăng nhập để giữ ghế.' });
+        return;
+      }
+
       const seatKey = `${row}-${number}`;
       let showtimeMap = holdsByShowtime.get(showtimeId);
 
@@ -151,6 +175,11 @@ const initSeatSocket = (httpServer, options = {}) => {
 
       // nếu ghế đang được một socket khác giữ và chưa hết hạn thì từ chối giữ đè
       const existing = showtimeMap.get(seatKey);
+      const userHoldCount = Array.from(showtimeMap.values()).filter((entry) => entry.userId === socket.data.userId && entry.expiresAt > Date.now()).length;
+      if (!existing && userHoldCount >= 8) {
+        socket.emit('seat:hold-rejected', { showtimeId, row, number, code: 'SEAT_LIMIT', message: 'Bạn chỉ có thể giữ tối đa 8 ghế.' });
+        return;
+      }
       if (existing && existing.socketId !== socket.id && existing.expiresAt > Date.now()) {
         socket.emit('seat:hold-rejected', {
           showtimeId,
@@ -181,6 +210,7 @@ const initSeatSocket = (httpServer, options = {}) => {
         row,
         number,
         socketId: socket.id,
+        userId: socket.data.userId,
         expiresAt: Date.now() + holdTtlMs,
         timer,
       });

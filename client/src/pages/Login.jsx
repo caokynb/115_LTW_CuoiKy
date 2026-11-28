@@ -19,6 +19,7 @@ export function Login() {
   const [values, setValues] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
+  const notice = location.state?.notice || '';
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -102,6 +103,7 @@ export function Login() {
           className="mb-4"
         />
       )}
+      {notice && <p className="mb-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" role="status">{notice}</p>}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <FormField
@@ -134,6 +136,10 @@ export function Login() {
           Đăng nhập
         </Button>
       </form>
+
+      <p className="mt-4 text-right text-sm">
+        <Link to="/forgot-password" className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200">Quên mật khẩu?</Link>
+      </p>
 
       <p className="mt-6 text-center text-sm text-neutral-600 dark:text-neutral-400">
         Chưa có tài khoản?{' '}
