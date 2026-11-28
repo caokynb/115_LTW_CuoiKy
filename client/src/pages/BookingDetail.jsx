@@ -87,11 +87,43 @@ export function BookingDetail() {
   const room = showtime.roomId || {};
   const tickets = booking.tickets || [];
   const seatLabels = tickets.map((t) => `${t.row}${t.number}`).join(', ');
+  const statusMap = {
+    confirmed: {
+      label: 'Đã xác nhận',
+      bannerClass: 'from-emerald-600 to-teal-600',
+      title: 'Đặt vé thành công!',
+      subtitle: 'Cảm ơn bạn đã lựa chọn CineHub. Vé điện tử đã sẵn sàng.',
+    },
+    'checked-in': {
+      label: 'Đã soát vé',
+      bannerClass: 'from-sky-600 to-indigo-600',
+      title: 'Vé đã được soát tại rạp',
+      subtitle: 'Chúc bạn có những phút giây xem phim tuyệt vời cùng CineHub.',
+    },
+    pending: {
+      label: 'Chờ thanh toán',
+      bannerClass: 'from-amber-600 to-orange-600',
+      title: 'Đơn vé đang chờ thanh toán',
+      subtitle: 'Vui lòng hoàn tất chuyển khoản VietQR trong thời gian giữ chỗ.',
+    },
+    cancelled: {
+      label: 'Đã hủy',
+      bannerClass: 'from-rose-700 to-red-700',
+      title: 'Đơn đặt vé đã bị hủy',
+      subtitle: 'Ghế của đơn đặt vé này đã được giải phóng.',
+    },
+  };
+  const currentStatus = statusMap[booking.status] || {
+    label: booking.status || 'Không xác định',
+    bannerClass: 'from-slate-700 to-slate-800',
+    title: 'Thông tin đơn đặt vé',
+    subtitle: '',
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-      {/* Thông báo chúc mừng */}
-      <div className="mb-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white shadow-lg">
+      {/* Banner trạng thái đơn đặt vé */}
+      <div className={`mb-6 rounded-2xl bg-gradient-to-r ${currentStatus.bannerClass} p-6 text-white shadow-lg`}>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,10 +131,10 @@ export function BookingDetail() {
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-bold">Đặt vé thành công!</h1>
-            <p className="text-sm text-emerald-100">
-              Cảm ơn bạn đã lựa chọn CineHub. Vé điện tử đã sẵn sàng.
-            </p>
+            <h1 className="text-xl font-bold">{currentStatus.title}</h1>
+            {currentStatus.subtitle && (
+              <p className="text-sm text-white/90">{currentStatus.subtitle}</p>
+            )}
           </div>
         </div>
       </div>
@@ -133,11 +165,7 @@ export function BookingDetail() {
             <div className="flex flex-1 flex-col justify-between">
               <div>
                 <span className="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 dark:bg-brand-950/60 dark:text-brand-300">
-                  {booking.status === 'confirmed'
-                    ? 'Đã xác nhận'
-                    : booking.status === 'cancelled'
-                    ? 'Đã hủy'
-                    : booking.status}
+                  {currentStatus.label}
                 </span>
                 <h2 className="mt-2 text-2xl font-black text-neutral-900 dark:text-white">
                   {movie.title || 'Phim chiếu rạp'}
@@ -199,7 +227,9 @@ export function BookingDetail() {
             </div>
           </div>
 
-          {booking.status === 'confirmed' && <TicketQR booking={booking} />}
+          {(booking.status === 'confirmed' || booking.status === 'checked-in') && (
+            <TicketQR booking={booking} />
+          )}
         </div>
 
         {/* Chân vé */}

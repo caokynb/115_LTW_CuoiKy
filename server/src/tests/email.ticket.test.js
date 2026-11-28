@@ -70,4 +70,25 @@ describe('Ticket Confirmation Email Service (feat/email-ticket)', () => {
     const result3 = await sendBookingConfirmationEmail({ _id: '123' }, { email: '' });
     assert.equal(result3.success, false);
   });
+
+  it('escape HTML an toàn trong tên khách hàng và tên phim để chống XSS', async () => {
+    const res = await sendBookingConfirmationEmail(
+      {
+        _id: '65f1234567890abcdef99999',
+        totalPrice: 90000,
+        tickets: [{ row: 'A', number: 1 }],
+        showtimeId: {
+          startTime: new Date('2026-12-01T12:00:00Z'),
+          movieId: { title: '<script>alert(1)</script>' },
+          roomId: { name: 'Phòng 1', cinemaId: { name: 'Rạp <img src=x>' } },
+        },
+      },
+      { fullName: '<b>Hacker</b>', email: 'xss@cinehub.local' }
+    );
+    assert.equal(res.success, true);
+    const email = getSentEmails()[0];
+    assert.ok(!email.html.includes('<script>alert(1)</script>'));
+    assert.ok(email.html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+    assert.ok(email.html.includes('&lt;b&gt;Hacker&lt;/b&gt;'));
+  });
 });

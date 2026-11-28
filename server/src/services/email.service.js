@@ -31,6 +31,14 @@ const getTransporter = () => {
   return transporter;
 };
 
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 /**
  * Định dạng thời gian suất chiếu
  */
@@ -89,17 +97,17 @@ const sendBookingConfirmationEmail = async (booking, user) => {
     const totalPriceStr = `${Number(booking.totalPrice || 0).toLocaleString('vi-VN')} đ`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookingId)}`;
 
-    // Thay thế các biến trong template HTML
+    // Thay thế các biến trong template HTML (đã escape HTML chống XSS/HTML injection)
     htmlContent = htmlContent
-      .replace(/{{bookingId}}/g, bookingId)
-      .replace(/{{customerName}}/g, customerName)
-      .replace(/{{movieTitle}}/g, movieTitle)
-      .replace(/{{roomName}}/g, roomName)
-      .replace(/{{cinemaName}}/g, cinemaName)
-      .replace(/{{startTime}}/g, startTimeStr)
-      .replace(/{{seats}}/g, seatsStr)
-      .replace(/{{totalPrice}}/g, totalPriceStr)
-      .replace(/{{qrCodeUrl}}/g, qrCodeUrl);
+      .replace(/{{bookingId}}/g, escapeHtml(bookingId))
+      .replace(/{{customerName}}/g, escapeHtml(customerName))
+      .replace(/{{movieTitle}}/g, escapeHtml(movieTitle))
+      .replace(/{{roomName}}/g, escapeHtml(roomName))
+      .replace(/{{cinemaName}}/g, escapeHtml(cinemaName))
+      .replace(/{{startTime}}/g, escapeHtml(startTimeStr))
+      .replace(/{{seats}}/g, escapeHtml(seatsStr))
+      .replace(/{{totalPrice}}/g, escapeHtml(totalPriceStr))
+      .replace(/{{qrCodeUrl}}/g, escapeHtml(qrCodeUrl));
 
     const transport = getTransporter();
 

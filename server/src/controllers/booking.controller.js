@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Ticket = require('../models/Ticket');
 const Showtime = require('../models/Showtime');
+const Cinema = require('../models/Cinema');
 const Coupon = require('../models/Coupon');
 const User = require('../models/User');
 const { evaluateCoupon } = require('./coupon.controller');
@@ -80,8 +81,12 @@ const createBooking = async (req, res, next) => {
       }
 
       let rowIndex;
-      if (/^[A-Z]$/.test(rowStr)) {
-        rowIndex = rowStr.charCodeAt(0) - 64;
+      if (/^[A-Z]+$/.test(rowStr)) {
+        // Hỗ trợ hàng ghế A..Z (1..26) và hàng ghế nhiều ký tự AA+ (27+)
+        rowIndex = 0;
+        for (let i = 0; i < rowStr.length; i += 1) {
+          rowIndex = rowIndex * 26 + (rowStr.charCodeAt(i) - 64);
+        }
       } else if (/^\d+$/.test(rowStr)) {
         rowIndex = parseInt(rowStr, 10);
       } else {
@@ -107,8 +112,10 @@ const createBooking = async (req, res, next) => {
       });
     }
 
-    // 4. Lấy thông tin suất chiếu và phòng chiếu
-    const showtime = await Showtime.findById(showtimeId).populate('roomId');
+    // 4. Lấy thông tin suất chiếu, phim và phòng chiếu
+    const showtime = await Showtime.findById(showtimeId)
+      .populate('movieId', 'title duration posterUrl')
+      .populate('roomId');
     if (!showtime) {
       return res.status(404).json({
         success: false,
@@ -271,7 +278,7 @@ const createBooking = async (req, res, next) => {
 
     const existingTickets = await Ticket.find({
       showtimeId: showtime._id,
-      status: 'active',
+      status: { $in: ['active', 'checked-in'] },
       $or: seatConditions,
     }).select('row number -_id');
 
@@ -334,11 +341,17 @@ const createBooking = async (req, res, next) => {
 
       const tickets = await Ticket.insertMany(ticketDocs, { ordered: true });
 
-      // 1. Trừ điểm nếu dùng điểm thanh toán (T18)
+      // 1. Trừ điểm atomic bằng $inc nếu dùng điểm thanh toán (T18)
       if (pointsToUse > 0) {
-        if (!currentUser) currentUser = await User.findById(req.user._id);
-        currentUser.rewardPoints = Math.max(0, (currentUser.rewardPoints || 0) - pointsToUse);
-        await currentUser.save();
+        const deductedUser = await User.findOneAndUpdate(
+          { _id: req.user._id, rewardPoints: { $gte: pointsToUse } },
+          { $inc: { rewardPoints: -pointsToUse } },
+          { returnDocument: 'after' }
+        );
+        if (!deductedUser) {
+          throw new AppError('Số điểm tích lũy không đủ để thực hiện thanh toán.', 400);
+        }
+        currentUser = deductedUser;
 
         await RewardPoint.create({
           userId: req.user._id,
@@ -346,25 +359,29 @@ const createBooking = async (req, res, next) => {
           points: -pointsToUse,
           type: 'redeem',
           description: `Dùng điểm thanh toán đơn vé #${booking._id}`,
-          balanceAfter: currentUser.rewardPoints,
+          balanceAfter: currentUser.rewardPoints || 0,
         });
       }
 
-      // 2. Tự động tích 5% giá trị đơn vé vào tài khoản (T18)
+      // 2. Tự động tích 5% giá trị đơn vé vào tài khoản bằng atomic $inc (T18)
       const pointsEarned = Math.floor(totalPrice * 0.05);
       if (pointsEarned > 0) {
-        if (!currentUser) currentUser = await User.findById(req.user._id);
-        currentUser.rewardPoints = (currentUser.rewardPoints || 0) + pointsEarned;
-        await currentUser.save();
-
-        await RewardPoint.create({
-          userId: req.user._id,
-          bookingId: booking._id,
-          points: pointsEarned,
-          type: 'earn',
-          description: `Tích 5% điểm từ đơn vé #${booking._id}`,
-          balanceAfter: currentUser.rewardPoints,
-        });
+        const earnedUser = await User.findByIdAndUpdate(
+          req.user._id,
+          { $inc: { rewardPoints: pointsEarned } },
+          { returnDocument: 'after' }
+        );
+        if (earnedUser) {
+          currentUser = earnedUser;
+          await RewardPoint.create({
+            userId: req.user._id,
+            bookingId: booking._id,
+            points: pointsEarned,
+            type: 'earn',
+            description: `Tích 5% điểm từ đơn vé #${booking._id}`,
+            balanceAfter: currentUser.rewardPoints || 0,
+          });
+        }
       }
 
       booking.pointsUsed = pointsToUse;
@@ -374,10 +391,17 @@ const createBooking = async (req, res, next) => {
       // 3. Gửi email xác nhận vé điện tử kèm mã QR tự động (feat/email-ticket)
       try {
         if (!currentUser) currentUser = await User.findById(req.user._id);
+        const cinemaDoc = room?._id
+          ? await Cinema.findOne({ rooms: room._id }).select('name address').lean()
+          : null;
+        const showtimeObj = showtime.toObject ? showtime.toObject() : { ...showtime };
+        if (showtimeObj.roomId && typeof showtimeObj.roomId === 'object' && cinemaDoc) {
+          showtimeObj.roomId = { ...showtimeObj.roomId, cinemaId: cinemaDoc };
+        }
         const emailBooking = {
           ...booking.toObject(),
           tickets,
-          showtimeId: showtime,
+          showtimeId: showtimeObj,
         };
         sendBookingConfirmationEmail(emailBooking, currentUser).catch((e) => {
           console.error('[Email] Lỗi gửi email vé:', e.message);
@@ -419,7 +443,7 @@ const createBooking = async (req, res, next) => {
       if (isDuplicateKey) {
         const conflictingTickets = await Ticket.find({
           showtimeId: showtime._id,
-          status: 'active',
+          status: { $in: ['active', 'checked-in'] },
           $or: seatConditions,
         }).select('row number -_id');
 
@@ -554,11 +578,18 @@ const cancelBooking = async (req, res, next) => {
       });
     }
 
-    // 4. Kiểm tra xem đơn đã bị hủy trước đó chưa
+    // 4. Kiểm tra xem đơn đã bị hủy hoặc đã soát vé (checked-in) trước đó chưa
     if (booking.status === 'cancelled') {
       return res.status(400).json({
         success: false,
         message: 'Đơn đặt vé này đã được hủy trước đó',
+      });
+    }
+
+    if (booking.status === 'checked-in') {
+      return res.status(400).json({
+        success: false,
+        message: 'Đơn đặt vé đã được soát (checked-in), không thể hủy',
       });
     }
 
@@ -596,6 +627,59 @@ const cancelBooking = async (req, res, next) => {
       { $set: { status: 'cancelled' } }
     );
 
+    // 7b. Hoàn lượt sử dụng coupon (nếu đơn có áp mã giảm giá)
+    if (booking.couponCode) {
+      await Coupon.findOneAndUpdate(
+        { code: booking.couponCode, usedCount: { $gt: 0 } },
+        { $inc: { usedCount: -1 } }
+      );
+    }
+
+    // 7c. Hoàn lại pointsUsed và thu hồi pointsEarned bằng atomic $inc (ghi log refund)
+    const pointsUsed = Number(booking.pointsUsed) || 0;
+    const pointsEarned = Number(booking.pointsEarned) || 0;
+
+    if (pointsUsed > 0) {
+      const refundedUser = await User.findByIdAndUpdate(
+        booking.userId,
+        { $inc: { rewardPoints: pointsUsed } },
+        { returnDocument: 'after' }
+      );
+      if (refundedUser) {
+        await RewardPoint.create({
+          userId: booking.userId,
+          bookingId: booking._id,
+          points: pointsUsed,
+          type: 'refund',
+          description: `Hoàn điểm đã dùng khi hủy đơn vé #${booking._id}`,
+          balanceAfter: refundedUser.rewardPoints || 0,
+        });
+      }
+    }
+
+    if (pointsEarned > 0) {
+      const currentUserDoc = await User.findById(booking.userId).select('rewardPoints');
+      const currentBalance = Number(currentUserDoc?.rewardPoints) || 0;
+      const deductAmount = Math.min(currentBalance, pointsEarned);
+      if (deductAmount > 0) {
+        const updatedUser = await User.findByIdAndUpdate(
+          booking.userId,
+          { $inc: { rewardPoints: -deductAmount } },
+          { returnDocument: 'after' }
+        );
+        if (updatedUser) {
+          await RewardPoint.create({
+            userId: booking.userId,
+            bookingId: booking._id,
+            points: -deductAmount,
+            type: 'refund',
+            description: `Thu hồi điểm tích lũy do hủy đơn vé #${booking._id}`,
+            balanceAfter: Math.max(0, updatedUser.rewardPoints || 0),
+          });
+        }
+      }
+    }
+
     // 8. Lấy dữ liệu cập nhật đầy đủ để trả về client
     const updatedBooking = await Booking.findById(booking._id)
       .populate({
@@ -621,7 +705,7 @@ const cancelBooking = async (req, res, next) => {
  * Lấy danh sách toàn bộ đơn đặt vé (chỉ Admin)
  * GET /api/bookings
  */
-const ALLOWED_BOOKING_STATUSES = new Set(['pending', 'confirmed', 'cancelled']);
+const ALLOWED_BOOKING_STATUSES = new Set(['pending', 'confirmed', 'checked-in', 'cancelled']);
 const ALLOWED_BOOKING_SORTS = new Set(['createdAt', 'status', 'totalPrice']);
 
 const listBookings = async (req, res, next) => {
@@ -827,7 +911,21 @@ const checkInBooking = async (req, res, next) => {
       });
     }
 
-    // 1. Kiểm tra vé đã bị hủy
+    // 1. Kiểm tra vé đang chờ thanh toán (pending) hoặc đã bị hủy
+    if (booking.status === 'pending') {
+      return res.status(400).json({
+        success: false,
+        code: 'TICKET_PENDING',
+        message: 'Vé đang chờ thanh toán, chưa thể soát vé',
+        data: {
+          bookingId: booking._id,
+          status: 'pending',
+          movieTitle: booking.showtimeId?.movieId?.title,
+          seats: booking.tickets,
+        },
+      });
+    }
+
     if (booking.status === 'cancelled') {
       return res.status(400).json({
         success: false,

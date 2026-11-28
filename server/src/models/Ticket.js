@@ -53,12 +53,12 @@ const ticketSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Unique partial index chống đặt trùng ghế khi vé đang ở trạng thái active
+// Unique partial index chống đặt trùng ghế khi vé đang ở trạng thái active hoặc checked-in
 ticketSchema.index(
   { showtimeId: 1, row: 1, number: 1 },
   {
     unique: true,
-    partialFilterExpression: { status: 'active' },
+    partialFilterExpression: { status: { $in: ['active', 'checked-in'] } },
   }
 );
 

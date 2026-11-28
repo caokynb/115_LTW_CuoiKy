@@ -1,9 +1,36 @@
 import React, { useState, useRef, useEffect } from 'react';
+import jsQR from 'jsqr';
 import api, { getErrorMessage } from '../../api/axios';
 import { useToast } from '../../components/ui';
 
+function StatusIcon({ type }) {
+  if (type === 'success') {
+    return (
+      <svg className="h-8 w-8 shrink-0 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 12.5l2.5 2.5 4.5-5" />
+      </svg>
+    );
+  }
+  if (type === 'duplicate') {
+    return (
+      <svg className="h-8 w-8 shrink-0 text-amber-600 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="h-8 w-8 shrink-0 text-rose-600 dark:text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l-6 6M9 9l6 6" />
+    </svg>
+  );
+}
+
 export function TicketScanner() {
   const [code, setCode] = useState('');
+  const [showtimes, setShowtimes] = useState([]);
+  const [selectedShowtimeId, setSelectedShowtimeId] = useState('');
   const [loading, setLoading] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [history, setHistory] = useState([]);
@@ -11,17 +38,30 @@ export function TicketScanner() {
   const [cameraError, setCameraError] = useState('');
   const inputRef = useRef(null);
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const scanIntervalRef = useRef(null);
   const toast = useToast();
 
   useEffect(() => {
     inputRef.current?.focus();
+    api
+      .get('/showtimes', { params: { limit: 50 } })
+      .then((res) => {
+        setShowtimes(Array.isArray(res.data?.data) ? res.data.data : []);
+      })
+      .catch(() => {});
+
     return () => {
       stopCamera();
     };
   }, []);
 
   const stopCamera = () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -29,48 +69,83 @@ export function TicketScanner() {
     setCameraActive(false);
   };
 
+  const decodeFrameWithJsQr = (video) => {
+    if (!video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return null;
+    let canvas = canvasRef.current;
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvasRef.current = canvas;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const decoded = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'dontInvert',
+    });
+    return decoded?.data || null;
+  };
+
   const startCamera = async () => {
     setCameraError('');
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('Trình duyệt không hỗ trợ quét camera trực tiếp');
+        throw new Error('Trình duyệt không hỗ trợ quét camera trực tiếp.');
       }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
       setCameraActive(true);
 
-      // Thử sử dụng BarcodeDetector nếu trình duyệt hỗ trợ
-      if ('BarcodeDetector' in window) {
-        const barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
-        const interval = setInterval(async () => {
-          if (!videoRef.current || !streamRef.current) {
-            clearInterval(interval);
-            return;
-          }
-          try {
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 50);
+
+      const barcodeDetector =
+        'BarcodeDetector' in window
+          ? new window.BarcodeDetector({ formats: ['qr_code'] })
+          : null;
+
+      scanIntervalRef.current = setInterval(async () => {
+        if (!videoRef.current || !streamRef.current) {
+          stopCamera();
+          return;
+        }
+        try {
+          let rawVal = null;
+          if (barcodeDetector) {
             const barcodes = await barcodeDetector.detect(videoRef.current);
-            if (barcodes.length > 0) {
-              const rawVal = barcodes[0].rawValue;
-              if (rawVal) {
-                clearInterval(interval);
-                stopCamera();
-                handleScanSubmit(rawVal);
-              }
+            if (barcodes.length > 0 && barcodes[0].rawValue) {
+              rawVal = barcodes[0].rawValue;
             }
-          } catch (e) {
-            // Ignore frame detection errors
+          } else {
+            rawVal = decodeFrameWithJsQr(videoRef.current);
           }
-        }, 500);
-      }
+
+          if (rawVal) {
+            stopCamera();
+            handleScanSubmit(rawVal);
+          }
+        } catch (e) {
+          // Thử fallback jsQR nếu BarcodeDetector không hỗ trợ trên trình duyệt hiện tại
+          try {
+            const fallbackVal = decodeFrameWithJsQr(videoRef.current);
+            if (fallbackVal) {
+              stopCamera();
+              handleScanSubmit(fallbackVal);
+            }
+          } catch (_) {}
+        }
+      }, 450);
     } catch (err) {
       setCameraError(err.message || 'Không thể mở camera. Vui lòng nhập mã hoặc dùng máy quét USB.');
-      setCameraActive(false);
+      stopCamera();
     }
   };
 
@@ -82,7 +157,11 @@ export function TicketScanner() {
     setScanResult(null);
 
     try {
-      const response = await api.post('/bookings/check-in', { code: targetCode });
+      const payload = {
+        code: targetCode,
+        ...(selectedShowtimeId ? { showtimeId: selectedShowtimeId } : {}),
+      };
+      const response = await api.post('/bookings/check-in', payload);
       const data = response.data?.data;
 
       const successResult = {
@@ -133,6 +212,16 @@ export function TicketScanner() {
           seats: errData?.seats || [],
         };
         toast.error('Vé đã bị hủy!');
+      } else if (errorCode === 'TICKET_PENDING') {
+        resultObj = {
+          type: 'error',
+          title: 'VÉ CHƯA THANH TOÁN (PENDING)',
+          message: errorMsg,
+          bookingId: errData?.bookingId || targetCode,
+          movieTitle: errData?.movieTitle || '—',
+          seats: errData?.seats || [],
+        };
+        toast.error('Vé chưa hoàn tất thanh toán!');
       } else if (errorCode === 'WRONG_SHOWTIME') {
         resultObj = {
           type: 'wrong_showtime',
@@ -202,17 +291,24 @@ export function TicketScanner() {
             <button
               type="button"
               onClick={stopCamera}
-              className="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
-              Tắt Camera
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12" />
+              </svg>
+              <span>Tắt Camera</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={startCamera}
-              className="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
-              📷 Mở Camera quét QR
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              <span>Mở Camera quét QR</span>
             </button>
           )}
         </div>
@@ -221,9 +317,9 @@ export function TicketScanner() {
       {/* Vùng Camera nếu bật */}
       {cameraActive && (
         <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-black p-4 text-center">
-          <video ref={videoRef} className="mx-auto max-h-72 w-full max-w-md rounded-lg object-cover" />
+          <video ref={videoRef} playsInline muted className="mx-auto max-h-72 w-full max-w-md rounded-lg object-cover" />
           <p className="mt-2 text-xs text-slate-400">
-            Hướng camera vào mã QR vé. Hệ thống sẽ tự động quét.
+            Hướng camera vào mã QR vé. Hệ thống tự động giải mã đa trình duyệt (BarcodeDetector / jsQR).
           </p>
         </div>
       )}
@@ -234,30 +330,51 @@ export function TicketScanner() {
         </div>
       )}
 
-      {/* Form nhập / quét mã vạch */}
+      {/* Form chọn suất chiếu kiểm soát & nhập/quét mã vạch */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <form onSubmit={onSubmitForm} className="space-y-4">
-          <label htmlFor="ticket-code-input" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Mã QR / Mã đơn đặt vé (Hỗ trợ máy quét mã vạch USB/Bluetooth tự động)
-          </label>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <input
-              id="ticket-code-input"
-              ref={inputRef}
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Quét mã QR hoặc dán mã booking ID (ví dụ: 65f...)..."
-              disabled={loading}
-              className="min-h-[44px] flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-base text-slate-900 transition-colors focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
-            <button
-              type="submit"
-              disabled={loading || !code.trim()}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-rose-600 px-6 py-2.5 font-semibold text-white shadow-sm transition hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:opacity-50"
+          <div>
+            <label htmlFor="scanner-showtime-select" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Suất chiếu đang soát (tùy chọn — bật để chặn vé sai suất)
+            </label>
+            <select
+              id="scanner-showtime-select"
+              value={selectedShowtimeId}
+              onChange={(e) => setSelectedShowtimeId(e.target.value)}
+              className="mt-1.5 min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
-              {loading ? 'Đang kiểm tra...' : 'Soát vé'}
-            </button>
+              <option value="">Tất cả suất chiếu (không khóa theo phòng)</option>
+              {showtimes.map((st) => (
+                <option key={st._id} value={st._id}>
+                  {st.movieId?.title || 'Phim'} · {st.roomId?.name || 'Phòng'} · {formatTime(st.startTime)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="ticket-code-input" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Mã QR / Mã đơn đặt vé (Hỗ trợ máy quét mã vạch USB/Bluetooth tự động)
+            </label>
+            <div className="mt-1.5 flex flex-col gap-3 sm:flex-row">
+              <input
+                id="ticket-code-input"
+                ref={inputRef}
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Quét mã QR hoặc dán mã booking ID (ví dụ: 65f...)..."
+                disabled={loading}
+                className="min-h-[44px] flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-base text-slate-900 transition-colors focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+              <button
+                type="submit"
+                disabled={loading || !code.trim()}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-rose-600 px-6 py-2.5 font-semibold text-white shadow-sm transition hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:opacity-50"
+              >
+                {loading ? 'Đang kiểm tra...' : 'Soát vé'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -266,7 +383,7 @@ export function TicketScanner() {
       {scanResult && (
         <div
           data-testid="scan-result"
-          className={`rounded-2xl border p-6 transition-all shadow-md ${
+          className={`rounded-2xl border p-6 shadow-md transition-all ${
             scanResult.type === 'success'
               ? 'border-emerald-500 bg-emerald-50 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100'
               : scanResult.type === 'duplicate'
@@ -275,12 +392,7 @@ export function TicketScanner() {
           }`}
         >
           <div className="flex items-start gap-4">
-            <div className="text-3xl">
-              {scanResult.type === 'success' && '✅'}
-              {scanResult.type === 'duplicate' && '⚠️'}
-              {scanResult.type === 'cancelled' && '🚫'}
-              {(scanResult.type === 'wrong_showtime' || scanResult.type === 'error') && '❌'}
-            </div>
+            <StatusIcon type={scanResult.type} />
             <div className="flex-1 space-y-2">
               <h2 className="text-xl font-bold tracking-tight">{scanResult.title}</h2>
               <p className="text-sm font-medium">{scanResult.message}</p>

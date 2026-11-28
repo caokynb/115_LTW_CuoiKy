@@ -223,4 +223,39 @@ describe('Check-in Scanner API (T17: POST & PATCH /api/bookings/:id/check-in)', 
     const body = await res.json();
     assert.equal(body.code, 'ALREADY_CHECKED_IN');
   });
+
+  it('chặn hủy đơn vé đã checked-in với mã 400', async () => {
+    const res = await fetch(`${baseUrl}/api/bookings/${validBooking._id}/cancel`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    assert.equal(res.status, 400);
+  });
+
+  it('chặn check-in đơn vé đang ở trạng thái pending với mã 400 (TICKET_PENDING)', async () => {
+    const pendingBooking = await Booking.create({
+      userId: validBooking.userId,
+      showtimeId: testShowtime._id,
+      totalPrice: 80000,
+      status: 'pending',
+    });
+    try {
+      const res = await fetch(`${baseUrl}/api/bookings/check-in`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: pendingBooking._id.toString() }),
+      });
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.code, 'TICKET_PENDING');
+    } finally {
+      await Booking.deleteOne({ _id: pendingBooking._id });
+    }
+  });
 });

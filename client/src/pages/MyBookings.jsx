@@ -37,75 +37,70 @@ export function MyBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all'); // 'all' | 'confirmed' | 'cancelled'
+  const [filter, setFilter] = useState('all'); // 'all' | 'confirmed' | 'checked-in' | 'pending' | 'cancelled'
   const [bookingToCancel, setBookingToCancel] = useState(null);
   const [bookingForQr, setBookingForQr] = useState(null);
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
-    setError('');
 
-    // Gọi GET /api/bookings/my (với fallback sang /bookings/my-bookings nếu cần)
-    api
-      .get('/bookings/my')
-      .then((res) => {
+    const loadBookings = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await api.get('/bookings/my');
         if (!ignore) {
           setBookings(res.data?.data || []);
         }
-      })
-      .catch((err) => {
-        if (!ignore) {
-          // Thử gọi /bookings/my-bookings dự phòng
-          api
-            .get('/bookings/my-bookings')
-            .then((fallbackRes) => {
-              if (!ignore) {
-                setBookings(fallbackRes.data?.data || []);
-              }
-            })
-            .catch((fallbackErr) => {
-              if (!ignore) {
-                setError(
-                  getErrorMessage(
-                    fallbackErr || err,
-                    'Không thể tải danh sách vé của bạn.'
-                  )
-                );
-              }
-            });
+      } catch (err) {
+        if (ignore) return;
+        try {
+          const fallbackRes = await api.get('/bookings/my-bookings');
+          if (!ignore) {
+            setBookings(fallbackRes.data?.data || []);
+          }
+        } catch (fallbackErr) {
+          if (!ignore) {
+            setError(
+              getErrorMessage(
+                fallbackErr || err,
+                'Không thể tải danh sách vé của bạn.'
+              )
+            );
+          }
         }
-      })
-      .finally(() => {
+      } finally {
         if (!ignore) setLoading(false);
-      });
+      }
+    };
+
+    loadBookings();
 
     return () => {
       ignore = true;
     };
   }, []);
 
-  // tính sẵn số lượng từng nhóm trạng thái để gắn huy hiệu trên các tab lọc
+  // tính sẵn số lượng từng nhóm 4 trạng thái để gắn huy hiệu trên các tab lọc
   const counts = useMemo(() => {
     const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
+    const checkedIn = bookings.filter((b) => b.status === 'checked-in').length;
+    const pending = bookings.filter((b) => b.status === 'pending').length;
     const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
     return {
       all: bookings.length,
       confirmed,
+      'checked-in': checkedIn,
+      pending,
       cancelled,
     };
   }, [bookings]);
 
   // lọc danh sách đơn vé hiển thị theo tab trạng thái đang chọn
   const filteredBookings = useMemo(() => {
-    if (filter === 'confirmed') {
-      return bookings.filter((b) => b.status === 'confirmed');
-    }
-    if (filter === 'cancelled') {
-      return bookings.filter((b) => b.status === 'cancelled');
-    }
-    return bookings;
+    if (filter === 'all') return bookings;
+    return bookings.filter((b) => b.status === filter);
   }, [bookings, filter]);
 
   // gửi yêu cầu hủy đơn vé khi người dùng xác nhận trên hộp thoại
@@ -171,71 +166,38 @@ export function MyBookings() {
         </div>
       )}
 
-      {/* Tabs lọc trạng thái */}
+      {/* Tabs lọc 4 trạng thái vé */}
       {bookings.length > 0 && (
         <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-neutral-200 pb-3 dark:border-cinema-borderSubtle">
-          <button
-            type="button"
-            onClick={() => setFilter('all')}
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              filter === 'all'
-                ? 'bg-brand-600 text-white shadow-cinema-cta'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700'
-            }`}
-          >
-            <span>Tất cả</span>
-            <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                filter === 'all'
-                  ? 'bg-white/20 text-white'
-                  : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
+          {[
+            { key: 'all', label: 'Tất cả' },
+            { key: 'confirmed', label: 'Đã xác nhận' },
+            { key: 'checked-in', label: 'Đã soát vé' },
+            { key: 'pending', label: 'Chờ thanh toán' },
+            { key: 'cancelled', label: 'Đã hủy' },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setFilter(tab.key)}
+              className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                filter === tab.key
+                  ? 'bg-brand-600 text-white shadow-cinema-cta'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700'
               }`}
             >
-              {counts.all}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFilter('confirmed')}
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              filter === 'confirmed'
-                ? 'bg-brand-600 text-white shadow-cinema-cta'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700'
-            }`}
-          >
-            <span>Đã xác nhận</span>
-            <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                filter === 'confirmed'
-                  ? 'bg-white/20 text-white'
-                  : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
-              }`}
-            >
-              {counts.confirmed}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFilter('cancelled')}
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              filter === 'cancelled'
-                ? 'bg-brand-600 text-white shadow-cinema-cta'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-cinema-elevated dark:text-neutral-200 dark:hover:bg-neutral-700'
-            }`}
-          >
-            <span>Đã hủy</span>
-            <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                filter === 'cancelled'
-                  ? 'bg-white/20 text-white'
-                  : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
-              }`}
-            >
-              {counts.cancelled}
-            </span>
-          </button>
+              <span>{tab.label}</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                  filter === tab.key
+                    ? 'bg-white/20 text-white'
+                    : 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200'
+                }`}
+              >
+                {counts[tab.key] || 0}
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
@@ -269,7 +231,10 @@ export function MyBookings() {
               .join(', ');
 
             const isConfirmed = booking.status === 'confirmed';
+            const isCheckedIn = booking.status === 'checked-in';
+            const isPending = booking.status === 'pending';
             const isCancelled = booking.status === 'cancelled';
+            const canShowQr = isConfirmed || isCheckedIn;
             const eligibleToCancel =
               isConfirmed && canCancelBooking(showtime.startTime);
 
@@ -281,7 +246,13 @@ export function MyBookings() {
                 {/* dải màu mép trái phân biệt trạng thái vé */}
                 <div
                   className={`h-1.5 w-full shrink-0 sm:h-auto sm:w-2 ${
-                    isConfirmed ? 'bg-brand-600' : 'bg-neutral-500'
+                    isConfirmed
+                      ? 'bg-brand-600'
+                      : isCheckedIn
+                      ? 'bg-emerald-600'
+                      : isPending
+                      ? 'bg-amber-500'
+                      : 'bg-neutral-500'
                   }`}
                   aria-hidden="true"
                 />
@@ -307,14 +278,19 @@ export function MyBookings() {
                           Đã xác nhận
                         </span>
                       )}
+                      {isCheckedIn && (
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+                          Đã soát vé
+                        </span>
+                      )}
+                      {isPending && (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                          Chờ thanh toán
+                        </span>
+                      )}
                       {isCancelled && (
                         <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:border-rose-800 dark:bg-rose-950/60 dark:text-rose-400">
                           Đã hủy
-                        </span>
-                      )}
-                      {!isConfirmed && !isCancelled && (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                          {booking.status}
                         </span>
                       )}
                       <span className="text-xs text-slate-400">
@@ -378,9 +354,9 @@ export function MyBookings() {
                       </Button>
                     </Link>
 
-                    {isConfirmed && (
+                    {canShowQr && (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={() => setBookingForQr(booking)}
                         aria-label={`Xem mã QR vé xem phim ${movie.title || ''}`}

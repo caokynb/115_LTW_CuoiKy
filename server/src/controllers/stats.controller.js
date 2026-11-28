@@ -44,7 +44,7 @@ const getDateRange = (query) => {
 };
 
 const bookingMatch = (createdAt) => {
-  const match = { status: 'confirmed' };
+  const match = { status: { $in: ['confirmed', 'checked-in'] } };
   if (createdAt) match.createdAt = createdAt;
   return match;
 };
@@ -78,7 +78,7 @@ const getRevenueByMovie = async (req, res, next) => {
                 $expr: {
                   $and: [
                     { $eq: ['$bookingId', '$$currentBooking'] },
-                    { $eq: ['$status', 'active'] },
+                    { $in: ['$status', ['active', 'checked-in']] },
                   ],
                 },
               },
@@ -200,7 +200,7 @@ const getOccupancyByShowtime = async (req, res, next) => {
                 $expr: {
                   $and: [
                     { $eq: ['$showtimeId', '$$currentShowtime'] },
-                    { $eq: ['$status', 'active'] },
+                    { $in: ['$status', ['active', 'checked-in']] },
                   ],
                 },
               },

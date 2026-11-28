@@ -125,7 +125,7 @@ const getShowtimeById = async (req, res, next) => {
 
     const soldTickets = await Ticket.find({
       showtimeId: showtime._id,
-      status: 'active',
+      status: { $in: ['active', 'checked-in'] },
     })
       .select('row number -_id')
       .lean();
