@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { Button, FormField, Toast, useToast } from '../components/ui';
@@ -15,6 +15,11 @@ export function Register() {
   const { isAuthenticated, login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromLocation = location.state?.from;
+  const redirectTo = fromLocation
+    ? `${fromLocation.pathname || '/'}${fromLocation.search || ''}`
+    : '/';
 
   const [values, setValues] = useState({
     fullName: '',
@@ -29,9 +34,9 @@ export function Register() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, redirectTo]);
 
   const validateSingleField = (name, value, nextValues) => {
     switch (name) {
@@ -207,6 +212,7 @@ export function Register() {
         Đã có tài khoản?{' '}
         <Link
           to="/login"
+          state={fromLocation ? { from: fromLocation } : undefined}
           className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-300 dark:hover:text-brand-200"
         >
           Đăng nhập

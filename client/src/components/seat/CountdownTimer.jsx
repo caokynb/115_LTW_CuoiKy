@@ -20,13 +20,14 @@ export function CountdownTimer({ movieId, seconds = HOLD_SECONDS, className = ''
 
   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const ss = String(secondsLeft % 60).padStart(2, '0');
+  const isAlmostExpired = secondsLeft < 60;
 
   return (
     <div
       role="timer"
       aria-label="Thời gian giữ ghế còn lại"
       data-testid="countdown-timer"
-      className={`inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200 ${className}`}
+      className={`sticky top-3 z-20 inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 shadow-md dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100 ${isAlmostExpired ? 'animate-pulse border-red-600 bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-100' : ''} ${className}`}
     >
       <span>Giữ ghế còn lại</span>
       <span className="text-base font-extrabold tabular-nums" data-testid="countdown-value">

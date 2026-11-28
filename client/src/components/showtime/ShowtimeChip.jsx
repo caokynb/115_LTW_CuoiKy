@@ -25,6 +25,9 @@ export function ShowtimeChip({ showtime, onSelect }) {
   const room = showtime.roomId && typeof showtime.roomId === 'object'
     ? showtime.roomId.name
     : '';
+  const cinema = showtime.roomId?.cinemaId && typeof showtime.roomId.cinemaId === 'object'
+    ? showtime.roomId.cinemaId.name
+    : '';
   const disabled = isInvalid || isPast || !showtime._id;
 
   return (
@@ -32,7 +35,8 @@ export function ShowtimeChip({ showtime, onSelect }) {
       type="button"
       disabled={disabled}
       onClick={() => !disabled && onSelect?.(showtime)}
-      aria-label={`${formatTime(showtime.startTime)}, ${room || 'phòng chiếu'}, vé thường ${formatPrice(showtime.standardPrice)}, vé VIP ${formatPrice(showtime.vipPrice)}${isPast ? ', suất đã bắt đầu' : isInvalid ? ', giờ chiếu không hợp lệ' : ''}`}
+      aria-label="Chọn ghế"
+      aria-describedby={`showtime-description-${showtime._id}`}
       className={`flex min-h-[44px] min-w-[180px] flex-col rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-cinema-bg ${
         disabled
           ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400 dark:border-cinema-borderSubtle dark:bg-cinema-card dark:text-neutral-500'
@@ -47,9 +51,10 @@ export function ShowtimeChip({ showtime, onSelect }) {
           </span>
         )}
       </span>
-      <span className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      <span id={`showtime-description-${showtime._id}`} className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         {room || 'Phòng chiếu'}
       </span>
+      {cinema && <span className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">{cinema}</span>}
       <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
         <span>Thường <strong>{formatPrice(showtime.standardPrice)}</strong></span>
         <span>VIP <strong>{formatPrice(showtime.vipPrice)}</strong></span>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../../api/axios';
-import { Button, EmptyState, FormField, TableSkeleton } from '../../components/ui';
+import { Button, EmptyState, FormField, Modal, TableSkeleton } from '../../components/ui';
 
 const emptyForm = { name: '', address: '', hotline: '', rooms: [] };
 
@@ -13,6 +13,7 @@ export function Cinemas() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -89,7 +90,6 @@ export function Cinemas() {
   };
 
   const removeCinema = async (cinema) => {
-    if (!window.confirm(`Xóa cụm rạp ${cinema.name}?`)) return;
     setError('');
     setNotice('');
     try {
@@ -162,13 +162,27 @@ export function Cinemas() {
                   <td className="px-4 py-3"><div className="font-medium">{cinema.name}</div><div className="text-xs text-slate-500">{cinema.address}</div></td>
                   <td className="px-4 py-3">{(cinema.rooms || []).map((room) => room.name).join(', ') || 'Chưa gắn phòng'}</td>
                   <td className="px-4 py-3">{cinema.hotline}</td>
-                  <td className="px-4 py-3"><div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => editCinema(cinema)}>Sửa</Button><Button size="sm" variant="danger" onClick={() => removeCinema(cinema)}>Xóa</Button></div></td>
+                  <td className="px-4 py-3"><div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => editCinema(cinema)}>Sửa</Button><Button size="sm" variant="danger" onClick={() => setPendingDelete(cinema)}>Xóa</Button></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <Modal isOpen={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)} title="Xóa cụm rạp" size="sm">
+        <p className="text-sm text-slate-700 dark:text-slate-300">
+          Bạn có chắc muốn xóa cụm rạp “{pendingDelete?.name}” không?
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setPendingDelete(null)}>Hủy</Button>
+          <Button variant="danger" onClick={async () => {
+            const cinema = pendingDelete;
+            setPendingDelete(null);
+            if (cinema) await removeCinema(cinema);
+          }}>Xóa cụm rạp</Button>
+        </div>
+      </Modal>
     </div>
   );
 }

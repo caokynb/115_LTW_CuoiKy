@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { clearSeats } from '../store/slices/bookingSlice';
+import { store } from '../store';
 
 export const TOKEN_STORAGE_KEY = 'cinema_token';
 export const USER_STORAGE_KEY = 'cinema_user';
@@ -18,6 +20,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(Boolean(token));
 
   const logout = useCallback(() => {
+    store.dispatch(clearSeats());
     setToken(null);
     setUser(null);
   }, [setToken, setUser]);
